@@ -1,0 +1,17 @@
+{
+	"agentid": "tcm2agent",
+	"campus": "PNNL",
+	"building": "SEB",
+    "unit": "AHU1",
+
+	"window_size_in_day": 7,
+    "min_required_window_size_in_percent": 90,
+	"interval_in_min": 1,
+    "schedule_run_in_day": 1,
+    "aggregate_in_min": 5,
+
+    "static_pressure_name": "DuctStaticPressure",
+    "air_flow_rate_name": "DischargeAirFlow",
+    "fan_power_name": "SupplyFanPower",
+    "ts_name": "Date"
+}

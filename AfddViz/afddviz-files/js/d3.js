@@ -2702,35 +2702,120 @@
     var n = d3_time_numberRe.exec(string.slice(i, i + 2));
     return n ? (date.H = +n[0], i + n[0].length) : -1;
   }
-  function d3_time_parseMinutes(date, string,˜  Z          ´  •          Ô  Å                     @  ^         X           p  °           Ó         È   	         à  =	         4  ‚	         |  Æ	          Œ   
-          œ  P
-         ¬  —
-          ¼  ë
-          Ì            Ü  W          ì  ™          ü  í           4            n          ,  Â         <  	          ˆ  c         œ  ¡          ¬  ¾          ¼            Ì  1          Ü  N          ì  j         ü  Ÿ          ¡              
-       0      ÿÿÿÿ         ˜      ÿÿÿÿ         ´      ÿÿÿÿ         È      ÿÿÿÿ         Ô      ÿÿÿÿ         t      ÿÿÿÿ         ì      ÿÿÿÿ+         L      ÿÿÿÿ#         `      ÿÿÿÿ'         \      ÿÿÿÿ)               ÿÿÿÿ	         h      ÿÿÿÿ         Ø      ÿÿÿÿ               ÿÿÿÿ         %   ¡  /   ±  ?   Á    Ñ  <  ñ  Ş  á  ¯  á  Á  A  g  Á    ñ      8    P  ‘  V  ¡  l  ±      ª  !  ­  1  ç  Ñ      D‚…g	  ‹Ë¸ÿÿÿÿèl•uö‹L$,‹Y‹Ó‹K  k;ˆ–·Ï9·` Ğ   ”	  x
-  ˜
-     (}  $   8Àµvl$Hf „B‚ÿÿÿÿ                ¨™f…àÜ°ìÜ°àÜ°}  }  ÿÿÿÿÿÿÿÿx
-  ˜z  (}  4}    ¤8 Q Q à[ ` „   ıì         ñ              ¤       ü½İ°Ü¾İ°Ì¾İ°¼¾İ°ÿÿÿÿÿÿÿÿ  `+Àø·`³x À
-À!ÀLÀA ğ(ğ<(Àğ€(À4À
-À4Àğ+(#°"ÀÀÀ00ğ8(ÀÀWÀÀóÂÀğ(,0ÀKHÂ
-ÀBÀ
-ÀDÀVÀbÀGÀLÀoÀğ}(ÀÀÀÀÀ#0À.ÀÀğ(>ÀÀ÷À<À 0ÀLÀiÁ'À%`hğ(6ÀÀ)ÀQÀ¾À
-À4À
-ÀlÀ
-ÀBÀÀ²ÀUÀ'À;ÀBÀœÀÀC x0À$ÀNÀ"À,À
-ÀÀ&Àï@ 0	À#0	 ’ÀÀC “À$00<ÀÀÀÀÀğË(ğ(ğ0(0ğ(SÀ*¢=ÀÀ~ÀÀğ)(-ÀÀÀ,0À 00ğ(Xah	À*00&À*`hW`hÀ>`hÀ*`hW`hs`hƒ`h_`h@ğ4(8`hÛahğK(ğ8(ÏÀ%0ÀCÀÀ´À+`hÀ ÀÀ,0
-À@@À
-À€`hÀ!0@@8`hG`h0
-À0À0L0Àğ (0 0À0ğ(ğ(ÀÀ%`hğ(8`h7`h1À
-À 0D@À0-À
-À,˜0@0ğ(ğ@(tÀ)ÀWÀÀ(00ÀÀ@À@d0,@d0ğ4(ğ\((@%@X0„@\05ÀÀ@D0Àğ (0 0ÀÀÀ'À;ÀfÀÀ@ğ@(ğ(H0BÁ
-À,0D0ÀÀ0T`h/ 00À`À`""0:0À`&À`À`D`h~Àt`EÀRÀ`À`À`À`
-À
-`$`h`h+`h`h#`h`h`h`h`h`h#`h#`h`h/`h7`hø·`³[x$`ø·`³,x:`n`h?`hÀ`D`h`h`h#`h+`hG`h+`h`h/`hÀ
-`(`h+`h/`h3`h`h#`h;`hÀ
-`@`h'`h`h+`h3`h`h?`h/`hG`h#`h/`h+`h#`h'`h/`h3`h;`h+`h`h?`h`h+`h7`h`h/`h7`h#`h7`h#`h3`h?`h#`h'`h`hÀ`4`h'`h7`h`h`h`h/`h7`h#`h7`h`h+`h`h/`h`h`hS`hÀ`,`h/`h'`h`h'`hÀ
-`4`h;`h3`h+`h`hC`h#`h3`h?`h7`h3`h+`h#`h`hK`h/`h7`h`h+`h/`h/`h`h`h`h'`$`h'`h'`h+`h/`h#`h+`h#`h`h#`h`h+`h#`h`h3`h`h`h`h`h`h`h`h`h`h`h;`h`hG`h`h`h`h`h`h7`h`h`h`h'`h`h/`h`h7`h`h`h`h7`h`h/`h#`h`h`h#`h3`h`h`h`h`h`h`h`h;`h`h`h`h`h/`h`h`h`h+`h`h/`h;`h#`h`h`h`h+`h`h#`h`h`h/`h`h7`h`h'`h`h#`h`h#`h`h'`h`h#`h+`h'`h#`h`h/`h/`h'`h7`h#`h`h`h+`h3`h3`h`h3`h'`h'`hC`h`h`h;`h`h#`h`h`h3`h`h`h`h`h?`h+`h+`h`hK`h¸ÁÀ4`hÀ`hÀ1`hÀ`heÀÀ;`h9À2`hÀ0`hÀ0`hZ`ø·`³'x:`! øş P ÀhøñûP ÀhøİûP Àhø½öP ÀhøğP Àhø•îP Àhø)æP Àhø%äP ÀhøäP ÀhøÙãP Àhø1âP Àhø!âP ÀhøàP ÀhøuÜP ÀhøMÜP Àhø=ÜP Àhø•ÚP ÀhøyÚP Àhøy×P Àhø±ÓP ÀhøùÑP Àhø½ÑP Àhø¡ÑP Àhø=ĞP Àhø5ĞP ÀhøĞP Àhø…ÏP ÀhømÏP ÀhøIÏP ÀhøıÎP ÀhøÉÎP Àhø©ÎP ÀhøÎP Àhø=ÍP ÀhøùÌP ÀhøÅÌP ÀhøUÌP ÀhøÌP ÀhøÊP ÀhøeÊP Àhø-ÊP ÀhømÉP Àhø	ÉP ÀhøÑÈP ÀhømÈP ÀhøµÇP Àhø…ÇP Àhø-ÇP Àhø©ÆP ÀhøMÆP ÀhøáÅP ÀhøÅP ÀhøiÅP ÀhøIÅP Àhø)ÄP ÀhøÃP ÀhøÂP ÀhøÑÁP Àhø‘ÁP ÀhøéÀP ÀhøEÀP Àhøí¿P Àhø%‘P ÀhøíP Àhhøîõh  $(‰|$$‰T$,èä~uöèo
-ÍÌL?ôôôôôôôôôôôôôôôôôôôôôôôôôôôô;A…7†uöff‰„$ ÀÿÿUìˆ   ‰L$‹J‹œ$   ‹k‹}ÿZHƒ…C  ‹ôÁî‹4µ`³·‹F4x;~<ƒØ>  ‰~4‡   ¿h@…‹`‰8Ç@h@…Ç@    Ç@ÿÿÿÿ‹}‰x‰h‹xÿh@……GC  3ÿ‰T$(‰\$‰L$t‰t$x‰|$péB  ‹ıG;|$  Åù~Ñ\©‹ï„     ‹S‹Jù«B‚uÓ‹Z‹{;œ$   „³   ‹„$   ‹p‹^‹O;Ëu¬v;ş„€   …É„x   Ñá‹Áƒ coordinates = object.coordinates, i = -1, n = coordinates.length;
+  function d3_time_parseMinutes(date, string, i) {
+    d3_time_numberRe.lastIndex = 0;
+    var n = d3_time_numberRe.exec(string.slice(i, i + 2));
+    return n ? (date.M = +n[0], i + n[0].length) : -1;
+  }
+  function d3_time_parseSeconds(date, string, i) {
+    d3_time_numberRe.lastIndex = 0;
+    var n = d3_time_numberRe.exec(string.slice(i, i + 2));
+    return n ? (date.S = +n[0], i + n[0].length) : -1;
+  }
+  function d3_time_parseMilliseconds(date, string, i) {
+    d3_time_numberRe.lastIndex = 0;
+    var n = d3_time_numberRe.exec(string.slice(i, i + 3));
+    return n ? (date.L = +n[0], i + n[0].length) : -1;
+  }
+  function d3_time_zone(d) {
+    var z = d.getTimezoneOffset(), zs = z > 0 ? "-" : "+", zh = abs(z) / 60 | 0, zm = abs(z) % 60;
+    return zs + d3_time_formatPad(zh, "0", 2) + d3_time_formatPad(zm, "0", 2);
+  }
+  function d3_time_parseLiteralPercent(date, string, i) {
+    d3_time_percentRe.lastIndex = 0;
+    var n = d3_time_percentRe.exec(string.slice(i, i + 1));
+    return n ? i + n[0].length : -1;
+  }
+  function d3_time_formatMulti(formats) {
+    var n = formats.length, i = -1;
+    while (++i < n) formats[i][0] = this(formats[i][0]);
+    return function(date) {
+      var i = 0, f = formats[i];
+      while (!f[1](date)) f = formats[++i];
+      return f[0](date);
+    };
+  }
+  d3.locale = function(locale) {
+    return {
+      numberFormat: d3_locale_numberFormat(locale),
+      timeFormat: d3_locale_timeFormat(locale)
+    };
+  };
+  var d3_locale_enUS = d3.locale({
+    decimal: ".",
+    thousands: ",",
+    grouping: [ 3 ],
+    currency: [ "$", "" ],
+    dateTime: "%a %b %e %X %Y",
+    date: "%m/%d/%Y",
+    time: "%H:%M:%S",
+    periods: [ "AM", "PM" ],
+    days: [ "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" ],
+    shortDays: [ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" ],
+    months: [ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" ],
+    shortMonths: [ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" ]
+  });
+  d3.format = d3_locale_enUS.numberFormat;
+  d3.geo = {};
+  function d3_adder() {}
+  d3_adder.prototype = {
+    s: 0,
+    t: 0,
+    add: function(y) {
+      d3_adderSum(y, this.t, d3_adderTemp);
+      d3_adderSum(d3_adderTemp.s, this.s, this);
+      if (this.s) this.t += d3_adderTemp.t; else this.s = d3_adderTemp.t;
+    },
+    reset: function() {
+      this.s = this.t = 0;
+    },
+    valueOf: function() {
+      return this.s;
+    }
+  };
+  var d3_adderTemp = new d3_adder();
+  function d3_adderSum(a, b, o) {
+    var x = o.s = a + b, bv = x - a, av = x - bv;
+    o.t = a - av + (b - bv);
+  }
+  d3.geo.stream = function(object, listener) {
+    if (object && d3_geo_streamObjectType.hasOwnProperty(object.type)) {
+      d3_geo_streamObjectType[object.type](object, listener);
+    } else {
+      d3_geo_streamGeometry(object, listener);
+    }
+  };
+  function d3_geo_streamGeometry(geometry, listener) {
+    if (geometry && d3_geo_streamGeometryType.hasOwnProperty(geometry.type)) {
+      d3_geo_streamGeometryType[geometry.type](geometry, listener);
+    }
+  }
+  var d3_geo_streamObjectType = {
+    Feature: function(feature, listener) {
+      d3_geo_streamGeometry(feature.geometry, listener);
+    },
+    FeatureCollection: function(object, listener) {
+      var features = object.features, i = -1, n = features.length;
+      while (++i < n) d3_geo_streamGeometry(features[i].geometry, listener);
+    }
+  };
+  var d3_geo_streamGeometryType = {
+    Sphere: function(object, listener) {
+      listener.sphere();
+    },
+    Point: function(object, listener) {
+      object = object.coordinates;
+      listener.point(object[0], object[1], object[2]);
+    },
+    MultiPoint: function(object, listener) {
+      var coordinates = object.coordinates, i = -1, n = coordinates.length;
+      while (++i < n) object = coordinates[i], listener.point(object[0], object[1], object[2]);
+    },
+    LineString: function(object, listener) {
+      d3_geo_streamLine(object.coordinates, listener, 0);
+    },
+    MultiLineString: function(object, listener) {
+      var coordinates = object.coordinates, i = -1, n = coordinates.length;
       while (++i < n) d3_geo_streamLine(coordinates[i], listener, 0);
     },
     Polygon: function(object, listener) {
@@ -8974,16 +9059,93 @@
   d3_time.seconds.utc = d3_time.second.utc.range;
   d3_time.minute = d3_time_interval(function(date) {
     return new d3_date(Math.floor(date / 6e4) * 6e4);
-  }, function(dateàƒáğt?<4÷ÙÅúoÅúoÅáïÙÄâyÛuVƒÁuæ…ÀtFÅúo\ğÅúoLğÅáïÙÄâyÛu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À„ÿÿÿ‹´$”   …ö…òB  Åù~Ã‹[…Û„C  ‹z‹B…À…x  ‹j‹L$(‹Ó‰<$‰l$ffè˜¬'ÿ…= `r·‹D$‹h‰D$‹H¸ZHƒè˜Èö;è„Ø   ‹\$‹K‹Y‹l$‹m;İ…\B  ‹\$‹k‹Õ‰œ$   ¸ZHƒèœZ™ö‹¼$   ‰o‹ÍA‰O‹Xû¸ÌHƒ…¶W  ÅùnÀ‹X‹k…ít‹m‹]…Û…ş@  ‹l$‹]‹{…ÿ~4…ÿ†œ@  ‹ÇH;Çƒ‘@  Åù~Å‹U3í‰L$ÅùnÓ‰|$‰”$   éşÿÿ‰L$‹L$‹I‹l$f¸ÿÿÿÿèä‡uö‹L$;È…(ÿÿÿ‹\$‹C‹XûPÿ=ƒ…A  ‰„$   ‹L$x‹A4H‹l$x;M<ƒP<  ‰M4   »h@…‹K`‰Ç@h@…Ç@    3É3Û‰H‰XÇ@ÿÿÿÿ‹è‹œ$   ‰X‹[‰X‹Mùh@……©@  ‰l$»    ‰œ$   ‹\$‹k‹K¸Pÿ=ƒèLQƒö;è…”   ‹¬$   …í…Æ,  Äˆ   ]… `r·Ã‹L$‹|$0L¹‰l$0‹Y‰\$$‹\$ û€ƒ=ƒ…û   ‹L$$‹Yû0ÀB‚u%‹l$ı€ƒ=ƒ…ü>  ‹l$,‹]‹T$(‰$fèl„uö‹l$0E;l$|š‹L$è„°ö…À„lÿÿÿ‹L$‹I‹Y‹|$‹o;İ…\?  ‹_‰\$‹Ó‹ïf¸Pÿ=ƒèÀ;™ö‹L$‰MA‰M‹H‹Yû š;ƒ… >  ‰D$,‹X‰\$ûğ–=ƒ„ìşÿÿ‹L$‹I‰L$‹Y‰\$…Ûqÿÿÿ…Û†«>  ‹ËI;Ëƒ >  ‹L$‹I ‰L$ ‹L$3Û‰\$0éîşÿÿ‹\$û`à;ƒ…rT  ‹L$,‰L$4‹\$$‹KùÀÙB‚…ƒ  ‹Ë‰L$$‹\$4‹C‹i‹X;Å„°   ‹}‹o‹K;Í…1  w{;ş„€   …É„x   Ñá‹Áƒàƒáğt?<4÷ÙÅúoÅúoÅñïÈÄâyÉuVƒÁuæ…ÀtFÅúoLğÅúoDğÅñïÈÄâyÉu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À„’  ‹\$$‹K‰L$8‹L$4‹YÅùnÃ‹KÅùnÉ…É„  ‹K…É  » Dê‘‹k‰l$<Åù~Í‹u…ö†mA  ‹ÙK;ŞƒbA  ‹Õ3íÅùnåë'fff„     fffÅù~ÉÅù~çT¹Åùnã‹L$@Åù~Ş‹j‹]‹[ÅùnÛ‹C‹m;\$<„Ä   ‹\$<‹[ÅùnŞ‰L$@‹s‹H;Î…p  sx;ş„€   …É„x   Ñá‹Áƒàƒáğt?<4÷ÙÅúo,ÅúoÅÑïêÄâyíuVƒÁuæ…ÀtFÅúolğÅúoTğÅÑïêÄâyíu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À„Ñ   ‹L$@Åù~Ş‹};l$8„›#  ‹\$8‹[ÅùnŞ‰L$@‹C‹O;È…Ÿ   s;ş„€   …É„x   Ñá‹Áƒàƒáğt?<4÷ÙÅúoÅúo,ÅéïÕÄâyÒuVƒÁuæ…ÀtFÅúoTğÅúolğÅéïÕÄâyÒu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À…Û"  Åù~ãC;\$@Œ/şÿÿ½    ‹L$8‹Y‹K…É„5<  ‹U‹L$$‹I;é„).  ‹Y‹{‹J;Ï…".  sz;ş„€   …É„x   Ñá‹Áƒàƒáğt?<4÷ÙÅúoÅúoÅñïÈÄâyÉuVƒÁuæ…ÀtFÅúoLğÅúoDğÅñïÈÄâyÉu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À„*ûÿÿ‹L$$‹i‹]û°	B‚…1
-  û°	B‚…L
-  ‹L$$f¸ DËoèzuö…Àt-‹œ$   …Û„Q  ‹Œ$   ‹T$$‹l$4‰,$fè8uöé3úÿÿ‹œ$”   …Û…Î4  ıÀÙB‚…m(  ‹\$$‰\$‹L$4‹IÅùnÁ‹[ ‰\$ ‹IÅùnÑ…É„   Åù~Á‹I…É  Åù~Õ‹u» Dê‘‹k‰l$$…ö†ÆB  ‹ÙK;Şƒ»B  Åù~Ò3íÅùnÍë&ff„     fffÅù~ÑÅù~ÊT‘ÅùnË‹L$Åù~Ş‹j‹]‹[ÅùnÛ‹C‹m;\$$„Ä   ‹|$$‹_ÅùnŞ‰L$‹{‹H;Ï…p  sx;ş„€   …É„x   Ñá‹Áƒàƒáğt?<4÷ÙÅúo,Åúo$ÅÑïìÄâyíuVƒÁuæ…ÀtFÅúolğÅúodğÅÑïìÄâyíu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À„Ñ   ‹L$Åù~Ş‹};l$ „y$  ‹\$ ‹[ÅùnŞ‰L$‹C‹O;È…Ÿ   s;ş„€   …É„x   Ñá‹Áƒàƒáğt?<4÷ÙÅúo$Åúo,ÅÙïåÄâyäuVƒÁuæ…ÀtFÅúodğÅúolğÅÙïåÄâyäu6ë-‹Èƒáüt<4÷Ù‹;uƒÁuó©   t
-··;Ùu¸   ë3À…À…¹#  Åù~ËC;\$Œ/şÿÿ‹L$ ‹Y‹K…É„r=  ‹\$x‹K4‹\$4‹k‰l$Y‹|$x;_<ƒ„4  ‰_4ƒ   ½Iƒ‹]`‰ÇAIƒ3í3ÿ‰i‰y‰L$‹\$…Û„ë:  ‹L$x‹A4H ‹l$x;M<ƒV4  ‰M4   ¹0Iƒ‹Y`‰Ç@0Iƒ3É3Û‰H‰XÇ@    ‰H‰XÇ@ÿÿÿÿ‹è‹\$‰X‹L$‰H‹M‹øÁï	Æ‡  L† ù0Iƒ…„:  ‰l$,‹U‹B‹];Ø„Û   ÇE    ‹z…ÿæ  ‹J‹i…í†ÿ;  ‹ßK;İƒô;  ‹l$,‹m‹UúIƒ…Ş;  ‰|$ÅùnàÅùnÅ‹mÅùnÍÅù~Å‹]ÅùnÛÅùné3Ò3íÅùnÕ‰l$ë D  Åù~ÕÅù~éL©‹l$,‹}‰|$ÅùnÓ‹i‹Mù`à;ƒ…Û  Åù~Ë…Û…  Åù~Ù…É…`  B‹L$,‰QÅù~ÓC;\$|¨Åù~à‹L$,‰Aë‹U¹HJ‘¶YhÅùnÃ‹\$‹C…Ò…­   ‹XûpyC‚…^<  ‰D$$‹H‰L$¶Y…Û„*  ‰\$,‹\$t‹S8‹L$‹i4‹I0‹|$,…ÿEÍ…É„)!  ‹iığ{ÿ‚…C  ÅùnÉ‹Y‹k‹ED…À„=  ‹H‹l$t‹l ;Å…î  Åù~É¶A…À…Ê@  ‹ñ‹N‹^‹Ù‹L$(Ç    é/õÿÿ‹K‰L$0‹Y‰\$‹XûpyC‚…»9  ‰D$4‹H‰L$$‹i‹ED…À„~9  ‹H‹\$t‹,;Å…@  ‹\$$¶[‰\$ …Û„@!  ‹L$$‹i4‹I0‹|$ …ÿEÍ…É„  ‹T$(‰T$‰T$‹l$4f¸ğ{ÿ‚èü£‰ø‰D$ ‹\$‹[û°	B‚…B  û°	B‚…¢  ‹L$0‹Yû0LB‚…–(  ‰L$$‹Y…Û„`  ‹KùØ^C‚…-@  ‹Ó¹Hvä‘‹Yl‹Ã‹Ú‹KÅùnÁ‹Iù€ˆĞ‚…A@  Åù~Ã‹Ë‰$»    ‰\$‹l$èyuö‹HùèC‚……^J  ‹È¶I‹Á…É…Â@  ‹\$ …Û„Ú  ‹s‹^û !„……¨  û !„……Ÿ  ‹L$ ‹éff¸ÿÿÿÿèìzuö‹\$,‹[‰\$0‹L$,‹I‰L$8‰l$<‹L$x‹Y4‹ë[(;Y<ƒâ2  ‰Y4ƒ   ¹˜0Iƒ‹Y`‰] ÇE˜0Iƒ3É3Û‰M‰]‰M ‰]$ÇEÿÿÿÿÇEÿÿÿÿÇEÿÿÿÿÇEÿÿÿÿ‹İ‰\$,‹l$0‰k ‹l$8‰k$Áë	Æƒ  L† ‹M‹Á‹]‹l$,‰]‹È…ÉC  3Òé  ‹L$ …É„¨9  ‹\$,‹KÅùnÁ‹YÅùnË‹y‹L$,‹IÅùnÙ‹\$,‹KÅù~Ã‹k‰l$0‹İK;Ïu‹L$,‹I‰L$é5  ‹L$,ÇA    …íF  Åù~É‹i…í†½<  ;İƒµ<  Åù~İ‹MùIƒ…¢<  Åùnå‹Seconds();
+  }, function(date, offset) {
+    date.setTime(date.getTime() + Math.floor(offset) * 6e4);
+  }, function(date) {
+    return date.getMinutes();
+  });
+  d3_time.minutes = d3_time.minute.range;
+  d3_time.minutes.utc = d3_time.minute.utc.range;
+  d3_time.hour = d3_time_interval(function(date) {
+    var timezone = date.getTimezoneOffset() / 60;
+    return new d3_date((Math.floor(date / 36e5 - timezone) + timezone) * 36e5);
+  }, function(date, offset) {
+    date.setTime(date.getTime() + Math.floor(offset) * 36e5);
+  }, function(date) {
+    return date.getHours();
+  });
+  d3_time.hours = d3_time.hour.range;
+  d3_time.hours.utc = d3_time.hour.utc.range;
+  d3_time.month = d3_time_interval(function(date) {
+    date = d3_time.day(date);
+    date.setDate(1);
+    return date;
+  }, function(date, offset) {
+    date.setMonth(date.getMonth() + offset);
+  }, function(date) {
+    return date.getMonth();
+  });
+  d3_time.months = d3_time.month.range;
+  d3_time.months.utc = d3_time.month.utc.range;
+  function d3_time_scale(linear, methods, format) {
+    function scale(x) {
+      return linear(x);
+    }
+    scale.invert = function(x) {
+      return d3_time_scaleDate(linear.invert(x));
+    };
+    scale.domain = function(x) {
+      if (!arguments.length) return linear.domain().map(d3_time_scaleDate);
+      linear.domain(x);
+      return scale;
+    };
+    function tickMethod(extent, count) {
+      var span = extent[1] - extent[0], target = span / count, i = d3.bisect(d3_time_scaleSteps, target);
+      return i == d3_time_scaleSteps.length ? [ methods.year, d3_scale_linearTickRange(extent.map(function(d) {
+        return d / 31536e6;
+      }), count)[2] ] : !i ? [ d3_time_scaleMilliseconds, d3_scale_linearTickRange(extent, count)[2] ] : methods[target / d3_time_scaleSteps[i - 1] < d3_time_scaleSteps[i] / target ? i - 1 : i];
+    }
+    scale.nice = function(interval, skip) {
+      var domain = scale.domain(), extent = d3_scaleExtent(domain), method = interval == null ? tickMethod(extent, 10) : typeof interval === "number" && tickMethod(extent, interval);
+      if (method) interval = method[0], skip = method[1];
+      function skipped(date) {
+        return !isNaN(date) && !interval.range(date, d3_time_scaleDate(+date + 1), skip).length;
+      }
+      return scale.domain(d3_scale_nice(domain, skip > 1 ? {
+        floor: function(date) {
+          while (skipped(date = interval.floor(date))) date = d3_time_scaleDate(date - 1);
+          return date;
+        },
+        ceil: function(date) {
+          while (skipped(date = interval.ceil(date))) date = d3_time_scaleDate(+date + 1);
+          return date;
+        }
+      } : interval));
+    };
+    scale.ticks = function(interval, skip) {
+      var extent = d3_scaleExtent(scale.domain()), method = interval == null ? tickMethod(extent, 10) : typeof interval === "number" ? tickMethod(extent, interval) : !interval.range && [ {
+        range: interval
+      }, skip ];
+      if (method) interval = method[0], skip = method[1];
+      return interval.range(extent[0], d3_time_scaleDate(+extent[1] + 1), skip < 1 ? 1 : skip);
+    };
+    scale.tickFormat = function() {
+      return format;
+    };
+    scale.copy = function() {
+      return d3_time_scale(linear.copy(), methods, format);
+    };
+    return d3_scale_linearRebind(scale, linear);
+  }
+  function d3_time_scaleDate(t) {
+    return new Date(t);
+  }
+  var d3_time_scaleSteps = [ 1e3, 5e3, 15e3, 3e4, 6e4, 3e5, 9e5, 18e5, 36e5, 108e5, 216e5, 432e5, 864e5, 1728e5, 6048e5, 2592e6, 7776e6, 31536e6 ];
+  var d3_time_scaleLocalMethods = [ [ d3_time.second, 1 ], [ d3_time.second, 5 ], [ d3_time.second, 15 ], [ d3_time.second, 30 ], [ d3_time.minute, 1 ], [ d3_time.minute, 5 ], [ d3_time.minute, 15 ], [ d3_time.minute, 30 ], [ d3_time.hour, 1 ], [ d3_time.hour, 3 ], [ d3_time.hour, 6 ], [ d3_time.hour, 12 ], [ d3_time.day, 1 ], [ d3_time.day, 2 ], [ d3_time.week, 1 ], [ d3_time.month, 1 ], [ d3_time.month, 3 ], [ d3_time.year, 1 ] ];
+  var d3_time_scaleLocalFormat = d3_time_format.multi([ [ ".%L", function(d) {
+    return d.getMilliseconds();
+  } ], [ ":%S", function(d) {
+    return d.getSeconds();
   } ], [ "%I:%M", function(d) {
     return d.getMinutes();
   } ], [ "%I %p", function(d) {

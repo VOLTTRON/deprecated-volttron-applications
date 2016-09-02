@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+
+        <title>Afdd Visualization</title>
+        <link rel="stylesheet" href="afddviz-files/css/jquery-ui.min.css">
+        <link rel="stylesheet" href="afddviz-files/css/jquery-ui.structure.min.css">
+        <link rel="stylesheet" href="afddviz-files/css/jquery-ui.theme.min.css">
+        <link rel="stylesheet" href="afddviz-files/css/bootstrap.min.css">
+        <link rel="stylesheet" href="afddviz-files/css/app.css">
+        <link rel="stylesheet" href="afddviz-files/css/afdd.css">
+    </head>
+    <body>
+        <div class="login-div" id="login-form">
+            <p>Enter Login Credentials</p>
+            <p>Username: <input type="text" id="username" /></p>
+            <p>Password: <input type="password" id="password" /></p>
+            <p><input type="button" value="Submit" id="login_btn"/></p>
+            <input type="hidden" id="token" value=""/>
+        </div>
+        <div class="afdd-body" id="afdd-body">
+            <div class="title">
+                <span>Automatic Fault Detection and Diagnostics Result</span>
+            </div>
+            <div>
+                <p>
+                    <span style="margin-right: 26px;">Site <select id="site"></select> </span>
+                    <span style="margin-right: 26px;">Building <select id="building"></select> </span>
+                    <span style="margin-right: 26px;">Unit <select id="device"></select> </span>
+                    <span style="margin-right: 26px;">Diagnostic <select id="diagnostic"></select> </span>
+                </p>
+                <!--<p>-->
+                    <!--<span style="margin-right: 15px;">Time Zone </span>-->
+                    <!--<select id="timezone">-->
+                        <!--<option value="0">UTC</option>-->
+                        <!--<option value="-8" selected>Pacific Time</option>-->
+                        <!--<option value="-5">Eastern Time</option>-->
+                        <!--<option value="-6">Central Time</option>-->
+                    <!--</select>-->
+                <!--</p>-->
+                <p>
+                    <span style="margin-right: 10px;">Start Date</span> <input type="text" id="start-date"> <span style="font-style: italic">(Optional)</span>
+                </p>
+                <p>
+                    <span style="margin-right: 15px;">End Date </span> <input type="text" id="end-date"> <span style="font-style: italic">(Optional)</span>
+                </p>
+
+            </div>
+            <div class="submit">
+                <input type="button" id="btn_view_result" value="View Result"/>
+            </div>
+            <div id='retro-commissioning-afdd' class='retro-commissioning-afdd'></div>
+        </div>
+        <div id='ajax-loading' class='ajax-loading'></div>
+        <script type="text/javascript" src="afddviz-files/js/jquery.min.js"></script>
+        <script type="text/javascript" src="afddviz-files/js/jquery-ui.min.js"></script>
+        <script type="text/javascript" src="afddviz-files/js/bootstrap.min.js"></script>
+        <script type="text/javascript" src="afddviz-files/js/d3.js"></script>
+        <script type="text/javascript" src="afddviz-files/js/d3-tip.js"></script>
+        <script type="text/javascript" src="afddviz-files/js/afdd.js"></script>
+    </body>
+</html>

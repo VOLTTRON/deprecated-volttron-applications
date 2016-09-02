@@ -1,0 +1,20 @@
+{
+	"agentid": "tcmagent",
+	"campus": "PNNL",
+	"building": "SEB",
+    "unit": "AHU1",
+    "subdevices": [
+        "VAV123A"
+    ],
+	"window_size_in_day": 7,
+    "min_required_window_size_in_percent": 90,
+	"interval_in_min": 1,
+    "schedule_run_in_day": 1,
+    "aggregate_in_min": 5,
+	
+	"out_temp_name": "OutdoorAirTemperature",
+    "zone_temp_name": "ZoneTemperature",
+    "supply_temp_name": "DischargeAirTemperature",
+    "air_flow_rate_name": "ZoneAirFlow",
+    "ts_name": "Date"
+}

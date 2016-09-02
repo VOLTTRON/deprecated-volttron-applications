@@ -1,0 +1,144 @@
+.retro-commissioning-oaed {
+  /** Scrollbar **/
+}
+.retro-commissioning-oaed .plot-area {
+  margin: auto;
+  width: 1000px;
+  height: 600px;
+}
+.retro-commissioning-oaed .axis text {
+  font-family: "PT Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 26px;
+}
+.retro-commissioning-oaed .axis path,
+.retro-commissioning-oaed .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.retro-commissioning-oaed .x.axis path,
+.retro-commissioning-oaed .x.axis line,
+.retro-commissioning-oaed .y.axis path,
+.retro-commissioning-oaed .y.axis line,
+.retro-commissioning-oaed .y2.axis path,
+.retro-commissioning-oaed .y2.axis line {
+  display: none;
+}
+.retro-commissioning-oaed rect.pane {
+  fill: none;
+  pointer-events: all;
+}
+.retro-commissioning-oaed .x-scrollbar {
+  font: 10px sans-serif;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+.retro-commissioning-oaed .x-scrollbar .domain {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .3;
+  stroke-width: 10px;
+  stroke-linecap: round;
+}
+.retro-commissioning-oaed .x-scrollbar .halo {
+  fill: none;
+  stroke: #ddd;
+  stroke-width: 8px;
+  stroke-linecap: round;
+}
+.retro-commissioning-oaed .slider .handle {
+  fill: #fff;
+  stroke: #000;
+  stroke-opacity: .5;
+  stroke-width: 1.25px;
+  pointer-events: none;
+}
+
+.retro-commissioning-afdd .plot-area {
+  margin: auto;
+  width: 1000px;
+  height: 500px;
+}
+.retro-commissioning-afdd .axis text {
+  font-family: "PT Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 26px;
+}
+.retro-commissioning-afdd .axis path,
+.retro-commissioning-afdd .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.retro-commissioning-afdd .x.axis path,
+.retro-commissioning-afdd .x.axis line,
+.retro-commissioning-afdd .y.axis path,
+.retro-commissioning-afdd .y.axis line,
+.retro-commissioning-afdd .y2.axis path,
+.retro-commissioning-afdd .y2.axis line {
+  display: none;
+}
+.retro-commissioning-afdd rect.pane {
+  fill: none;
+  pointer-events: all;
+}
+
+.d3-tip {
+    font-family: "PT Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 13px;
+    line-height: 17px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    border-radius: 5px;
+    pointer-events: none;
+    z-index: 10000;
+}
+
+/* Creates a small triangle extender for the tooltip */
+.d3-tip:after {
+    box-sizing: border-box;
+    display: inline;
+    font-size: 10px;
+    width: 100%;
+    line-height: 1;
+    color: rgba(0, 0, 0, 0.8);
+    position: absolute;
+    pointer-events: none;
+}
+
+/* Northward tooltips */
+.d3-tip.n:after {
+    content: "\25BC";
+    margin: -1px 0 0 0;
+    top: 100%;
+    left: 0;
+    text-align: center;
+}
+
+/* Eastward tooltips */
+.d3-tip.e:after {
+    content: "\25C0";
+    margin: -4px 0 0 0;
+    top: 50%;
+    left: -8px;
+}
+
+/* Southward tooltips */
+.d3-tip.s:after {
+    content: "\25B2";
+    margin: 0 0 1px 0;
+    top: -8px;
+    left: 0;
+    text-align: center;
+}
+
+/* Westward tooltips */
+.d3-tip.w:after {
+    content: "\25B6";
+    margin: -4px 0 0 -1px;
+    top: 50%;
+    left: 100%;
+}

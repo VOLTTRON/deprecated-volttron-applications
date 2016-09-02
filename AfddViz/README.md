@@ -1,1 +1,0 @@
-This is the visualization code for Afdd app. To see the visualization, you have to run Volttron Central agent and a platform historian.

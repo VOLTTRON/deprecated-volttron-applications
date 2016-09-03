@@ -17,7 +17,7 @@ $(function() {
     var siteObjs = [{
         'name': 'PNNL',
         buildings: [{
-            'name': 'SEB',
+            'name': 'BUILDING1', //SEB
             'devices': [{
                 'name': 'AHU1',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -31,7 +31,7 @@ $(function() {
                 'name': 'AHU4',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
-            'name': 'BSF_CSF',
+            'name': 'BUILDING4', //'BSF_CSF',
             'devices': [{
                 'name': 'RTU3',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -42,7 +42,7 @@ $(function() {
                 'name': 'RTU5',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
-            'name': '350_BUILDING',
+            'name': 'BUILDING8', //'350_BUILDING',
             'devices': [{
                 'name': 'HP3',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -59,12 +59,12 @@ $(function() {
                 'name': 'HP7',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
-            'name': 'ROI',
+            'name': 'BUILDING3',//'ROI',
             'devices': [{
                 'name': 'INTERIOR_AHU',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
             }]}, {
-            'name': 'ROII',
+            'name': 'BUILDING3',//'ROII',
             'devices': [{
                 'name': 'INTERIOR_AHU',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -1097,38 +1097,6 @@ $(function() {
             return item.name === itemName;
         });
         return found[0];
-    }
-
-    function query(topic, callback, count=20, order='LAST_TO_FIRST') {
-        var token = $('#token').val();
-        var req_method = 'platform.historian.query';
-        var dataload = {
-            topic: topic,
-            "count": count,
-            "order": order
-        };
-        var pdata = {
-            jsonrpc: '2.0',
-            method: req_method,
-            params: dataload,
-            authorization: token,
-            id: req_id
-        };
-        $.ajax({
-            type: 'POST',
-            url: '/jsonrpc',
-            data: JSON.stringify(pdata),
-            dataType: 'json',
-            success: function(data){
-                if (callback != null)
-                    callback(data);
-                console.log(JSON.stringify(data));
-            },
-            failure: function(data){
-                console.log(JSON.stringify(data));
-            }
-
-        });
     }
 
     function initUI() {

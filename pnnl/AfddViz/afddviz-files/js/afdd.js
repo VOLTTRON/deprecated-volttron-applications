@@ -17,7 +17,7 @@ $(function() {
     var siteObjs = [{
         'name': 'PNNL',
         buildings: [{
-            'name': 'BUILDING1', //SEB
+            'name': 'BUILDING1',
             'devices': [{
                 'name': 'AHU1',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -31,7 +31,7 @@ $(function() {
                 'name': 'AHU4',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
-            'name': 'BUILDING4', //'BSF_CSF',
+            'name': 'BUILDING4',
             'devices': [{
                 'name': 'RTU3',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -42,7 +42,7 @@ $(function() {
                 'name': 'RTU5',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
-            'name': 'BUILDING8', //'350_BUILDING',
+            'name': 'BUILDING8',
             'devices': [{
                 'name': 'HP3',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -130,6 +130,7 @@ $(function() {
             '0': 'GREEN',
             '0.0': 'GREEN',
             '1.1': 'RED',
+            '2.2': 'GREY',
             '10': 'GREEN',
             '10.0': 'GREEN',
             '11.1': 'RED',
@@ -149,6 +150,7 @@ $(function() {
             '30': 'GREEN',
             '30.0': 'GREEN',
             '31.1': 'RED',
+            '32.2': 'GREY',
             '40': 'GREEN',
             '40.0': 'GREEN',
             '41.1': 'RED',
@@ -209,6 +211,7 @@ $(function() {
             '-1': 'No Diagnosis',
             '0': 'No problems detected.',
             '1.1': 'The duct static pressure is significantly deviating from its set point.',
+            '2.2': 'Duct static pressure set point data is not available.  The Set Point Control Loop Diagnostic requires set point data.',
             '10.0': 'No problems detected.',
             '11.1': 'The diagnostic has detected that the duct static pressure is too low. ',
             '12.1': 'The duct static pressure set point was detected to be too low but it is at the minimum configured value.',
@@ -225,6 +228,7 @@ $(function() {
             '26.2': 'High duct static pressure diagnostic was inconclusive.',
             '30.0': 'No problems detected.',
             '31.1': 'The SAT is significantly deviating from its set point.',
+            '32.2': 'Supply-air temperature set point data is not available.  The Set Point Control Loop Diagnostic requires set point data.',
             '40.0': 'No problems detected.',
             '41.1': 'The diagnostic has detected that the SAT is too low. ',
             '42.1': 'The SAT was detected to be too low but its setpoint is at the minimum configured value.',
@@ -382,14 +386,18 @@ $(function() {
                             if (resData[strCurDate][diagnosticList[i]].hasOwnProperty(iStr)) {
                                 if (resData[strCurDate][diagnosticList[i]][iStr].energy_impact != null)
                                     energy_impact = resData[strCurDate][diagnosticList[i]][iStr].energy_impact;
-                                if (legends[resData[strCurDate][diagnosticList[i]][iStr].color_code].state_value >=
-                                    legends[state.state].state_value) {
-                                    state = {
-                                        state: resData[strCurDate][diagnosticList[i]][iStr].color_code,
-                                        diagnostic: resData[strCurDate][diagnosticList[i]][iStr].diagnostic_name,
-                                        diagnostic_message: resData[strCurDate][diagnosticList[i]][iStr].diagnostic_message,
-                                        energy_impact: energy_impact
-                                    };
+                                var cur_color_code = resData[strCurDate][diagnosticList[i]][iStr].color_code;
+                                if (typeof cur_color_code != 'undefined')
+                                {
+                                    if (legends[cur_color_code].state_value >=
+                                        legends[state.state].state_value) {
+                                        state = {
+                                            state: cur_color_code,
+                                            diagnostic: resData[strCurDate][diagnosticList[i]][iStr].diagnostic_name,
+                                            diagnostic_message: resData[strCurDate][diagnosticList[i]][iStr].diagnostic_message,
+                                            energy_impact: energy_impact
+                                        };
+                                    }
                                 }
                             }
                         }

@@ -1,0 +1,271 @@
+{
+  "title": "ILC Configuration Object",
+  "type": "object",
+  "properties": {
+    "systems": {
+      "title": "Systems",
+      "type": "array",
+      "items": {
+        "title": "System",
+        "headerTemplate": "{{self.name}}",
+        "type": "object",
+        "properties": {
+          "name": {
+            "title": "System Name",
+            "type": "string",
+            "default": "System 1"
+          },
+          "points": {
+            "title": "Points",
+            "type": "array",
+            "items": {
+              "title": "Point",
+              "headerTemplate": "{{self.name}}",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "title": "Point Name",
+                  "type": "string",
+                  "enum": [
+                    "FirstStageHeating",
+                    "ElectricHeatStatus"
+                  ],
+                  "default": "FirstStageHeating"
+                },
+                "criteria": {
+                  "title": "Criteria",
+                  "type": "object",
+                  "properties": {
+                    "rated_power": {
+                      "title": "Rated Power",
+                      "type": "object",
+                      "format": "grid",
+                      "properties": {
+                        "operation_type": {
+                          "propertyOrder": 2,
+                          "title": "OperationType",
+                          "type": "string",
+                          "$ref": "#/definitions/operationList",
+                          "default": "constant"
+                        },
+                        "on_value": {
+                          "propertyOrder": 3,
+                          "title": "On Value",
+                          "type": "number",
+                          "default": 2.2
+                        },
+                        "off_value": {
+                          "propertyOrder": 4,
+                          "title": "Off Value",
+                          "type": "number",
+                          "default": 0.0
+                        },
+                        "point_name": {
+                          "propertyOrder": 10,
+                          "title": "Point Name",
+                          "type": "string",
+                          "$ref": "#/definitions/pointList",
+                          "default": "ZoneTemperature"
+                        }
+                      }
+                    },
+                    "room_type": {
+                      "title": "Room Type",
+                      "type": "object",
+                      "format": "grid",
+                      "properties": {
+                        "map_key": {
+                          "type": "string",
+                          "default": "Directors office"
+                        },
+                        "operation_type": {
+                          "title": "OperationType",
+                          "type": "string",
+                          "$ref": "#/definitions/operationList",
+                          "default": "constant"
+                        },
+                        "dict_name": {
+                          "type": "string",
+                          "default": "zone_type"
+                        }
+                      }
+                    },
+                    "stage": {
+                      "title": "Stage",
+                      "type": "object",
+                      "format": "grid",
+                      "properties": {
+                        "value": {
+                          "title": "Value",
+                          "type": "number",
+                          "default": 1
+                        },
+                        "operation_type": {
+                          "title": "OperationType",
+                          "type": "string",
+                          "$ref": "#/definitions/operationList",
+                          "default": "constant"
+                        }
+                      }
+                    },
+                    "history_zonetemperature": {
+                      "title": "History - Zone Temperature",
+                      "type": "object",
+                      "format": "grid",
+                      "properties": {
+                        "comparison_type": {
+                          "title": "Comparison Type",
+                          "type": "string",
+                          "default": "direct"
+                        },
+                        "operation_type": {
+                          "title": "OperationType",
+                          "type": "string",
+                          "$ref": "#/definitions/operationList",
+                          "default": "constant"
+                        },
+                        "point_name": {
+                          "title": "Point Name",
+                          "type": "string",
+                          "$ref": "#/definitions/pointList",
+                          "default": "ZoneTemperature"
+                        },
+                        "previous_time": {
+                          "title": "Previous Time (minutes)",
+                          "type": "number",
+                          "default": 15
+                        },
+                        "minimum": {
+                          "title": "Minimum Value",
+                          "type": "number",
+                          "default": 0
+                        },
+                        "maximum": {
+                          "title": "Maximum Value",
+                          "type": "number",
+                          "default": 10
+                        }
+                      }
+                    },
+                    "curtail": {
+                      "title": "Curtail",
+                      "type": "object",
+                      "format": "grid",
+                      "properties": {
+                        "point_name": {
+                          "title": "Point Name",
+                          "type": "string",
+                          "$ref": "#/definitions/pointList",
+                          "default": "UnoccupiedHeatingTemperatureSetPoint"
+                        },
+                        "offset": {
+                          "title": "Offset",
+                          "type": "number",
+                          "default": 0
+                        },
+                        "value": {
+                          "title": "Value",
+                          "type": "number",
+                          "default": 70.0
+                        },
+                        "load": {
+                          "title": "Load",
+                          "type": "number",
+                          "default": 2.2
+                        }
+                      }
+                    },
+                    "conditional_curtail": {
+                      "title": "Conditional Curtail",
+                      "type": "array",
+                      "items": {
+                        "title": "Condition",
+                        "headerTemplate": "{{self.condition}}",
+                        "type": "object",
+                        "format": "grid",
+                        "properties": {
+                          "condition": {
+                            "title": "Condition Name",
+                            "type": "string",
+                            "default": "Condition 1"
+                          },
+                          "point_name": {
+                            "title": "Point Name",
+                            "type": "string",
+                            "$ref": "#/definitions/pointList",
+                            "default": "HeatingTemperatureSetPoint"
+                          },
+                          "offset": {
+                            "title": "Offset",
+                            "type": "number",
+                            "default": 0
+                          },
+                          "value": {
+                            "title": "Value",
+                            "type": "number",
+                            "default": 78.0
+                          },
+                          "load": {
+                            "title": "Load",
+                            "type": "number",
+                            "default": 10
+                          },
+                          "conditional_args": {
+                            "title": "Condition Arguments",
+                            "type": "array",
+                            "format": "table",
+                            "items": {
+                              "title": "Argument",
+                              "type": "string",
+                              "$ref": "#/definitions/pointList",
+                              "default": "WarmCommand"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "criteria"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "points"
+        ]
+      }
+    }
+  },
+  "required": [
+    "systems"
+  ],
+  "definitions": {
+    "pointList": {
+      "enum": [
+        "CoolingTemperatureSetPoint",
+        "HeatingTemperatureSetPoint",
+        "ZoneTemperature",
+        "UnoccupiedHeatingTemperatureSetPoint",
+        "ElectricHeatCommand",
+        "OccupancyMode",
+        "WarmCommand",
+        "FirstStageHeating",
+        "ElectricHeatStatus"
+      ]
+    },
+    "operationList": {
+      "enum": [
+        "constant",
+        "history",
+        "formula",
+        "mapper",
+        "status"
+      ]
+    }
+  }
+}

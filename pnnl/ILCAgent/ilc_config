@@ -15,6 +15,8 @@
 	"curtailment_confirm": 10.0,
 	"curtailment_break": 5.0,
 	"average_building_power_window": 5.0,
+    "stagger_release": true,
+    "minimum_stagger_window": 120,
 	"clusters": [ 
 		{
 			"device_file_path": "sim_cluster_config",

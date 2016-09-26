@@ -55,27 +55,27 @@
 # under Contract DE-AC05-76RL01830
 
 # }}}
-import sys
-import logging
 from datetime import timedelta as td, datetime as dt
 from copy import deepcopy
-from dateutil import parser
 from sympy import symbols
 from sympy.parsing.sympy_parser import parse_expr
 import abc
 from collections import deque
+import logging
+import sys
+from dateutil import parser
+import gevent
 
 from volttron.platform.messaging import topics
 from volttron.platform.agent import utils
 from volttron.platform.agent.utils import jsonapi, setup_logging
 from volttron.platform.vip.agent import Agent, Core
+from volttron.platform.jsonrpc import RemoteError
 from ilc.ilc_matrices import (extract_criteria, calc_column_sums,
                               normalize_matrix, validate_input,
                               build_score, input_matrix)
-from volttron.platform.jsonrpc import RemoteError
-import gevent
 
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 
 MATRIX_ROWSTRING = '%20s\t%12.2f%12.2f%12.2f%12.2f%12.2f'
 CRITERIA_LABELSTRING = '\t\t\t%12s%12s%12s%12s%12s'
@@ -168,6 +168,7 @@ class FormulaCriterion(BaseCriterion):
         self.operation_args = operation_args
         self.points = symbols(operation_args)
         self.expr = parse_expr(operation)
+        self.pt_list = []
 
     def evaluate(self):
         if self.pt_list:
@@ -246,43 +247,44 @@ class HistoryCriterion(BaseCriterion):
         self.history_time = time_stamp - self.previous_time_delta
         self.current_value = data[self.point_name]
         self.history.appendleft((time_stamp, self.current_value))
-        
-        
+
+
 class CurtailmentSetting(object):
-    def __init__(self, point = None, value = None, load = None, offset=None):
+    def __init__(self, point=None, value=None, load=None, offset=None):
         if None in (point, value, load):
             raise ValueError('Missing parameter')
         self.point = point
         self.load = load
         self.value = value
         self.offset = offset
-        
+
     def ingest_data(self, data):
         if self.offset is not None:
             base = data[self.point]
             self.value = base + self.offset
-            _log.debug("Setting offest value for curtail: Base value: {}, Offset: {}, New value: {}".format(base, self.offset, self.value))
-            
+            _log.debug('Setting offest value for curtail: Base value: {}, '
+                       'Offset: {}, New value: {}'.format(base, self.offset, self.value))
+
     def get_curtailment_dict(self):
-        return {"point": self.point,
-                "value": self.value,
-                "load": self.load}
+        return {'point': self.point,
+                'value': self.value,
+                'load': self.load}
 
 class ConditionalCurtailment(object):
-    def __init__(self, condition = None, conditional_args = None, **kwargs):
+    def __init__(self, condition=None, conditional_args=None, **kwargs):
         if None in (condition, conditional_args):
             raise ValueError('Missing parameter')
         self.conditional_args = conditional_args
         self.points = symbols(conditional_args)
         self.expr = parse_expr(condition)
         self.condition = condition
-        
         self.curtailment = CurtailmentSetting(**kwargs)
+        self.pt_list = []
 
     def check_condition(self):
         if self.pt_list:
             val = self.expr.subs(self.pt_list)
-            _log.debug("{} evaluated to {}".format(self.condition, val))
+            _log.debug('{} evaluated to {}'.format(self.condition, val))
         else:
             val = False
         return val
@@ -293,37 +295,33 @@ class ConditionalCurtailment(object):
             pt_list.append((item, data[item]))
         self.pt_list = pt_list
         self.curtailment.ingest_data(data)
-        
+
     def get_curtailment(self):
         return self.curtailment.get_curtailment_dict()
-    
-#     def __str__(self):
-#         
-    
+
+
 class CurtailmentManager(object):
-    def __init__(self, conditional_curtailment_settings = [], **kwargs):
-        
+    def __init__(self, conditional_curtailment_settings=[], **kwargs):
         self.default_curtailment = CurtailmentSetting(**kwargs)
-        
         self.conditional_curtailments = []
         for settings in conditional_curtailment_settings:
             conditional_curtailment = ConditionalCurtailment(**settings)
             self.conditional_curtailments.append(conditional_curtailment)
-            
+
     def ingest_data(self, data):
         for conditional_curtailment in self.conditional_curtailments:
             conditional_curtailment.ingest_data(data)
-            
+
         self.default_curtailment.ingest_data(data)
-            
+
     def get_curtailment(self):
         curtailment = self.default_curtailment.get_curtailment_dict()
-        
+
         for conditional_curtailment in self.conditional_curtailments:
             if conditional_curtailment.check_condition():
                 curtailment = conditional_curtailment.get_curtailment()
                 break
-            
+
         return curtailment
 
 class Criteria(object):
@@ -334,8 +332,8 @@ class Criteria(object):
 
         default_curtailment = criteria.pop('curtail')
         conditional_curtailment = criteria.pop('conditional_curtail', [])
-        
-        self.curtailment_manager = CurtailmentManager(conditional_curtailment_settings = conditional_curtailment,
+
+        self.curtailment_manager = CurtailmentManager(conditional_curtailment_settings=conditional_curtailment,
                                                       **default_curtailment)
 
         self.curtail_count = 0
@@ -360,7 +358,7 @@ class Criteria(object):
     def ingest_data(self, time_stamp, data):
         for criterion in self.criteria.values():
             criterion.ingest_data(time_stamp, data)
-            
+
         self.curtailment_manager.ingest_data(data)
 
     def reset_curtail_count(self):
@@ -509,7 +507,7 @@ def ilc_agent(config_path, **kwargs):
         col_sums = calc_column_sums(criteria_arr)
         _, row_average = normalize_matrix(criteria_arr, col_sums)
 
-        if not (validate_input(criteria_arr, col_sums, 
+        if not (validate_input(criteria_arr, col_sums,
                                crit_labels, CRITERIA_LABELSTRING,
                                MATRIX_ROWSTRING)):
             _log.info('Inconsistent criteria matrix. Check configuration '
@@ -528,10 +526,10 @@ def ilc_agent(config_path, **kwargs):
                                              point=None)
 
     base_rpc_path = topics.RPC_DEVICE_PATH(campus=config.get('campus', ''),
-                                                building=config.get('building', ''),
-                                                unit=None,
-                                                path='',
-                                                point=None)
+                                           building=config.get('building', ''),
+                                           unit=None,
+                                           path='',
+                                           point=None)
 
     device_topic_list = []
     device_topic_map = {}
@@ -570,10 +568,13 @@ def ilc_agent(config_path, **kwargs):
     curtail_time = td(minutes=config.get('curtailment_time', 15.0))
     average_building_power_window = td(minutes=config.get('average_building_power_window', 5.0))
     curtail_confirm = td(minutes=config.get('curtailment_confirm', 5.0))
-    curtail_break = td(minutes=config.get('curtailment_break', 5.0))
+    curtail_break = td(minutes=config.get('curtailment_break', 15.0))
     actuator_schedule_buffer = td(minutes=config.get('actuator_schedule_buffer', 5.0))
     reset_curtail_count_time = td(hours=config.get('reset_curtail_count_time', 6.0))
     longest_possible_curtail = len(clusters.devices) * curtail_time
+    stagger_release_time = config.get('curtailment_break', 15.0)*60.0
+    stagger_release = config.get('stagger_release', False)
+    minimum_stagger_window = config.get('minimum_stagger_window', 120)
 
     class AHP(Agent):
         def __init__(self, **kwargs):
@@ -697,7 +698,8 @@ def ilc_agent(config_path, **kwargs):
             _log.debug('Checking building load.')
 
             if bldg_power > demand_limit:
-                _log.info('Current load ({load}) exceeds limit or {limit}.'.format(load=bldg_power, limit=demand_limit))
+                _log.info('Current load ({load}) exceeds limit or {limit}.'
+                          .format(load=bldg_power, limit=demand_limit))
 
                 score_order = clusters.get_score_order()
                 if not score_order:
@@ -720,10 +722,10 @@ def ilc_agent(config_path, **kwargs):
             if not self.running_ahp:
                 _log.info('Starting AHP')
                 self.running_ahp = True
-                
+
             if not remaining_devices:
-                _log.debug("Everything available has already been curtailed")
-                return 
+                _log.debug('Everything available has already been curtailed')
+                return
 
             self.curtail_end = now + curtail_time
             self.break_end = now + curtail_break + curtail_time
@@ -753,7 +755,8 @@ def ilc_agent(config_path, **kwargs):
                                                agent_id, curtailed_point,
                                                curtail_val).get(timeout=4)
                 except RemoteError as ex:
-                    _log.warning("Failed to set {} to {}: {}".format(curtailed_point, curtail_val, str(ex)))
+                    _log.warning('Failed to set {} to {}: {}'
+                                 .format(curtailed_point, curtail_val, str(ex)))
                     continue
 
                 est_curtailed += curtail_load
@@ -808,7 +811,8 @@ def ilc_agent(config_path, **kwargs):
                         'platform.actuator', 'request_new_schedule', agent_id,
                         device, 'HIGH', schedule_request).get(timeout=4)
                 except RemoteError as ex:
-                    _log.warning("Failed to schedule device {} (RemoteError): {}".format(device, str(ex)))
+                    _log.warning('Failed to schedule device {} (RemoteError): {}'
+                                 .format(device, str(ex)))
                     continue
 
                 if result['result'] == 'FAILURE':
@@ -828,8 +832,19 @@ def ilc_agent(config_path, **kwargs):
 
         def reset_devices(self):
             _log.info('Resetting devices')
+            current_stagger = stagger_release_time/len(self.devices_curtailed)
+            device_group_size = 1
+            group_count = 0
+            while current_stagger < minimum_stagger_window:
+                device_group_size += 1
+                current_stagger = current_stagger + current_stagger
+                if device_group_size == len(self.devices_curtailed):
+                    device_group_size += 1
+                    break
             for item in self.devices_curtailed:
-
+                group_count += 1
+                if stagger_release and group_count == device_group_size:
+                    gevent.sleep(current_stagger)
                 device_name, command = item
                 curtail = clusters.get_device(device_name).get_curtailment(command)
                 curtail_pt = curtail['point']
@@ -839,7 +854,8 @@ def ilc_agent(config_path, **kwargs):
                                                agent_id, curtailed_point).get(timeout=10)
                     _log.debug('Reverted point: {}'.format(curtailed_point))
                 except RemoteError as ex:
-                    _log.warning("Failed to revert point {} (RemoteError): {}".format(curtailed_point, str(ex)))
+                    _log.warning('Failed to revert point {} (RemoteError): {}'
+                                 .format(curtailed_point, str(ex)))
                     continue
 
             self.devices_curtailed = set()

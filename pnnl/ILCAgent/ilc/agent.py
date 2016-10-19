@@ -55,25 +55,30 @@
 # under Contract DE-AC05-76RL01830
 
 # }}}
+import sys
+import os
+import logging
 from datetime import timedelta as td, datetime as dt
 from copy import deepcopy
+from dateutil import parser
 from sympy import symbols
 from sympy.parsing.sympy_parser import parse_expr
 import abc
+import csv
 from collections import deque
-import logging
-import sys
-from dateutil import parser
-import gevent
+from pytz import timezone
+from orderedset import OrderedSet
 
 from volttron.platform.messaging import topics
+from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent import utils
-from volttron.platform.agent.utils import jsonapi, setup_logging
+from volttron.platform.agent.utils import jsonapi, setup_logging, format_timestamp, get_aware_utc_now
 from volttron.platform.vip.agent import Agent, Core
-from volttron.platform.jsonrpc import RemoteError
 from ilc.ilc_matrices import (extract_criteria, calc_column_sums,
                               normalize_matrix, validate_input,
                               build_score, input_matrix)
+from volttron.platform.jsonrpc import RemoteError
+import gevent
 
 __version__ = '2.0.1'
 
@@ -575,6 +580,11 @@ def ilc_agent(config_path, **kwargs):
     stagger_release_time = config.get('curtailment_break', 15.0)*60.0
     stagger_release = config.get('stagger_release', False)
     minimum_stagger_window = config.get('minimum_stagger_window', 120)
+    if stagger_release_time - minimum_stagger_window < minimum_stagger_window:
+        stagger_release = False
+    else:
+        stagger_release_time = stagger_release_time - minimum_stagger_window
+    
 
     class AHP(Agent):
         def __init__(self, **kwargs):
@@ -586,9 +596,12 @@ def ilc_agent(config_path, **kwargs):
             self.break_end = None
             self.reset_curtail_count_time = None
             self.kill_signal_recieved = False
+            self.power_data_count = 0.0
             self.scheduled_devices = set()
-            self.devices_curtailed = set()
+            self.devices_curtailed = OrderedSet()
             self.bldg_power = []
+            self.device_group_size = None
+            self.average_power = None
 
         @Core.receiver('onstart')
         def starting_base(self, sender, **kwargs):
@@ -623,12 +636,12 @@ def ilc_agent(config_path, **kwargs):
             data = message[0]
             _log.info('Checking kill signal')
             kill_signal = bool(data[kill_pt])
-
+            _now = parser.parse(headers['Date'])
             if kill_signal:
                 _log.info('Kill signal received, shutting down')
                 self.kill_signal_recieved = False
                 gevent.sleep(8)
-                self.end_curtail()
+                self.end_curtail(_now)
                 sys.exit()
 
         def new_data(self, peer, sender, bus, topic, headers, message):
@@ -677,7 +690,7 @@ def ilc_agent(config_path, **kwargs):
             if self.running_ahp:
 
                 if now >= self.curtail_end:
-                    self.end_curtail()
+                    self.end_curtail(now)
 
                 elif now >= self.next_curtail_confirm:
                     self.curtail_confirm(average_power, now)
@@ -825,27 +838,44 @@ def ilc_agent(config_path, **kwargs):
 
             return ctrl_dev
 
-        def end_curtail(self):
-            self.running_ahp = False
+        def end_curtail(self, _now):
+            _log.info('Stagger release: {}'.format(stagger_release))
+            if stagger_release:
+                _log.info('Stagger release enabled.')
+                if self.device_group_size is None:
+                    self.stagger_release_setup()
+                    self.next_release = _now + td(seconds=self.current_stagger)
+                    self.reset_devices()
+                if _now >= self.next_release:
+                    self.reset_devices()
+                    self.next_release = _now + td(seconds=self.current_stagger)
+                if _now >= self.break_end and self.devices_curtailed:
+                    self.reset_devices(reset_all=True)
+                    self.release_devices()
+                    self.devices_curtailed = OrderedSet()
+                    self.device_group_size = None
+                    self.running_ahp = False
+                elif not self.devices_curtailed:
+                    self.release_devices()
+                    self.devices_curtailed = OrderedSet()
+                    self.device_group_size = None
+                    self.running_ahp = False
+                return
+            self.device_group_size = len(self.devices_curtailed)
             self.reset_devices()
             self.release_devices()
+            self.running_ahp = False
 
-        def reset_devices(self):
-            _log.info('Resetting devices')
-            current_stagger = stagger_release_time/len(self.devices_curtailed)
-            device_group_size = 1
-            group_count = 0
-            while current_stagger < minimum_stagger_window:
-                device_group_size += 1
-                current_stagger = current_stagger + current_stagger
-                if device_group_size == len(self.devices_curtailed):
-                    device_group_size += 1
+        def reset_devices(self, reset_all=False):
+            _log.info('Resetting devices.')
+            _log.info('Remaining Devices: {}'.format(self.devices_curtailed))
+            current_devices_curtailed = deepcopy(list(self.devices_curtailed))
+            if reset_all:
+                self.device_group_size = len(self.devices_curtailed)
+            for item in xrange(self.device_group_size):
+                if item >= len(self.devices_curtailed):
                     break
-            for item in self.devices_curtailed:
-                group_count += 1
-                if stagger_release and group_count == device_group_size:
-                    gevent.sleep(current_stagger)
-                device_name, command = item
+                device_name, command = self.devices_curtailed[item]
                 curtail = clusters.get_device(device_name).get_curtailment(command)
                 curtail_pt = curtail['point']
                 curtailed_point = base_rpc_path(unit=device_name, point=curtail_pt)
@@ -853,12 +883,26 @@ def ilc_agent(config_path, **kwargs):
                     result = self.vip.rpc.call('platform.actuator', 'revert_point',
                                                agent_id, curtailed_point).get(timeout=10)
                     _log.debug('Reverted point: {}'.format(curtailed_point))
+                    if current_devices_curtailed: 
+                        current_devices_curtailed.remove(self.devices_curtailed[item])
                 except RemoteError as ex:
                     _log.warning('Failed to revert point {} (RemoteError): {}'
                                  .format(curtailed_point, str(ex)))
                     continue
+            self.devices_curtailed = OrderedSet(current_devices_curtailed)
 
-            self.devices_curtailed = set()
+        def stagger_release_setup(self):
+            current_stagger = stagger_release_time/len(self.devices_curtailed)
+            device_group_size = 1
+            while current_stagger < minimum_stagger_window:
+                device_group_size += 1
+                current_stagger = current_stagger + current_stagger
+                if device_group_size == len(self.devices_curtailed):
+                    break
+            if len(self.devices_curtailed)/device_group_size < 1.5:
+                device_group_size = max(1, device_group_size)
+            self.device_group_size = device_group_size
+            self.current_stagger = current_stagger
 
         def release_devices(self):
             for device in self.scheduled_devices:
@@ -882,3 +926,4 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt:
         pass
+

@@ -838,7 +838,7 @@ def ilc_agent(config_path, **kwargs):
             if stagger_release:
                 _log.info('Stagger release enabled.')
                 if self.device_group_size is None:
-                    self.next_curtail_confirm = now + curtail_confirm
+                    self.next_curtail_confirm = _now + curtail_confirm
                     self.stagger_release_setup()
                     self.next_release = _now + td(seconds=self.current_stagger)
                     self.reset_devices()

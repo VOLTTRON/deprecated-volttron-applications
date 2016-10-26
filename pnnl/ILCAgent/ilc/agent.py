@@ -579,7 +579,7 @@ def ilc_agent(config_path, **kwargs):
     longest_possible_curtail = len(clusters.devices) * curtail_time
     stagger_release_time = config.get('curtailment_break', 15.0)*60.0
     stagger_release = config.get('stagger_release', False)
-    minimum_stagger_window = config.get('minimum_stagger_window', 120)
+    minimum_stagger_window = int(curtail_confirm.total_seconds() + 15)
     if stagger_release_time - minimum_stagger_window < minimum_stagger_window:
         stagger_release = False
     else:
@@ -696,10 +696,6 @@ def ilc_agent(config_path, **kwargs):
                     self.curtail_confirm(average_power, now)
                 return
 
-            elif self.break_end is not None and now < self.break_end:
-                _log.debug('Skipping load check, still on curtailment break.')
-                return
-
             self.check_load(average_power, now)
 
         def check_load(self, bldg_power, now):
@@ -713,7 +709,7 @@ def ilc_agent(config_path, **kwargs):
             if bldg_power > demand_limit:
                 _log.info('Current load ({load}) exceeds limit or {limit}.'
                           .format(load=bldg_power, limit=demand_limit))
-
+                self.reinit_stagger()
                 score_order = clusters.get_score_order()
                 if not score_order:
                     _log.info('All devices are off, nothing to curtail.')
@@ -741,7 +737,6 @@ def ilc_agent(config_path, **kwargs):
                 return
 
             self.curtail_end = now + curtail_time
-            self.break_end = now + curtail_break + curtail_time
             self.reset_curtail_count_time = self.curtail_end + reset_curtail_count_time
             self.next_curtail_confirm = now + curtail_confirm
 
@@ -851,20 +846,18 @@ def ilc_agent(config_path, **kwargs):
                     self.next_release = _now + td(seconds=self.current_stagger)
                 if _now >= self.break_end and self.devices_curtailed:
                     self.reset_devices(reset_all=True)
-                    self.release_devices()
-                    self.devices_curtailed = OrderedSet()
-                    self.device_group_size = None
+                    self.reinit_stagger()
                     self.running_ahp = False
+                    self.release_devices()
                 elif not self.devices_curtailed:
-                    self.release_devices()
-                    self.devices_curtailed = OrderedSet()
-                    self.device_group_size = None
+                    self.reinit_stagger()
                     self.running_ahp = False
+                    self.release_devices()
                 return
             self.device_group_size = len(self.devices_curtailed)
-            self.reset_devices()
-            self.release_devices()
+            self.reinit_stagger()
             self.running_ahp = False
+            self.release_devices()
 
         def reset_devices(self, reset_all=False):
             _log.info('Resetting devices.')
@@ -880,6 +873,12 @@ def ilc_agent(config_path, **kwargs):
                 curtail_pt = curtail['point']
                 curtailed_point = base_rpc_path(unit=device_name, point=curtail_pt)
                 try:
+                    if device_name == 'RTU1Compressor1':
+
+                        curtailed_point = base_rpc_path(unit=device_name, point=curtail_pt)
+                        result = self.vip.rpc.call('platform.actuator', 'set_point',
+                                                   agent_id, curtailed_point,
+                                                   73.0).get(timeout=4)
                     result = self.vip.rpc.call('platform.actuator', 'revert_point',
                                                agent_id, curtailed_point).get(timeout=10)
                     _log.debug('Reverted point: {}'.format(curtailed_point))
@@ -912,6 +911,11 @@ def ilc_agent(config_path, **kwargs):
 
             self.scheduled_devices = set()
 
+        def reinit_stagger(self):
+            self.devices_curtailed = OrderedSet()
+            self.device_group_size = None
+            
+
     return AHP(**kwargs)
 
 
@@ -926,4 +930,3 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt:
         pass
-

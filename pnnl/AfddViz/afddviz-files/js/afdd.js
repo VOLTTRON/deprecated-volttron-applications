@@ -4,6 +4,7 @@
 
 $(function() {
     //Global vars
+    var vc_server = '';
     var req_id = '99352-4';
 
     var cacheData = {};
@@ -624,7 +625,7 @@ $(function() {
         var sample_data = afddAggregateData(data, legends, diagnosticList);
         var xDomain = d3.extent(sample_data, function(d) { return d.date; });
         var items_per_dayCol = yAxisLabels.length;
-        var items_per_viewport = 6;
+        var items_per_viewport = 7;
         var inline_padding = Math.floor((width-padding.left-padding.right)/items_per_viewport);
         var plot_width = inline_padding * (sample_data.length/items_per_dayCol);
 
@@ -988,7 +989,7 @@ $(function() {
             var order = 'LAST_TO_FIRST';
             var today = new Date();
             var end_time = getTsFormat(today);
-            var start_time = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6);
+            var start_time = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 8);
             start_time = getTsFormat(start_time);
 
             if ($("#start-date").datepicker("getDate") != null) {
@@ -1017,38 +1018,45 @@ $(function() {
                 authorization: token,
                 id: req_id
             };
+            var topicArr = [];
             algo_set[dx].forEach(function(algo){
-                points_available[dx].forEach(function(point){
-                    dataload.topic = [baseTopic,algo,point].join('/');
-                    pdata.params = dataload;
-                    $.ajax({
-                        type: 'POST',
-                        url: '/jsonrpc',
-                        data: JSON.stringify(pdata),
-                        dataType: 'json',
-                        cur_topic: dataload.topic,
-                        success: function(data){
-                            preCacheData[this.cur_topic] = data;
-                            console.log(this.cur_topic);
-                            console.log(JSON.stringify(data));
-                            //updatePendingRequests();
-                        },
-                        error: function (jqXHR, textStatus) {
-                            console.log("Ajax loading failed: " + textStatus);
-                            //updatePendingRequests();
-                        },
-                        complete: function () {
-                            updatePendingRequests();
-                        }
-                    });
+                points_available[dx].forEach(function(point) {
+                    topicArr.push([baseTopic, algo, point].join('/'));
                 });
             });
+
+            dataload.topic = topicArr;
+            pdata.params = dataload;
+            $.ajax({
+                type: 'POST',
+                url: vc_server + '/jsonrpc',
+                data: JSON.stringify(pdata),
+                dataType: 'json',
+                success: function(data){
+                    //parse data to conform w/ the old way of data handling
+                    if (data['result'].hasOwnProperty('values')) {
+                        $.each(data['result']['values'], function (key, value) {
+                            preCacheData[key] = value;
+                            console.log(key);
+                            console.log(JSON.stringify(value));
+                        });
+                    }
+                },
+                error: function (jqXHR, textStatus) {
+                    console.log("Ajax loading failed: " + textStatus);
+                    //updatePendingRequests();
+                },
+                complete: function () {
+                    updatePendingRequests();
+                }
+            });
+
         }
     }
 
     function updatePendingRequests() {
         noOfReq--;
-        if (noOfReq == 0) {
+        //if (noOfReq == 0) {
             for (var topic in preCacheData){
                 // skip loop if the property is from prototype
                 if (!preCacheData.hasOwnProperty(topic)) continue;
@@ -1066,8 +1074,9 @@ $(function() {
                     if (!cacheData.hasOwnProperty(algo_path)){
                         cacheData[algo_path] = [];
                     }
-                    if (topicData['result'].hasOwnProperty('values')){
-                        topicData['result']['values'].forEach(function(dx_msg){
+                    //if (topicData['result'].hasOwnProperty('values')){
+                        //topicData['result']['values'].forEach(function(dx_msg){
+                        topicData.forEach(function(dx_msg){
                             var newItem = {};
                             var err_code = dx_msg[1].toString();
                             newItem['diagnostic_name'] = algo;
@@ -1077,9 +1086,10 @@ $(function() {
                             newItem['diagnostic_message'] = error_messages[dx][err_code];
                             var ei_topic = [dx,site,building,device,algo,'energy impact'].join('/');
                             if (preCacheData.hasOwnProperty(ei_topic)) {
-                                if (preCacheData[ei_topic].hasOwnProperty('result') &&
-                                    preCacheData[ei_topic]['result'].hasOwnProperty('values')) {
-                                    preCacheData[ei_topic]['result']['values'].forEach(function(ei_msg){
+                                //if (preCacheData[ei_topic].hasOwnProperty('result') &&
+                                //    preCacheData[ei_topic]['result'].hasOwnProperty('values')) {
+                                    //preCacheData[ei_topic]['result']['values'].forEach(function(ei_msg){
+                                    preCacheData[ei_topic].forEach(function(ei_msg){
                                         eiParts = ei_msg[0].split(':');
                                         dxParts = dx_msg[0].split(':');
                                         if (eiParts[0]===dxParts[0] && //up to hour
@@ -1087,17 +1097,17 @@ $(function() {
                                             newItem['energy_impact'] = ei_msg[1];
                                         }
                                     })
-                                }
+                                //}
                             }
                             cacheData[algo_path].push(newItem);
                         });
-                    }
+                    //}
                 }
             }
 
             //Done
             isLoading = false;
-        }
+        //}
     }
 
     function getItem(values, itemName) {
@@ -1144,7 +1154,7 @@ $(function() {
         };
         $.ajax({
             type: 'POST',
-            url: '/jsonrpc',
+            url: vc_server + '/jsonrpc',
             data: JSON.stringify(pdata),
             dataType: 'json',
             success: function(data){

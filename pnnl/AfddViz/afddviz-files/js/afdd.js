@@ -4,7 +4,6 @@
 
 $(function() {
     //Global vars
-    //var vc_server = 'https://vc.pnnl.gov';
     var vc_server = '';
     var req_id = '99352-4';
 

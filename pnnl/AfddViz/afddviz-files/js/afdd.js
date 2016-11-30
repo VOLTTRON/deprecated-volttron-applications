@@ -5,6 +5,7 @@
 $(function() {
     //Global vars
     var vc_server = '';
+
     var req_id = '99352-4';
 
     var cacheData = {};
@@ -547,7 +548,8 @@ $(function() {
         var diagnosticList2 = null; //For display purpose
         var foundDiagnosticList = false;
         // For the purpose of deciding which Rcx is running
-        if (data.length < 1) {
+        //if (data.length < 1) {
+        if ($.isEmptyObject(data)) {
             console.log("There is no data in this time period.");
             return false; //No Data
         }
@@ -1178,12 +1180,12 @@ $(function() {
         loadData();
         var path = getSelectOptions().join(cacheDataPathSep);
         checkCacheData = setInterval(function () {
-            if(cacheData.hasOwnProperty(path)) {
+            //if(cacheData.hasOwnProperty(path)) {
                 if (!isLoading){
                     uiResultLoaded(cacheData[path]);
                     clearInterval(checkCacheData);
                 }
-            }
+            //}
         }, 200);
     });
 

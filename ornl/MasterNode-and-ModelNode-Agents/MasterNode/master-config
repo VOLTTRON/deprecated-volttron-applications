@@ -1,5 +1,7 @@
 {
-    "numberOfBuildings" : 1,
+    "model_node_addresses" : [
+        "tcp://127.0.0.1:8001"
+    ],
     "data_file": "reg-data-external-may-2014.csv",
     "u_file": "u.csv",
     "d1_file": "d1.csv"

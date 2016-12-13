@@ -39,8 +39,8 @@ class StateEnum(object):
 
 
 class ModelNode(Agent):
-    def __init__(self, config_path, identity, **kwargs):
-        super(ModelNode, self).__init__(identity='modelnode', **kwargs)
+    def __init__(self, config_path, **kwargs):
+        super(ModelNode, self).__init__(**kwargs)
         config = utils.load_config(config_path)
         self.setPoint = config['setPoint']
         self.master_vip = config['master-vip-address']
@@ -73,7 +73,7 @@ class ModelNode(Agent):
         event.wait()
 
         agent.vip.rpc.call('masternode',
-                           'register_modelnode',
+                        'register_modelnode',
                            message).get(timeout=2)
 
     def _set_state(self, state):
@@ -94,8 +94,12 @@ class ModelNode(Agent):
             log.error('Invalid command received')
 
 
+def main():
+    utils.vip_main(ModelNode)
+
+
 if __name__ == '__main__':
     try:
-        utils.vip_main(ModelNode)
+        main()
     except KeyboardInterrupt:
         pass

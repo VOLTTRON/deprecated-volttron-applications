@@ -39,8 +39,8 @@ class StateEnum(object):
 
 
 class MasterNode(Agent):
-    def __init__(self, config_path, identity, **kwargs):
-        super(MasterNode, self).__init__(identity='masternode', **kwargs)
+    def __init__(self, config_path, **kwargs):
+        super(MasterNode, self).__init__(**kwargs)
         config = utils.load_config(config_path)
         self.model_nodes = []
         for address in config['model_node_addresses']:
@@ -195,8 +195,12 @@ class MasterNode(Agent):
             self.additionalInit = False
 
 
+def main():
+    utils.vip_main(MasterNode)
+
+
 if __name__ == '__main__':
     try:
-        utils.vip_main(MasterNode)
+        main()
     except KeyboardInterrupt:
         pass

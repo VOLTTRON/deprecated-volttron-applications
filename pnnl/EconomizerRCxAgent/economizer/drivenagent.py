@@ -305,7 +305,7 @@ def DrivenAgent(config_path, **kwargs):
                             for item in units:
                                 _analysis['unit'] = item
                                 analysis_topic = topics.ANALYSIS_VALUE(
-                                    point=key, **_analysis)
+                                    point='', **_analysis)
 
                                 datatype = 'float'
                                 if isinstance(value, int):

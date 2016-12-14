@@ -578,7 +578,7 @@ def ilc_agent(config_path, **kwargs):
     average_building_power_window = td(minutes=config.get('average_building_power_window', 5.0))
     curtail_confirm = td(minutes=config.get('curtailment_confirm', 5.0))
     curtail_break = td(minutes=config.get('curtailment_break', 15.0))
-    actuator_schedule_buffer = td(minutes=config.get('actuator_schedule_buffer', 5.0))
+    actuator_schedule_buffer = td(minutes=config.get('actuator_schedule_buffer', 15.0)) + curtail_break
     reset_curtail_count_time = td(hours=config.get('reset_curtail_count_time', 6.0))
     longest_possible_curtail = len(clusters.devices) * curtail_time
     stagger_release_time = config.get('curtailment_break', 15.0)*60.0

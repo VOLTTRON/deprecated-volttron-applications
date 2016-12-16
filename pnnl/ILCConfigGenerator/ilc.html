@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ILC Configuration</title>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.css'>
+  <link rel='stylesheet' href='https://cdn.jsdelivr.net/foundation/5.0.2/css/foundation.min.css'>
+  <script src="ilc-files/js/jsoneditor.min.js"></script>
+  <script>
+    // Set the default CSS theme and icon library globally
+    JSONEditor.defaults.theme = 'foundation5';
+    JSONEditor.defaults.iconlib = 'fontawesome4';
+  </script>
+</head>
+<body>
+  <div class='row'>
+    <div id='editor_holder' class='medium-12 columns'></div>
+  </div>
+  <div class='row'>
+    <button id="cfg_str_btn" style="margin-left: 0.9375rem;">Update Config</button>
+    <span id='valid_indicator'></span>
+  </div>
+  <div class="row">
+    <textarea id="cfg_str_holder" class="medium-12 columns" style="margin-left: 0.9375rem; height: 20rem;" readonly></textarea>
+  </div>
+  <script type="application/javascript">
+
+    // Initialize the editor
+    var editor = new JSONEditor(document.getElementById("editor_holder"),{
+      ajax: true,
+      schema: {
+        $ref: "ilc-files/ilc_schema.json"
+      }
+    });
+
+    document.getElementById('cfg_str_btn').addEventListener('click',function() {
+      document.getElementById('cfg_str_holder').value = JSON.stringify(editor.getValue(), null, 2);
+    });
+
+  </script>
+</body>
+</html>

@@ -341,7 +341,6 @@ def driven_agent(config_path, **kwargs):
                     headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON,
                     headers_mod.DATE: timestamp,
                 }
-
                 # The keys in this publish should look like the following
                 # with the values being a dictionary of points off of these
                 # base topics

@@ -1,0 +1,8 @@
+id,Name,Unit,Format,HighLimit,LowLimit
+1,"Tout","F","%.1F",140,-40
+2,"RHout","%","%.1F",100,0
+3,"ElectrickWh","kWh","%.1F",100000,0
+4,"HVACkWh","kWh","%.1F",100000,0
+5,"ChillerkWh","kWh","%.1F",100000,0
+6,"LightskWh","kWh","%.1F",100000,0
+7,"ThermalMBtu","MBtu","%.5F",100000,0

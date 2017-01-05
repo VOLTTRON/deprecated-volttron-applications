@@ -68,6 +68,9 @@ FS = 'SupplyFanSpeed'
 EC = 'EconomizerCondition'
 ST = 'State'
 
+def create_table_key(table_name, timestamp):
+    return '&'.join([table_name, timestamp.strftime('%m-%d-%y %H:%M')])
+
 class TempSensorDx(object):
     '''Air-side HVAC temperature sensor diagnostic for AHU/RTU systems.
 
@@ -121,12 +124,12 @@ class TempSensorDx(object):
         elapsed_time = elapsed_time if elapsed_time > 0 else 1.0
 
         if (elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data):
-            self.table_key = (self.analysis, self.timestamp[-1])
+            self.table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
                 dx_result.insert_table_row(self.table_key, {ECON1 + DX: 3.2})
                 dx_result = self.clear_data(dx_result)
-                dx_status = 3
+                dx_status = 2
                 return dx_result, dx_status
             
             dx_result = self.temperature_sensor_dx(dx_result, cur_time)

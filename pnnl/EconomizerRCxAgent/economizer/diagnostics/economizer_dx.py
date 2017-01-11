@@ -261,7 +261,7 @@ class EconCorrectlyOff(object):
                   fan_sp, cooling_call):
         '''Check app. pre-quisites and assemble data set for analysis.'''
         if econ_condition:
-            dx_result.log('{}: Conditions are not favorable for economizing, '
+            dx_result.log('{}: Conditions are favorable for economizing, '
                           'data corresponding to {} will not be used.'
                           .format(ECON3, cur_time), logging.DEBUG)
             dx_status = 3

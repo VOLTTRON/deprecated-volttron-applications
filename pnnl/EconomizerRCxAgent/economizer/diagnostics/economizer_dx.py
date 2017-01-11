@@ -98,7 +98,7 @@ class EconCorrectlyOn(object):
         '''Application result messages'''
         self.alg_result_messages = [
             'Conditions are favorable for economizing but the '
-            'damper is frequently below 100% open.',
+            'the outdoor-air damper is frequently below 100% open.',
             'No problems detected.',
             'Conditions are favorable for economizing and the '
             'damper is 100% open but the OAF indicates the unit '
@@ -110,10 +110,8 @@ class EconCorrectlyOn(object):
                   fan_sp):
         '''Check app. pre-quisites and assemble data set for analysis.'''
         if not cooling_call:
-            dx_result.log('The unit is not cooling, data corresponding to '
-                          '{timestamp} will not be used for {name} diagnostic.'
-                          .format(timestamp=str(cur_time), name=ECON2),
-                          logging.DEBUG)
+            dx_result.log('{}: The unit is not cooling, data corresponding to '
+                          '{} will not be used.'.format(ECON2, cur_time), logging.DEBUG)
             self.output_no_run.append(cur_time)
 
             if (self.output_no_run[-1] - self.output_no_run[0]) >= td(minutes=(self.data_window)):
@@ -126,7 +124,7 @@ class EconCorrectlyOn(object):
         if not econ_condition:
             dx_result.log('{}: Conditions are not favorable for economizing, '
                           'data corresponding to {} will not be used.'
-                          .format(ECON2,str(cur_time)), logging.DEBUG)
+                          .format(ECON2, cur_time), logging.DEBUG)
             self.output_no_run.append(cur_time)
             if (self.output_no_run[-1] - self.output_no_run[0]) >= td(minutes=(self.data_window)):
                 dx_result.log('{name}: the unit is not cooling or economizing, keep collecting data.'.format(name=ECON2), logging.DEBUG)
@@ -139,7 +137,7 @@ class EconCorrectlyOn(object):
         self.rat_values.append(ratemp)
         self.timestamp.append(cur_time)
         self.oad_values.append(damper_signal)
-
+        dx_result.log('{}: Debugger - aggregate data'.format(ECON2))
         fan_sp = fan_sp/100.0 if fan_sp is not None else 1.0
         self.fan_speed_values.append(fan_sp)
         self.timestamp.append(cur_time)
@@ -154,11 +152,11 @@ class EconCorrectlyOn(object):
                 dx_result = self.clear_data(dx_result)
                 dx_status = 2
                 return dx_result, dx_status
-
+            dx_result.log('{}: Debugger - running algorithm'.format(ECON2))
             dx_result = self.not_economizing_when_needed(dx_result, cur_time)
             dx_status = 1
             return dx_result, dx_status
-
+        dx_result.log('{}: Debugger - collecting data'.format(ECON2))
         dx_status = 0
         return dx_result, dx_status
 
@@ -185,17 +183,17 @@ class EconCorrectlyOn(object):
         energy_impact = 0.0
 
         if avg_damper_signal < self.open_damper_threshold:
-            msg = (self.alg_result_messages[0])
+            msg = '{}: {}'.format(ECON2, self.alg_result_messages[0])
             color_code = 'RED'
             dx_msg = 11.1
             energy_impact = energy_impact_calculation(energy_impact)
         else:
             if (100.0 - avg_oaf) <= self.oaf_economizing_threshold:
-                msg = (self.alg_result_messages[1])
+                msg = '{}: {}'.format(ECON2, self.alg_result_messages[1])
                 color_code = 'GREEN'
                 dx_msg = 10.0
             else:
-                msg = (self.alg_result_messages[2])
+                msg = '{}: {}'.format(ECON2, self.alg_result_messages[2])
                 color_code = 'RED'
                 dx_msg = 12.1
                 energy_impact = energy_impact_calculation(energy_impact)
@@ -248,7 +246,7 @@ class EconCorrectlyOff(object):
              'significantly above that value.',
              'No problems detected.',
              'The diagnostic led to inconclusive results, could not '
-             'verify the status of the economizer.']
+             'verify the status of the economizer. ']
         self.max_dx_time = 60
         self.data_window = float(data_window)
         self.no_required_data = no_required_data
@@ -263,10 +261,9 @@ class EconCorrectlyOff(object):
                   fan_sp, cooling_call):
         '''Check app. pre-quisites and assemble data set for analysis.'''
         if econ_condition:
-            dx_result.log(self.alg_result_messages[2]
-                          .join(['Data for to {ts} will not be used for this '
-                                 'diagnostic.'.format(ts=str(cur_time))]),
-                          logging.DEBUG)
+            dx_result.log('{}: Conditions are not favorable for economizing, '
+                          'data corresponding to {} will not be used.'
+                          .format(ECON3, cur_time), logging.DEBUG)
             dx_status = 3
             return dx_result, dx_status
 
@@ -275,6 +272,8 @@ class EconCorrectlyOff(object):
         self.mat_values.append(matemp)
         self.rat_values.append(ratemp)
         self.timestamp.append(cur_time)
+        
+        dx_result.log('{}: Debugger - aggregating data'.format(ECON3))
         fan_sp = fan_sp/100.0 if fan_sp is not None else 1.0
         self.fan_speed_values.append(fan_sp)
         elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
@@ -288,11 +287,11 @@ class EconCorrectlyOff(object):
                 dx_result = self.clear_data(dx_result)
                 dx_status = 2
                 return dx_result, dx_status
-            
+            dx_result.log('{}: Debugger - running algorithm'.format(ECON3))
             dx_result = self.economizing_when_not_needed(dx_result, cur_time)
             dx_status = 1
             return dx_result, dx_status
-
+        dx_result.log('{}: Debugger - collecting data'.format(ECON3))
         dx_status = 0
         return dx_result, dx_status
 
@@ -323,12 +322,12 @@ class EconCorrectlyOff(object):
         avg_damper = sum(self.oad_values) / len(self.oad_values)
 
         if (avg_damper - self.min_damper_sp) > self.excess_damper_threshold:
-            msg = self.alg_result_messages[0]
+            msg = msg = '{}: {}'.format(ECON3, self.alg_result_messages[0])
             color_code = 'RED'
             dx_msg = 21.1
             energy_impact = energy_impact_calculation(energy_impact)
         else:
-            msg = 'No problems detected for economizing when not needed diagnostic.'
+            msg = msg = '{}: {}'.format(ECON3, self.alg_result_messages[1])
             color_code = 'GREEN'
             dx_msg = 20.0
 

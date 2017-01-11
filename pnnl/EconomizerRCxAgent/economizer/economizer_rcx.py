@@ -176,7 +176,7 @@ class Application(AbstractDrivenAgent):
         the diagnostic message.
         '''
         validate_topic = create_table_key('validate', cur_time)
-        validate_data = {ECON1: 1, ECON2: 1, ECON3: 1, ECON4: 1, ECON5: 1}
+        validate_data = {ECON1: 3, ECON2: 3, ECON3: 3, ECON4: 3, ECON5: 3}
         try:
             device_dict = {}
             dx_result = Results()
@@ -263,7 +263,9 @@ class Application(AbstractDrivenAgent):
             ratemp = (sum(rat_data) / len(rat_data))
             matemp = (sum(mat_data) / len(mat_data))
             damper_signal = (sum(damper_data) / len(damper_data))
-       
+            fan_speedcmd = None
+            if fan_sp_data:
+                fan_speedcmd = sum(fan_sp_data)/len(fan_sp_data)      
             limit_check = False
             if oatemp < self.oat_low_threshold or oatemp > self.oat_high_threshold:
                 dx_result.log('Outside-air temperature is outside high/low '
@@ -314,24 +316,22 @@ class Application(AbstractDrivenAgent):
             else:
                 econ_condition = oatemp < (self.econ_hl_temp - self.temp_deadband)
 
+            dx_result.log('Debugger - econmizer status {}'.format(econ_condition))
             dx_result, dx_status = self.econ1.econ_alg1(dx_result, oatemp, ratemp, matemp, damper_signal, cur_time)
             validate_data.update({ECON1: dx_status})
-     
+            dx_result.log('Debugger - Temperature sensor flag: {}'.format(TempSensorDx.temp_sensor_problem))
+
             if TempSensorDx.temp_sensor_problem is not None and TempSensorDx.temp_sensor_problem is False:
-                dx_result, dx_status = self.econ2.econ_alg2(dx_result, cooling_call, oatemp, ratemp, matemp, damper_signal,
-                                                 econ_condition, cur_time, fan_speedcmd)
+                dx_result, dx_status = self.econ2.econ_alg2(dx_result, cooling_call, oatemp, ratemp, matemp, damper_signal, econ_condition, cur_time, fan_speedcmd)
                 validate_data.update({ECON2: dx_status})
                 
-                dx_result, dx_status = self.econ3.econ_alg3(dx_result, oatemp, ratemp, matemp, damper_signal, econ_condition,
-                                                 cur_time, fan_speedcmd, cooling_call)
+                dx_result, dx_status = self.econ3.econ_alg3(dx_result, oatemp, ratemp, matemp, damper_signal, econ_condition, cur_time, fan_speedcmd, cooling_call)
                 validate_data.update({ECON3: dx_status})
 
-                dx_result, dx_status = self.econ4.econ_alg4(dx_result, oatemp, ratemp, matemp, damper_signal, econ_condition,
-                                                 cur_time, fan_speedcmd, cooling_call)
+                dx_result, dx_status = self.econ4.econ_alg4(dx_result, oatemp, ratemp, matemp, damper_signal, econ_condition, cur_time, fan_speedcmd, cooling_call)
                 validate_data.update({ECON4: dx_status})
 
-                dx_result, dx_status = self.econ5.econ_alg5(dx_result, oatemp, ratemp, matemp, damper_signal, econ_condition,
-                                                 cur_time, cooling_call)
+                dx_result, dx_status = self.econ5.econ_alg5(dx_result, oatemp, ratemp, matemp, damper_signal, econ_condition, cur_time, cooling_call)
                 validate_data.update({ECON5: dx_status})
             else:
                 dx_result = self.econ2.clear_data(dx_result)

@@ -277,7 +277,7 @@ def driven_agent(config_path, **kwargs):
                 self.initialize_time = self.find_reinitialize_time(_timestamp)
             
             if self.initialize_time is not None and _timestamp < self.initialize_time:
-                if len(self.self._master_devices) > 1:
+                if len(self._master_devices) > 1:
                     return
 
             device_data = message[0]

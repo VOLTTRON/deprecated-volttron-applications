@@ -102,10 +102,9 @@ class ExcessOA(object):
                   fan_sp, cooling_call):
         '''Check app. pre-quisites and assemble data set for analysis.'''
         if econ_condition:
-            dx_result.log('The unit may be economizing, '
-                          'data corresponding to {timestamp} '
-                          'will not be used for this diagnostic.'
-                          .format(timestamp=str(cur_time)), logging.DEBUG)
+            dx_result.log('{}: The unit may be economizing, data corresponding '
+                          'to {} will not be used for this diagnostic.'
+                          .format(ECON4, cur_time), logging.DEBUG)
             dx_status = 3
             return dx_result, dx_status
 
@@ -114,6 +113,8 @@ class ExcessOA(object):
         self.rat_values.append(ratemp)
         self.mat_values.append(matemp)
         self.timestamp.append(cur_time)
+        dx_result.log('{}: Debugger - aggregate data'.format(ECON4))
+
         fan_sp = fan_sp/100.0 if fan_sp is not None else 1.0
         self.fan_speed_values.append(fan_sp)
         elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
@@ -126,11 +127,11 @@ class ExcessOA(object):
                 dx_result = self.clear_data(dx_result)
                 dx_status = 2
                 return dx_result, dx_status
-
+            dx_result.log('{}: Debugger - running algorithm'.format(ECON4))
             dx_result = self.excess_oa(dx_result, cur_time)
             dx_status = 1
             return dx_result, dx_status
-
+        dx_result.log('{}: Debugger - collecting data'.format(ECON4))
         dx_status = 0
         return dx_result, dx_status
 
@@ -164,8 +165,8 @@ class ExcessOA(object):
         dx_msg = 30.0
 
         if avg_oaf < 0 or avg_oaf > 125.0:
-            msg = ('Inconclusive result, the OAF calculation led to an '
-                   'unexpected value: {oaf}'.format(oaf=avg_oaf))
+            msg = ('{}: Inconclusive result, the OAF calculation led to an '
+                   'unexpected value: {}'.format(ECON4, avg_oaf))
             # color_code = 'GREY'
             dx_msg = 31.2
             dx_result.log(msg, logging.INFO)
@@ -178,26 +179,28 @@ class ExcessOA(object):
             return dx_result
 
         if avg_damper - self.min_damper_sp > self.excess_damper_threshold:
-            msg = ('The OAD should be at the minimum position for ventilation '
-                   'but is significantly higher than this value.')
+            msg = ('{}: The OAD should be at the minimum position for '
+                   'ventilation but is significantly higher than this value.'
+                   .format(ECON4))
             # color_code = 'RED'
             dx_msg = 32.1
 
         if avg_oaf - self.desired_oaf > self.excess_oaf_threshold:
             if dx_msg > 30.0:
-                msg += ('The OAD should be at the minimum for ventilation '
+                msg += ('{}: The OAD should be at the minimum for ventilation '
                         'but is significantly above that value. Excess outdoor air is '
-                        'being provided; This could significantly increase heating and cooling costs')
+                        'being provided; This could significantly increase '
+                        'heating and cooling costs'.format(ECON4))
                 dx_msg = 34.1
             else:
-                msg = ('Excess outdoor air is being provided, this could '
-                       'increase heating and cooling energy consumption.')
+                msg = ('{}: Excess outdoor air is being provided, this could '
+                       'increase heating and cooling energy consumption.'.format(ECON4))
                 dx_msg = 33.1
             # color_code = 'RED'
         
         elif dx_msg == 30.0:
-            msg = ('The calculated outdoor-air fraction is within '
-                   'configured limits.')
+            msg = ('{}: The calculated outdoor-air fraction is within '
+                   'configured limits.'.format(ECON4))
 
         if dx_msg > 30:
             energy_impact = energy_impact_calculation(energy_impact)
@@ -256,6 +259,7 @@ class InsufficientOA(object):
         self.rat_values.append(ratemp)
         self.mat_values.append(matemp)
         self.oad_values.append(damper_signal)
+        dx_result.log('{}: Debugger - aggregating data'.format(ECON5))
 
         self.timestamp.append(cur_time)
         elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
@@ -264,15 +268,15 @@ class InsufficientOA(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             self.table_key = create_table_key(self.analysis, self.timestamp[-1])
             if elapsed_time > self.max_dx_time:
-                dx_result.insert_table_row(self.table_row, {ECON5 + DX: 44.2})
+                dx_result.insert_table_row(self.table_key, {ECON5 + DX: 44.2})
                 dx_result = self.clear_data(dx_result)
                 dx_status = 2
                 return dx_result, dx_status
-
+            dx_result.log('{}: Debugger - running algorithm'.format(ECON5))
             dx_result = self.insufficient_oa(dx_result, cur_time)
             dx_status = 1
             return dx_result, dx_status
-
+        dx_result.log('{}: Debugger - collecting data'.format(ECON5))
         dx_status = 0
         return dx_result, dx_status
 
@@ -285,8 +289,8 @@ class InsufficientOA(object):
         avg_damper_signal = sum(self.oad_values) / len(self.oad_values)
 
         if avg_oaf < 0 or avg_oaf > 125.0:
-            msg = ('Inconclusive result, the OAF calculation led to an '
-                   'unexpected value: {oaf}'.format(oaf=avg_oaf))
+            msg = ('{}: Inconclusive result, the OAF calculation led to an '
+                   'unexpected value: {}'.format(ECON5, avg_oaf))
             dx_result.log(msg, logging.INFO)
             dx_msg = 41.2
             dx_table = {
@@ -298,14 +302,14 @@ class InsufficientOA(object):
             return dx_result
         msg = ''
         if self.desired_oaf - avg_oaf > self.ventilation_oaf_threshold:
-            msg = 'Insufficient outdoor-air is being provided for ventilation.'
+            msg = '{}: Insufficient outdoor-air is being provided for ventilation.'.format(ECON5)
             dx_msg = 43.1
             dx_table = {
                 ECON5 + DX: dx_msg,
                 ECON5 + EI: 0.0
             }
         else:
-            msg = ('The calculated outdoor-air fraction was within acceptable limits.')
+            msg = '{}: The calculated outdoor-air fraction was within acceptable limits.'.format(ECON5)
             dx_msg = 40.0
             dx_table = {
                 ECON5 + DX: dx_msg,

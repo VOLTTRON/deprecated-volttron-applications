@@ -116,7 +116,7 @@ class TempSensorDx(object):
         self.oat_values.append(oatemp)
         self.mat_values.append(matemp)
         self.rat_values.append(ratemp)
-
+        dx_result.log('{}: Debugger: aggregate data'.format(ECON1))
         if self.timestamp and ((cur_time - self.timestamp[-1]).total_seconds()/60) > 5.0:
             self.econ_check = False
         self.timestamp.append(cur_time)
@@ -131,11 +131,11 @@ class TempSensorDx(object):
                 dx_result = self.clear_data(dx_result)
                 dx_status = 2
                 return dx_result, dx_status
-            
+            dx_result.log('{}: Debugger: running algorithm.'.format(ECON1))
             dx_result = self.temperature_sensor_dx(dx_result, cur_time)
             dx_status = 1
             return dx_result, dx_status
-
+        dx_result.log('{}: Debugger: collecting data'.format(ECON1))
         dx_status = 0
         return dx_result, dx_status
 
@@ -160,8 +160,8 @@ class TempSensorDx(object):
 
             if open_damper_check > self.oat_mat_check:
                 TempSensorDx.temp_sensor_problem = True
-                msg = ('The OAT and MAT sensor readings are not consistent '
-                       'when the outdoor-air damper is fully open.')
+                msg = ('{}: The OAT and MAT sensor readings are not consistent '
+                       'when the outdoor-air damper is fully open.'.format(ECON1))
                 dx_msg = 0.1
                 dx_table = {
                     ECON1 + DX: dx_msg,
@@ -173,9 +173,9 @@ class TempSensorDx(object):
             self.open_mat = []
 
         if avg_oa_ma > self.temp_diff_thr and avg_ra_ma > self.temp_diff_thr:
-            msg = ('Temperature sensor problem detected. Mixed-air '
+            msg = ('{}: Temperature sensor problem detected. Mixed-air '
                    'temperature is less than outdoor-air and return-air'
-                   'temperatures.')
+                   'temperatures.'.format(ECON1))
             dx_msg = 1.1
             dx_table = {
                 ECON1 + DX: dx_msg,
@@ -184,9 +184,9 @@ class TempSensorDx(object):
             TempSensorDx.temp_sensor_problem = True
 
         elif avg_ma_oa > self.temp_diff_thr and avg_ma_ra > self.temp_diff_thr:
-            msg = ('Temperature sensor problem detected Mixed-air '
+            msg = ('{}: Temperature sensor problem detected Mixed-air '
                    'temperature is greater than outdoor-air and return-air '
-                   'temperatures.')
+                   'temperatures.'.format(ECON1))
             dx_msg = 2.1
             dx_table = {
                 ECON1 + DX: dx_msg,
@@ -195,7 +195,7 @@ class TempSensorDx(object):
             TempSensorDx.temp_sensor_problem = True
 
         elif TempSensorDx.temp_sensor_problem is None or not TempSensorDx.temp_sensor_problem:
-            msg = 'No problems were detected for the temperature sensor diagnostic.'
+            msg = '{}: No problems were detected.'.format(ECON1)
             dx_msg = 0.0
             dx_table = {
                 ECON1 + DX: dx_msg,
@@ -204,7 +204,7 @@ class TempSensorDx(object):
             TempSensorDx.temp_sensor_problem = False
 
         else:
-            msg = 'Temperature sensor diagnostic was inconclusive.'
+            msg = '{}: diagnostic was inconclusive.'.format(ECON1)
             # color_code = 'GREY'
             dx_msg = 3.2
             dx_table = {

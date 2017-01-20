@@ -1,11 +1,15 @@
 
 {
     "HP4": {
-		"Comp": { 
+		"CompressorStatus": {
+            "device_status": {
+                    "condition": "CompressorStatus", 
+			        "device_status_args": ["CompressorStatus"]
+            },
 			"zonetemperature-setpoint":{
-				"operation": "1/(SP - ZT)",
+				"operation": "1/(ZoneTemperatureSetPoint - ZoneTemperature)",
 				"operation_type": "formula",
-				"operation_args": ["SP", "ZT"],
+				"operation_args": ["ZoneTemperatureSetPoint", "ZoneTemperature"],
 				"minimum": 0,
 				"maximum": 10
 			},
@@ -13,7 +17,7 @@
 			    "on_value": 10.0,
 			    "off_value": 0.0,
 				"operation_type": "status",
-				"point_name": "Comp"
+				"point_name": "CompressorStatus"
 			},
 			"room-type": {
 				"map_key": "Computer Lab",
@@ -27,29 +31,13 @@
 			"history-zonetemperature": {
 			    "comparison_type": "direct",
 				"operation_type": "history",
-				"point_name": "ZT",
+				"point_name": "ZoneTemperature",
 				"previous_time": 15,
 				"minimum": 0,
 				"maximum": 10
 			},
-			"conditional_curtail": [
-			    {   "condition": "OccupancyMode == True", 
-			        "conditional_args" =  ["OccupancyMode"],
-				    "point": "SP",
-				    "value": 78.0,
-				    "offset": -2,
-				    "load": 10
-				},
-				{	"condition": "OccupancyMode == False",
-				    "conditional_args" =  ["OccupancyMode"],
-                    "point": "SP",
-                    "value": 82.0,
-				    "offset": -2,
-                    "load": 10
-                }
-			],
 			"curtail": {
-				"point": "SP",
+				"point": "ZoneTemperatureSetPoint",
 				"value": 82.0,
 				"offset": -2,
 				"load": 10
@@ -57,11 +45,15 @@
 		}
     },
     "HP5": {
-		"Comp": { 
+		"CompressorStatus": {
+		    "device_status": {
+                    "condition": "CompressorStatus", 
+			        "device_status_args": ["CompressorStatus"]
+            },
 			"zonetemperature-setpoint":{
-				"operation": "1/(SP - ZT)",
+				"operation": "1/(ZoneTemperatureSetPoint - ZoneTemperature)",
 				"operation_type": "formula",
-				"operation_args": ["SP", "ZT"],
+				"operation_args": ["ZoneTemperatureSetPoint", "ZoneTemperature"],
 				"minimum": 0,
 				"maximum": 10
 			},
@@ -69,7 +61,7 @@
 			    "on_value": 20.0,
 			    "off_value": 0.0,
 				"operation_type": "status",
-				"point_name": "Comp"
+				"point_name": "CompressorStatus"
 			},
 			"room-type": {
 				"map_key": "Empty Office",
@@ -83,22 +75,26 @@
 			"history-zonetemperature": {
 			    "comparison_type": "direct",
 				"operation_type": "history",
-				"point_name": "ZT",
+				"point_name": "ZoneTemperature",
 				"previous_time": 15,
 				"minimum": 0,
 				"maximum": 10
 			},
 			"curtail": {
-				"point": "SP",
+				"point": "ZoneTemperatureSetPoint",
 				"value": 78.0,
 				"load": 10
 			}
 		},
-	    "Heater": { 
+	    "ElectricHeatStatus": {
+	        "device_status": {
+                    "condition": "ElectricHeatStatus", 
+			        "device_status_args": ["ElectricHeatStatus"]
+            },
 			"zonetemperature-setpoint":{
-				"operation": "1/(SP - ZT)",
+				"operation": "1/(ZoneTemperatureSetPoint - ZoneTemperature)",
 				"operation_type": "formula",
-				"operation_args": ["SP", "ZT"],
+				"operation_args": ["ZoneTemperatureSetPoint", "ZoneTemperature"],
 				"minimum": 0,
 				"maximum": 10
 			},
@@ -106,7 +102,7 @@
 			    "on_value": 10.0,
 			    "off_value": 0.0,
 				"operation_type": "status",
-				"point_name": "Comp"
+				"point_name": "CompressorStatus"
 			},
 			"room-type": {
 				"map_key": "Computer Lab",
@@ -120,24 +116,28 @@
 			"history-zonetemperature": {
 			    "comparison_type": "direct",
 				"operation_type": "history",
-				"point_name": "ZT",
+				"point_name": "ZoneTemperature",
 				"previous_time": 15,
 				"minimum": 0,
 				"maximum": 10
 			},
 			"curtail": {
-				"point": "SP",
+				"point": "ZoneTemperatureSetPoint",
 				"value": 78.0,
 				"load": 10
 			}
 		}
     },
     "HP6": {
-		"Comp": { 
+		"CompressorStatus": {
+		    "device_status": {
+                    "condition": "CompressorStatus", 
+			        "device_status_args": ["CompressorStatus"]
+            },
 			"zonetemperature-setpoint":{
-				"operation": "1/(SP - ZT)",
+				"operation": "1/(ZoneTemperatureSetPoint - ZoneTemperature)",
 				"operation_type": "formula",
-				"operation_args": ["SP", "ZT"],
+				"operation_args": ["ZoneTemperatureSetPoint", "ZoneTemperature"],
 				"minimum": 0,
 				"maximum": 10
 			},
@@ -145,7 +145,7 @@
 			    "on_value": 30.0,
 			    "off_value": 0.0,
 				"operation_type": "status",
-				"point_name": "Comp"
+				"point_name": "CompressorStatus"
 			},
 			"room-type": {
 				"map_key": "Conference Room",
@@ -159,24 +159,28 @@
 			"history-zonetemperature": {
 			    "comparison_type": "direct",
 				"operation_type": "history",
-				"point_name": "ZT",
+				"point_name": "ZoneTemperature",
 				"previous_time": 15,
 				"minimum": 0,
 				"maximum": 10
 			},
 			"curtail": {
-				"point": "SP",
+				"point": "ZoneTemperatureSetPoint",
 				"value": 78.0,
 				"load": 10
 			}
 		}
     },
     "HP7": {
-		"Comp": { 
+		"CompressorStatus": {
+		    "device_status": {
+                    "condition": "CompressorStatus", 
+			        "device_status_args": ["CompressorStatus"]
+            },
 			"zonetemperature-setpoint":{
-				"operation": "1/(SP - ZT)",
+				"operation": "1/(ZoneTemperatureSetPoint - ZoneTemperature)",
 				"operation_type": "formula",
-				"operation_args": ["SP", "ZT"],
+				"operation_args": ["ZoneTemperatureSetPoint", "ZoneTemperature"],
 				"minimum": 0,
 				"maximum": 10
 			},
@@ -184,7 +188,7 @@
 			    "on_value": 40.0,
 			    "off_value": 0.0,
 				"operation_type": "status",
-				"point_name": "Comp"
+				"point_name": "CompressorStatus"
 			},
 			"room-type": {
 				"map_key": "Office",
@@ -198,13 +202,13 @@
 			"history-zonetemperature": {
 			    "comparison_type": "direct",
 				"operation_type": "history",
-				"point_name": "ZT",
+				"point_name": "ZoneTemperature",
 				"previous_time": 15,
 				"minimum": 0,
 				"maximum": 10
 			},
 			"curtail": {
-				"point": "SP",
+				"point": "ZoneTemperatureSetPoint",
 				"value": 78.0,
 				"load": 10
 			}

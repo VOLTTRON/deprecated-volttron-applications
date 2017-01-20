@@ -1,0 +1,34 @@
+{
+    "curtail_count": {
+        "room-type": 3,
+        "rated-power": 5
+    },
+
+    "history-zonetemperature": {
+        "curtail_count": 3,
+        "room-type": 5,
+        "rated-power": 3
+    },
+
+    "room-type": {},
+
+    "rated-power": {
+        "room-type": 3
+    },
+
+    "zonetemperature-setpoint": {
+        "curtail_count": 7,
+        "history-zonetemperature": 5,
+        "room-type": 8,
+        "rated-power": 6,
+        "stage": 2
+    },
+
+    "stage": {
+        "curtail_count": 5,
+        "history-zonetemperature": 3,
+        "room-type": 6,
+        "rated-power": 4
+    }
+}
+

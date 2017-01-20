@@ -346,7 +346,11 @@ class Criteria(object):
                                                       **default_curtailment)
 
         self.curtail_count = 0
-
+        self.maximum_curtail_count = criteria.get('maximum_daily_curtailments', 50)
+        try:
+            criteria.pop('maximum_daily_curtailments')
+        except:
+            pass
         for name, criterion in criteria.items():
             self.add(name, criterion)
 
@@ -361,7 +365,7 @@ class Criteria(object):
             result = criterion.evaluate_criterion()
             results[name] = result
 
-        results['curtail_count'] = self.curtail_count
+        results['curtail_count'] = self.maximum_curtail_count - self.curtail_count
         return results
 
     def ingest_data(self, time_stamp, data):
@@ -388,7 +392,20 @@ class Device(object):
     def __init__(self, device_config):
         self.criteria = {}
         self.command_status = {}
-
+        self.device_status_args = {}
+        self.points = {}
+        self.expr = {}
+        self.condition = {}
+        
+        for subdevice, cluster_config in device_config.items():
+            device_status = cluster_config.pop('device_status')
+            device_status_args = device_status['device_status_args']
+            self.device_status_args[subdevice] = device_status_args
+            condition = device_status['condition']
+            self.condition[subdevice] = condition
+            self.points[subdevice] = symbols(device_status_args)
+            self.expr[subdevice] = parse_expr(condition) 
+        
         for command_point, criteria_config in device_config.items():
             criteria = Criteria(criteria_config)
             self.criteria[command_point] = criteria
@@ -399,7 +416,14 @@ class Device(object):
             criteria.ingest_data(time_stamp, data)
 
         for command in self.command_status:
-            self.command_status[command] = bool(data[command])
+            pt_list = []
+            for item in self.device_status_args[command]:
+                pt_list.append((item, data[item]))
+            val = False
+            if pt_list:
+                val = self.expr[command].subs(pt_list)
+            _log.debug('{} evaluated to {}'.format(self.condition[command], val))
+            self.command_status[command] = bool(val)
 
     def reset_curtail_count(self):
         for criteria in self.criteria.values():
@@ -508,11 +532,11 @@ def ilc_agent(config_path, **kwargs):
     clusters = Clusters()
 
     for cluster_config in cluster_configs:
-        excel_file_name = cluster_config['critieria_file_path']
+        criteria_file_name = cluster_config['critieria_file_path']
         cluster_config_file_name = cluster_config['device_file_path']
         cluster_priority = cluster_config['cluster_priority']
 
-        crit_labels, criteria_arr = extract_criteria(excel_file_name, 'CriteriaMatrix')
+        crit_labels, criteria_arr = extract_criteria(criteria_file_name)
         col_sums = calc_column_sums(criteria_arr)
         _, row_average = normalize_matrix(criteria_arr, col_sums)
 
@@ -520,7 +544,7 @@ def ilc_agent(config_path, **kwargs):
                                crit_labels, CRITERIA_LABELSTRING,
                                MATRIX_ROWSTRING)):
             _log.info('Inconsistent criteria matrix. Check configuration '
-                      'in ' + excel_file_name)
+                      'in ' + criteria_file_name)
             sys.exit()
         cluster_config = utils.load_config(cluster_config_file_name)
         device_cluster = DeviceCluster(cluster_priority, crit_labels, row_average, cluster_config)
@@ -584,6 +608,7 @@ def ilc_agent(config_path, **kwargs):
     stagger_release_time = config.get('curtailment_break', 15.0)*60.0
     stagger_release = config.get('stagger_release', False)
     minimum_stagger_window = int(curtail_confirm.total_seconds() + 2)
+    stagger_off_time = config.get('stagger_off_time', True)
     _log.debug('Minimum stagger window: {}'.format(minimum_stagger_window))
     if stagger_release_time - minimum_stagger_window < minimum_stagger_window:
         stagger_release = False
@@ -716,14 +741,14 @@ def ilc_agent(config_path, **kwargs):
             _log.debug('Current smoothing {} and window load: {}'.format(smoothing_constant, window_power))
             _log_csv = [str_now, current_power, normal_average_power, self.average_power, smoothing_constant, window_power]
 
-            if not os.path.isfile('/home/volttron/power_log.csv'):
+            if not os.path.isfile('./power_log.csv'):
                 _header = ['ts', 'instantaneous power', 'Normal Average', 'Simple Exponential Smoothing',
                            'Smoothing Constant', 'Fifteen Minute Exponential Smoothing']
-                myfile = open('/home/volttron/power_log.csv', 'wb')
+                myfile = open('./power_log.csv', 'wb')
                 wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
                 wr.writerow(_header)
                 myfile.close()
-            myfile = open('/home/volttron/power_log.csv', 'a+')
+            myfile = open('./power_log.csv', 'a+')
             wr = csv.writer(myfile, quoting=csv.QUOTE_NONE)
             wr.writerow(_log_csv)
             myfile.close()
@@ -735,7 +760,7 @@ def ilc_agent(config_path, **kwargs):
 
             if self.running_ahp:
                 _log.debug('Next confirm: {}'.format(self.next_curtail_confirm))
-                if current_time >= self.next_curtail_confirm:
+                if current_time >= self.next_curtail_confirm and (self.devices_curtailed or stagger_off_time):
                     self.curtail_confirm(self.average_power, current_time)
                     _log.debug('now: {} ------- Next Curtail Confirm: {}'.format(current_time, self.next_curtail_confirm))
                 if current_time >= self.curtail_end:
@@ -822,7 +847,6 @@ def ilc_agent(config_path, **kwargs):
                     result = self.vip.rpc.call('platform.actuator', 'set_point',
                                                agent_id, curtailed_point,
                                                curtailed_value).get(timeout=5)
-                    gevent.sleep(3)
                 except RemoteError as ex:
                     _log.warning('Failed to set {} to {}: {}'
                                  .format(curtailed_point, curtailed_value, str(ex)))
@@ -943,12 +967,10 @@ def ilc_agent(config_path, **kwargs):
                         result = self.vip.rpc.call('platform.actuator', 'set_point',
                                                    agent_id, curtailed_point,
                                                    revert_value).get(timeout=5)
-                        gevent.sleep(3)
                         _log.debug('Reverted point: {} --------- value: {}'.format(curtailed_point, revert_value))
                     else:
                         result = self.vip.rpc.call('platform.actuator', 'revert_point',
                                                    agent_id, curtailed_point).get(timeout=5)
-                        gevent.sleep(3)
                         _log.debug('Reverted point: {} - Result: {}'.format(curtailed_point, result))
                     if current_devices_curtailed:
                         _log.debug('Removing from curtailed list: {} '.format(self.devices_curtailed[item]))
@@ -988,12 +1010,8 @@ def ilc_agent(config_path, **kwargs):
             device_group_size = max(1, round(minimum_stagger_window * len(self.devices_curtailed)/stagger_release_time))
             _log.debug('MINIMUM: {} ------- STAGGER: {} ------------- NUMBER: {}'.format(minimum_stagger_window, stagger_release_time, len(self.devices_curtailed)))
             self.device_group_size = int(device_group_size)
-            current_release_count = int(stagger_release_time/minimum_stagger_window + 1)
-
-            if current_release_count > self.device_group_size:
-                self.current_stagger = (current_release_count/device_group_size) * minimum_stagger_window
-            else:
-                self.current_stagger = minimum_stagger_window
+            
+            self.current_stagger = max(minimum_stagger_window, stagger_release_time*self.device_group_size/len(self.devices_curtailed))
 
             _log.debug('Current stagger time:  {}'.format(self.current_stagger))
             _log.debug('Current group size:  {}'.format(self.device_group_size))
@@ -1027,4 +1045,7 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt:
         pass
+
+
+
 

@@ -73,34 +73,23 @@ logging.basicConfig(level=logging.debug,
                     datefmt='%m-%d-%y %H:%M:%S')
 
 
-def extract_criteria(excel_file, sheet):
-    '''Function to extract the criteria matrix from
-
-    the CriteriaMatrix sheet of the excel spreadsheet
-    '''
-    # Open the excel file
-    wb = open_workbook(excel_file)
-
-    # Access the "CriteriaMatrix" sheet
-    sheet = wb.sheet_by_name(sheet)
+def extract_criteria(filename):
+    config_matrix = utils.load_config(filename)
+    index_of = dict([(a,i) for i, a in enumerate(config_matrix.keys())])
 
     criteria_labels = []
-    criteria_matrix = []
-    # Matrix starts at row 3 (column headers, which are
-    # duplicated by column A) and runs until "Column Sum"
-    for row in range(3, sheet.nrows):
-        if(sheet.cell(row, 0).value == ""):
-            break
-        criteria_labels.append(sheet.cell(row, 0).value)
-    criteria_labels.pop()
-    # NOTE: the number of rows and number of columns should match
-    # Iterate over the rows and columns of the spreadsheet loading
-    # the numbers as floating point values into a list of lists.
-    for row in range(3, 3 + len(criteria_labels)):
-        temp_row = []
-        for col in range(1, 1 + len(criteria_labels)):
-            temp_row.append(float(sheet.cell(row, col).value))
-        criteria_matrix.append(temp_row)
+    for label, index in index_of.items():
+        criteria_labels.insert(index, label)
+
+    criteria_matrix = [[0.0 for _ in config_matrix] for _ in config_matrix]
+    for j in config_matrix:
+        row = index_of[j]
+        criteria_matrix[row][row] = 1.0
+
+        for k in config_matrix[j]:
+            col = index_of[k]
+            criteria_matrix[row][col] = float(config_matrix[j][k])
+            criteria_matrix[col][row] = float(1.0 / criteria_matrix[row][col])
 
     return criteria_labels, criteria_matrix
 

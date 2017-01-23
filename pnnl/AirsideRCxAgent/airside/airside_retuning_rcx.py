@@ -203,7 +203,7 @@ class Application(AbstractDrivenAgent):
                 fan_status = device_dict[self.fan_status_name]
                 fan_status = [point[1] for point in fan_status]
                 fan_status = [status for status in fan_status if status is not None]
-                if fan_status_data:
+                if fan_status:
                     fan_status_data.append(min(fan_status))
                     if not int(fan_status_data[0]):
                         supply_fan_off = True

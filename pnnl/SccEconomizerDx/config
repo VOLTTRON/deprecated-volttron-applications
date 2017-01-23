@@ -1,0 +1,41 @@
+{
+    "campus": "campus1",
+    "building": "building1",
+    "unit": "rtu1",
+    "agentid": "scc_cycling",
+    "zip_code": "99354",
+
+    "points": {
+	    "Temperature Sensors": {
+	        "OutsideAirTemperature": "OutsideAirTemperature",
+	        "ReturnAirTemperature": "ReturnAirTemperature",
+	        "ZoneTemperature": "Not-Measured",
+	        "MixedAirTemperature": "Not-Measured",
+	        "DischargeAirTemperature": "DischargeAirTemperature"
+	    },
+	    "CommandStatus": {
+	        "SupplyFanStatus": "SupplyFanStatus",
+            "ThermostatCoolCall": "CoolingStage",
+            "ThermostatHeatingCall": "HeatingStage",
+            "CompressorCommand": "CompressorCommand",
+            "HeatingCommand": "Not-Measured",
+            "SupplyFanSpeed": "SupplyFanSpeed",
+            "OutsideAirDamper": "OutsideAirDamper"},
+        "SetPoints": {
+            "CoolingTemperatureSetPoint": "CoolingTemperatureSetPoint",
+            "HeatingTemperatureSetPoint": "HeatingTemperatureSetPoint"
+	    }
+    },
+    
+    "ECONOMIZER TYPE": "HL",
+    "HIGH LIMIT": 60.0,
+    "OAT SENSOR THRESHOLD": 8.0,
+    "OAT HIGH": 100.0,
+    "OAT LOW": 40.0,
+    "MINIMUM Dx TIME": 10,
+    "STEADY STATE TIME": 6,
+    "TEMPERATURE THRESHOLD": 8.0,
+    "MINIMUM OAD SET POINT": 15.0,
+    "BAND": 1.0,
+    "Dx SENSITIVITY": 0
+ }

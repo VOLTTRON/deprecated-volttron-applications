@@ -63,15 +63,15 @@ from datetime import datetime as dt, timedelta as td
 from copy import deepcopy
 from dateutil.parser import parse
 
-from volttron.platform.messaging import topics
 from volttron.platform.agent import utils
-from volttron.platform.agent.utils import jsonapi, setup_logging
+from volttron.platform.agent.utils import (setup_logging, jsonapi,
+                                           get_aware_utc_now, format_timestamp)
 from volttron.platform.vip.agent import Agent, Core
 from volttron.platform.jsonrpc import RemoteError
 from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
 
-__version__ = "3.5.0"
+__version__ = "3.6.0"
 
 __author1__ = 'Craig Allwardt <craig.allwardt@pnnl.gov>'
 __author2__ = 'Robert Lutes <robert.lutes@pnnl.gov>'
@@ -92,7 +92,8 @@ def driven_agent(config_path, **kwargs):
     :param kwargs: Any driver specific parameters"""
     config = utils.load_config(config_path)
     arguments = config.get('arguments')
-    mode = True if config.get('mode', 'PASSIVE') == 'ACTIVE' else False
+    actuation_mode = True if config.get('actuation_mode', 'PASSIVE') == 'ACTIVE' else False
+    actuator_lock_required = config.get('require_actuator_lock', False)
     multiple_devices = isinstance(config['device']['unit'], dict)
     campus_building_config = config['device']
     analysis_name = campus_building_config.get('analysis_name', 'analysis_name')
@@ -108,6 +109,7 @@ def driven_agent(config_path, **kwargs):
     device_topic_dict = {}
     device_topic_list = []
     subdevices_list = []
+    interval = config.get('interval', 60)
     vip_destination = config.get('vip_destination', None)
     from_file = config.get('from_file')
     for device_name in device_config:
@@ -183,6 +185,7 @@ def driven_agent(config_path, **kwargs):
             self._header_written = False
             self.file_creation_set = set()
             self.actuation_vip = self.vip.rpc
+            self.initialize_time = None
             if vip_destination:
                 self.agent = self.setup_remote_actuation(vip_destination)
                 self.actuation_vip = self.agent.vip.rpc
@@ -190,6 +193,16 @@ def driven_agent(config_path, **kwargs):
         def _initialize_devices(self):
             self._needed_devices = deepcopy(self._master_devices)
             self._device_values = {}
+
+        def find_reinitialize_time(self, _now):
+            midnight = _now.replace(hour=0, minute=0, second=0, microsecond=0)
+            seconds_from_midnight = (_now - midnight).total_seconds()
+            offset = seconds_from_midnight % interval
+            previous_in_seconds = seconds_from_midnight - offset
+            next_in_seconds = previous_in_seconds + interval
+            from_midnight = td(seconds=next_in_seconds)
+            _log.debug('Start of next scrape interval: {}'.format(midnight + from_midnight))
+            return midnight + from_midnight
 
         def setup_remote_actuation(self, vip_destination):
             event = gevent.event.Event()
@@ -220,9 +233,25 @@ def driven_agent(config_path, **kwargs):
             :returns: True or False based on received messages.
             :rtype: boolean"""
             # Assumes the unit/all values will have values.
-            if not len(self._device_values.keys()) > 0:
+            if not self._device_values.keys():
                 return False
-            return not len(self._needed_devices) > 0
+            return not self._needed_devices
+
+        def aggregate_subdevice(self, device_data, topic):
+            """
+            Aggregates device and subdevice data for application
+            :returns: True or False based on if device data is needed.
+            :rtype: boolean"""
+            tagged_device_data = {}
+            device_tag = device_topic_dict[topic]
+            if device_tag not in self._needed_devices:
+                return False
+            for key, value in device_data.items():
+                device_data_tag = '&'.join([key, device_tag])
+                tagged_device_data[device_data_tag] = value
+            self._device_values.update(tagged_device_data)
+            self._needed_devices.remove(device_tag)
+            return True
 
         def on_analysis_message(self, peer, sender, bus, topic, headers, message):
             """
@@ -241,46 +270,36 @@ def driven_agent(config_path, **kwargs):
             :type topic: str
             :type headers: dict
             :type message: dict"""
+            _timestamp = parse(headers.get('Date'))
+            self.received_input_datetime = _timestamp
+            _log.debug('Current time of publish: {}'.format(_timestamp))
+            if self.initialize_time is None:
+                self.initialize_time = self.find_reinitialize_time(_timestamp)
+            
+            if self.initialize_time is not None and _timestamp < self.initialize_time:
+                if len(self._master_devices) > 1:
+                    return
 
             device_data = message[0]
             if isinstance(device_data, list):
                 device_data = device_data[0]
 
-            def aggregate_subdevice(device_data):
-                tagged_device_data = {}
-                device_tag = device_topic_dict[topic]
-                if device_tag not in self._needed_devices:
-                    return False
-                for key, value in device_data.items():
-                    device_data_tag = '&'.join([key, device_tag])
-                    tagged_device_data[device_data_tag] = value
-                self._device_values.update(tagged_device_data)
-                self._needed_devices.remove(device_tag)
-                return True
-
-            device_needed = aggregate_subdevice(device_data)
+            device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
                 _log.error("Warning device values already present, "
-                           "reinitializing")
+                           "reinitializing at publishin: {}".format(_timestamp))
                 self._initialize_devices()
+                device_needed = self.aggregate_subdevice(device_data, topic)
+                return
+
             if self._should_run_now():
                 field_names = {}
                 for key, value in self._device_values.items():
                     field_names[key.lower() if isinstance(key, str) else key] = value
                 if not converter.initialized and conversion_map is not None:
                     converter.setup_conversion_map(map_names, field_names)
-                if from_file:
-                    _timestamp = parse(headers.get('Date'))
-                    self.received_input_datetime = _timestamp
-                else:
-                    _timestamp = dt.now()
-                    self.received_input_datetime = dt.utcnow()
-
                 device_data = converter.process_row(field_names)
                 results = app_instance.run(_timestamp, device_data)
-                # results = app_instance.run(
-                # dateutil.parser.parse(self._subdevice_values['Timestamp'],
-                #                       fuzzy=True), self._subdevice_values)
                 self._process_results(results)
                 self._initialize_devices()
             else:
@@ -296,11 +315,11 @@ def driven_agent(config_path, **kwargs):
             :returns: Same as results param.
             :rtype: Results object \\volttron.platform.agent.driven"""
             _log.info('Processing Results!')
-            actuator_error = True
-            if mode:
-                if results.devices:
+            actuator_error = False
+            if actuation_mode:
+                if results.devices and actuator_lock_required:
                     actuator_error = self.actuator_request(results.devices)
-                elif results.commands:
+                elif results.commands and actuator_lock_required:
                     actuator_error = self.actuator_request(command_devices)
                 if not actuator_error:
                     results = self.actuator_set(results)
@@ -341,7 +360,6 @@ def driven_agent(config_path, **kwargs):
                     headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON,
                     headers_mod.DATE: timestamp,
                 }
-
                 # The keys in this publish should look like the following
                 # with the values being a dictionary of points off of these
                 # base topics
@@ -369,10 +387,8 @@ def driven_agent(config_path, **kwargs):
                                 'type': datatype,
                                 'units': 'float',
                                 }
-
                 for equipment, _analysis in to_publish.items():
                     self.vip.pubsub.publish('pubsub', equipment, headers, _analysis)
-
                 to_publish.clear()
             return results
 
@@ -386,15 +402,17 @@ def driven_agent(config_path, **kwargs):
             :type results: Results object \\volttron.platform.agent.driven
             :returns: Same as results param.
             :rtype: Results object \\volttron.platform.agent.driven"""
+            tag = 0
             for key, value in results.table_output.items():
-                name_timestamp = key.split('&')
-                _name = name_timestamp[0]
-                timestamp = name_timestamp[1]
-                file_name = output_file_prefix + "-" + _name + ".csv"
-                if file_name not in self.file_creation_set:
-                    self._header_written = False
-                self.file_creation_set.update([file_name])
                 for row in value:
+                    name_timestamp = key.split('&')
+                    _name = name_timestamp[0]
+                    timestamp = name_timestamp[1]
+                    file_name = output_file_prefix + "-" + _name + str(tag) + ".csv"
+                    tag += 1
+                    if file_name not in self.file_creation_set:
+                        self._header_written = False
+                    self.file_creation_set.update([file_name])
                     with open(file_name, 'a+') as file_to_write:
                         row.update({'Timestamp': timestamp})
                         _keys = row.keys()
@@ -423,10 +441,10 @@ def driven_agent(config_path, **kwargs):
             warning:: Calling without previously scheduling a device and not within
                          the time allotted will raise a LockError"""
 
-            _now = dt.now()
-            str_now = _now.strftime(DATE_FORMAT)
+            _now = utils.get_aware_utc_now()
+            str_now = format_timestamp(_now)
             _end = _now + td(minutes=device_lock_duration)
-            str_end = _end.strftime(DATE_FORMAT)
+            str_end = format_timestamp(_end)
             for device in command_equip:
                 actuation_device = base_actuator_path(unit=device, point='')
                 schedule_request = [[actuation_device, str_now, str_end]]

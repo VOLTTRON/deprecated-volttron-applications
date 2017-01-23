@@ -163,8 +163,8 @@ class SupplyTempRcx(object):
         run_status = check_run_status(self.timestamp_arr, current_time, self.no_req_data)
 
         if run_status is None:
-            dx_result.log('Current analysis data set has insufficient data '
-                          'to produce a valid diagnostic result.')
+            dx_result.log('{}: Current analysis data set has insufficient data '
+                          'to produce a valid diagnostic result.'.format(SA_VALIDATE, logging.DEBUG))
             self.reinitialize()
             dx_status = 0
             return dx_status, dx_result
@@ -181,9 +181,10 @@ class SupplyTempRcx(object):
             dx_result = self.low_sat(dx_result, avg_sat_stpt)
             dx_result = self.high_sat(dx_result, avg_sat_stpt)
             dx_result.insert_table_row(self.table_key, self.dx_table)
+            dx_result.log('{}: Running diagnostics.'.format(SA_VALIDATE, logging.DEBUG))
             dx_status = 2
             self.reinitialize()
-
+        dx_result.log('{}: Collecting and aggregating data.'.format(SA_VALIDATE, logging.DEBUG))
         self.satemp_arr.append(mean(sat_data))
         self.rht_arr.append(mean(zone_rht_data))
         self.sat_stpt_arr.append(mean(sat_stpt_data))
@@ -205,37 +206,36 @@ class SupplyTempRcx(object):
                 # Create diagnostic message for fault
                 # when supply-air temperature set point
                 # is not available.
-                msg = ('The SAT has been detected to be too low but '
+                msg = ('{}: The SAT has been detected to be too low but '
                        'but supply-air temperature set point data '
-                       'is not available.')
+                       'is not available.'.format(SA_TEMP_RCX1))
                 dx_msg = 43.1
             elif self.auto_correct_flag:
                 autocorrect_sat_stpt = avg_sat_stpt + self.sat_retuning
                 if autocorrect_sat_stpt <= self.max_sat_stpt:
                     dx_result.command(self.sat_stpt_cname, autocorrect_sat_stpt)
                     sat_stpt = '%s' % float('%.2g' % autocorrect_sat_stpt)
-                    msg = ('The SAT has been detected to be too low. '
+                    msg = ('{}: The SAT has been detected to be too low. '
                            'The SAT set point has been increased to: '
-                           '{}{}F'.format(self.dgr_sym, sat_stpt))
+                           '{}{}F'.format(SA_TEMP_RCX1, self.dgr_sym, sat_stpt))
                     dx_msg = 41.1
                 else:
                     dx_result.command(self.sat_stpt_cname, self.max_sat_stpt)
                     sat_stpt = '%s' % float('%.2g' % self.max_sat_stpt)
                     sat_stpt = str(sat_stpt)
                     msg = (
-                        'The supply-air temperautre was detected to be '
+                        '{}: The supply-air temperautre was detected to be '
                         'too low. Auto-correction has increased the '
                         'supply-air temperature set point to the maximum '
                         'configured supply-air tempeature set point: '
-                        '{}{}F)'.format(self.dgr_sym, sat_stpt))
+                        '{}{}F)'.format(SA_TEMP_RCX1, self.dgr_sym, sat_stpt))
                     dx_msg = 42.1
             else:
-                msg = ('The SAT has been detected to be too low but'
-                       'auto-correction is not enabled.')
+                msg = ('{}: The SAT has been detected to be too low but'
+                       'auto-correction is not enabled.'.format(SA_TEMP_RCX1))
                 dx_msg = 44.1
         else:
-            msg = ('No problem detected for Low Supply-air '
-                   'Temperature diagnostic.')
+            msg = ('{}: No problem detected.')
             dx_msg = 40.0
         self.dx_table.update({SA_TEMP_RCX1 + DX: dx_msg})
         dx_result.log(msg, logging.INFO)
@@ -254,9 +254,9 @@ class SupplyTempRcx(object):
                 # Create diagnostic message for fault
                 # when supply-air temperature set point
                 # is not available.
-                msg = ('The SAT has been detected to be too high but '
+                msg = ('{}: The SAT has been detected to be too high but '
                        'but supply-air temperature set point data '
-                       'is not available.')
+                       'is not available.'.format(SA_TEMP_RCX2))
                 dx_msg = 54.1
             elif self.auto_correct_flag:
                 autocorrect_sat_stpt = avg_sat_stpt - self.sat_retuning
@@ -265,29 +265,29 @@ class SupplyTempRcx(object):
                 if autocorrect_sat_stpt >= self.min_sat_stpt:
                     dx_result.command(self.sat_stpt_cname, autocorrect_sat_stpt)
                     sat_stpt = '%s' % float('%.2g' % autocorrect_sat_stpt)
-                    msg = ('The SAT has been detected to be too high. The '
+                    msg = ('{}: The SAT has been detected to be too high. The '
                            'SAT set point has been increased to: '
-                           '{}{}F'.format(self.dgr_sym, sat_stpt))
+                           '{}{}F'.format(SA_TEMP_RCX2, self.dgr_sym, sat_stpt))
                     dx_msg = 51.1
                 else:
                     # Create diagnostic message for fault condition
                     # where the maximum SAT has been reached
                     dx_result.command(self.sat_stpt_cname, self.min_sat_stpt)
                     sat_stpt = '%s' % float('%.2g' % self.min_sat_stpt)
-                    msg = ('The SAT was detected to be too high, '
+                    msg = ('{}: The SAT was detected to be too high, '
                            'auto-correction has increased the SAT to the '
                            'minimum configured SAT: {}{}F'
-                           .format(self.dgr_sym, sat_stpt))
+                           .format(SA_TEMP_RCX2, self.dgr_sym, sat_stpt))
                     dx_msg = 52.1
             else:
                 # Create diagnostic message for fault condition
                 # without auto-correction
-                msg = ('The SAT has been detected to be too high but '
-                       'auto-correction is not enabled.')
+                msg = ('{}: The SAT has been detected to be too high but '
+                       'auto-correction is not enabled.'.format(SA_TEMP_RCX2))
                 dx_msg = 53.1
         else:
-            msg = ('No problem detected for High Supply-air '
-                   'Temperature diagnostic.')
+            msg = ('{}: No problem detected for High Supply-air '
+                   'Temperature diagnostic.'.format(SA_TEMP_RCX2))
             dx_msg = 50.0
         self.dx_table.update({SA_TEMP_RCX2 + DX: dx_msg})
         dx_result.log(msg, logging.INFO)

@@ -144,8 +144,8 @@ class DuctStaticRcx(object):
         run_status = check_run_status(self.timestamp_arr, current_time, self.no_req_data)
 
         if run_status is None:
-            dx_result.log('Current analysis data set has insufficient data '
-                          'to produce a valid diagnostic result.')
+            dx_result.log('{}: Current analysis data set has insufficient data '
+                          'to produce a valid diagnostic result.'.format(STCPR_VALIDATE, logging.DEBUG))
             self.reinitialize()
             return dx_status, dx_result
         dx_status = 1
@@ -161,9 +161,10 @@ class DuctStaticRcx(object):
             dx_result = self.low_stcpr_dx(dx_result, avg_stcpr_stpt)
             dx_result = self.high_stcpr_dx(dx_result, avg_stcpr_stpt)
             dx_result.insert_table_row(self.table_key, self.dx_table)
+            dx_result.log('{}: Running diagnostics.'.format(STCPR_VALIDATE, logging.DEBUG))
             dx_status = 2
             self.reinitialize()
-
+        dx_result.log('{}: Collecting and aggregating data.'.format(STCPR_VALIDATE, logging.DEBUG))
         self.stcpr_stpt_arr.append(mean(stcpr_data))
         self.stcpr_arr.append(mean(stcpr_stpt_data))
         self.zn_dmpr_arr.append(mean(zn_dmpr_data))
@@ -188,9 +189,9 @@ class DuctStaticRcx(object):
                 # Create diagnostic message for fault
                 # when duct static pressure set point
                 # is not available.
-                msg = ('The duct static pressure set point has been '
+                msg = ('{}: The duct static pressure set point has been '
                        'detected to be too low but but supply-air'
-                       'temperature set point data is not available.')
+                       'temperature set point data is not available.'.format(DUCT_STC_RCX1))
                 dx_msg = 14.1
             elif self.auto_correct_flag:
                 auto_correct_stcpr_stpt = avg_stcpr_stpt + self.stcpr_retuning
@@ -198,26 +199,26 @@ class DuctStaticRcx(object):
                     dx_result.command(self.stcpr_stpt_cname, auto_correct_stcpr_stpt)
                     new_stcpr_stpt = '%s' % float('%.2g' % auto_correct_stcpr_stpt)
                     new_stcpr_stpt = new_stcpr_stpt + ' in. w.g.'
-                    msg = ('The duct static pressure was detected to be '
+                    msg = ('{}: The duct static pressure was detected to be '
                            'too low. The duct static pressure has been '
                            'increased to: {}'
-                           .format(new_stcpr_stpt))
+                           .format(DUCT_STC_RCX1, new_stcpr_stpt))
                     dx_msg = 11.1
                 else:
                     dx_result.command(self.stcpr_stpt_cname, self.max_stcpr_stpt)
                     new_stcpr_stpt = '%s' % float('%.2g' % self.max_stcpr_stpt)
                     new_stcpr_stpt = new_stcpr_stpt + ' in. w.g.'
-                    msg = ('The duct static pressure set point is at the '
-                           'maximum value configured by the building '
-                           'operator: {})'.format(new_stcpr_stpt))
+                    msg = ('{}: The duct static pressure set point is at the '
+                           'maximum value configured by the building operator: {}'
+                           .format(DUCT_STC_RCX1, new_stcpr_stpt))
                     dx_msg = 12.1
             else:
-                msg = ('The duct static pressure set point was detected '
-                       'to be too low but auto-correction is not enabled.')
+                msg = ('{}: The duct static pressure set point was detected '
+                       'to be too low but auto-correction is not enabled.'.format(DUCT_STC_RCX1))
                 dx_msg = 13.1
         else:
-            msg = ('No re-tuning opportunity was detected during the low duct '
-                   'static pressure diagnostic.')
+            msg = ('{}: No re-tuning opportunity was detected during the low duct '
+                   'static pressure diagnostic.'.format(DUCT_STC_RCX1))
             dx_msg = 10.0
 
         self.dx_table.update({DUCT_STC_RCX1 + DX: dx_msg})
@@ -239,10 +240,10 @@ class DuctStaticRcx(object):
                 # Create diagnostic message for fault
                 # when duct static pressure set point
                 # is not available.
-                msg = ('The duct static pressure set point has been '
+                msg = ('{}: The duct static pressure set point has been '
                        'detected to be too high but but duct static '
                        'pressure set point data is not available.'
-                       'temperature set point data is not available.')
+                       'temperature set point data is not available.'.format(DUCT_STC_RCX2))
                 dx_msg = 24.1
             elif self.auto_correct_flag:
                 auto_correct_stcpr_stpt = avg_stcpr_stpt - self.stcpr_retuning
@@ -250,26 +251,25 @@ class DuctStaticRcx(object):
                     dx_result.command(self.stcpr_stpt_cname, auto_correct_stcpr_stpt)
                     new_stcpr_stpt = '%s' % float('%.2g' % auto_correct_stcpr_stpt)
                     new_stcpr_stpt = new_stcpr_stpt + ' in. w.g.'
-                    msg = ('The duct static pressure was detected to be '
+                    msg = ('{}: The duct static pressure was detected to be '
                            'too high. The duct static pressure set point '
-                           'has been reduced to: {}'
-                           .format(new_stcpr_stpt))
+                           'has been reduced to: {}'.format(DUCT_STC_RCX2, new_stcpr_stpt))
                     dx_msg = 21.1
                 else:
                     dx_result.command(self.stcpr_stpt_cname, self.min_stcpr_stpt)
                     new_stcpr_stpt = '%s' % float('%.2g' % self.min_stcpr_stpt)
                     new_stcpr_stpt = new_stcpr_stpt + ' in. w.g.'
-                    msg = ('The duct static pressure set point is at the '
+                    msg = ('{}: The duct static pressure set point is at the '
                            'minimum value configured by the building '
-                           'operator: {})'.format(new_stcpr_stpt))
+                           'operator: {})'.format(DUCT_STC_RCX2, new_stcpr_stpt))
                     dx_msg = 22.1
             else:
-                msg = ('Duct static pressure set point was detected to be '
-                       'too high but auto-correction is not enabled.')
+                msg = ('{}: Duct static pressure set point was detected to be '
+                       'too high but auto-correction is not enabled.'.format(DUCT_STC_RCX2))
                 dx_msg = 23.1
         else:
-            msg = ('No re-tuning opportunity was detected during the high duct '
-                   'static pressure diagnostic.')
+            msg = ('{}: No re-tuning opportunity was detected during the high duct '
+                   'static pressure diagnostic.'.format(DUCT_STC_RCX2))
             dx_msg = 20.0
 
         self.dx_table.update({DUCT_STC_RCX2 + DX: dx_msg})

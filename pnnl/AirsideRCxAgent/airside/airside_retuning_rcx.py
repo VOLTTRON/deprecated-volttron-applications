@@ -292,18 +292,13 @@ class Application(AbstractDrivenAgent):
                 self.warm_up_start = cur_time
                 return dx_result
             time_check = td(minutes=self.warm_up_time)
-            if (self.warm_up_start is not None and
-                    (cur_time - self.warm_up_start) < time_check):
-                dx_result.log('Unit is in warm-up. Data will not be analyzed.')
+            if self.warm_up_start is not None and (cur_time - self.warm_up_start) < time_check:
+                dx_result.log('Unit may be in warm-up. Data will not be analyzed.')
                 return dx_result
-            dx_status, dx_result = (
-                self.static_dx.duct_static(cur_time, stcpr_sp_data, stc_pr_data,
-                                           zn_dmpr_data, low_dx_cond, high_dx_cond,
-                                           dx_result))
+            dx_status, dx_result = self.static_dx.duct_static(cur_time, stcpr_sp_data, stc_pr_data,
+                                                              zn_dmpr_data, low_dx_cond, high_dx_cond, dx_result)
             validate_data.update({STCPR_NAME: dx_status})
-            dx_status, dx_result = (
-                self.sat_dx.sat_rcx(cur_time, satemp_data, sat_stpt_data, rht_data,
-                                    zn_dmpr_data, dx_result))
+            dx_status, dx_result = self.sat_dx.sat_rcx(cur_time, satemp_data, sat_stpt_data, rht_data, zn_dmpr_data, dx_result)
             validate_data.update({SATEMP_NAME: dx_status})
             return dx_result
         finally:

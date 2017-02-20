@@ -71,7 +71,7 @@ from volttron.platform.jsonrpc import RemoteError
 from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
 
-__version__ = "3.6.0"
+__version__ = "3.6.1"
 
 __author1__ = 'Craig Allwardt <craig.allwardt@pnnl.gov>'
 __author2__ = 'Robert Lutes <robert.lutes@pnnl.gov>'
@@ -375,6 +375,8 @@ def driven_agent(config_path, **kwargs):
                             datatype = 'float'
                             if isinstance(value, int):
                                 datatype = 'int'
+                            elif not isinstance(value, float):
+                                datatype = 'string'                                
                             kbase = key[key.rfind('/') + 1:]
                             topic_without_point = analysis_topic[:analysis_topic.rfind('/')]
 

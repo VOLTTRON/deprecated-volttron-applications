@@ -357,6 +357,9 @@ def driven_agent(config_path, **kwargs):
                             datatype = 'float'
                             if isinstance(value, int):
                                 datatype = 'int'
+                            elif not isinstance(value, float):
+                                datatype = 'string'
+                                
                             kbase = key[key.rfind('/') + 1:]
                             topic_without_point = analysis_topic[:analysis_topic.rfind('/')]
 

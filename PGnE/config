@@ -1,0 +1,16 @@
+{
+	"agentid": "tcmagent",
+	"campus": "PNNL",
+	"building": "SIGMA1",
+	"temp_unit": "HP1",
+	"power_unit": "METERS",
+	"window_size_in_day": 1,
+    "min_required_window_size_in_percent": 100,
+	"interval_in_min": 1,
+    "schedule_run_in_hr": 1,
+    "aggregate_in_min": 60,
+
+	"out_temp_name": "OutdoorAirTemperature",
+    "power_name": "WholeBuildingPower",
+    "ts_name": "Date"
+}

@@ -1,0 +1,45 @@
+.login-div {
+    width: 1000px;
+    margin: auto;
+}
+
+.afdd-body {
+    width: 1000px;
+    margin: auto;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 2em;
+}
+
+.submit {
+    text-align: center;
+    margin-bottom: 2em;
+}
+
+.ajax-loading {
+    display:    none;
+    position:   fixed;
+    z-index:    1000;
+    top:        0;
+    left:       0;
+    height:     100%;
+    width:      100%;
+    background: rgba( 255, 255, 255, .8 )
+                url('https://i.stack.imgur.com/FhHRx.gif')
+                50% 50%
+                no-repeat;
+}
+
+body.loading {
+    overflow: hidden;
+}
+
+body.loading .ajax-loading {
+    display: block;
+}

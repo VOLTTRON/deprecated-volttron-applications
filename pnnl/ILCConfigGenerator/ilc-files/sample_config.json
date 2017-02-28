@@ -1,0 +1,100 @@
+{
+  "systems": [
+    {
+      "name": "HP1A",
+      "points": [
+        {
+          "name": "FirstStageHeating",
+          "criteria": {
+            "rated_power": {
+              "operation_type": "status",
+              "on_value": 2.2,
+              "off_value": 0,
+              "point_name": "FirstStageHeating"
+            },
+            "room_type": {
+              "map_key": "Directors office",
+              "operation_type": "mapper",
+              "dict_name": "zone_type"
+            },
+            "stage": {
+              "value": 1,
+              "operation_type": "constant"
+            },
+            "history_zonetemperature": {
+              "comparison_type": "direct",
+              "operation_type": "history",
+              "point_name": "ZoneTemperature",
+              "previous_time": 15,
+              "minimum": 0,
+              "maximum": 10
+            },
+            "curtail": {
+              "point_name": "UnoccupiedHeatingTemperatureSetPoint",
+              "offset": -2,
+              "value": 70,
+              "load": 2.2
+            },
+            "conditional_curtail": [
+              {
+                "condition": "OccupancyMode",
+                "point_name": "HeatingTemperatureSetPoint",
+                "offset": -2,
+                "value": 78,
+                "load": 10,
+                "conditional_args": [
+                  "OccupancyMode"
+                ]
+              },
+              {
+                "condition": "WarmCommand",
+                "point_name": "HeatingTemperatureSetPoint",
+                "offset": -2,
+                "value": 68,
+                "load": 10,
+                "conditional_args": [
+                  "WarmCommand"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "ElectricHeatStatus",
+          "criteria": {
+            "rated_power": {
+              "operation_type": "status",
+              "on_value": 5,
+              "off_value": 0,
+              "point_name": "ElectricHeatStatus"
+            },
+            "room_type": {
+              "map_key": "Directors office",
+              "operation_type": "constant",
+              "dict_name": "zone_type"
+            },
+            "stage": {
+              "value": 9,
+              "operation_type": "constant"
+            },
+            "history_zonetemperature": {
+              "comparison_type": "direct",
+              "operation_type": "history",
+              "point_name": "ZoneTemperature",
+              "previous_time": 15,
+              "minimum": 0,
+              "maximum": 10
+            },
+            "curtail": {
+              "point_name": "ElectricHeatCommand",
+              "offset": 0,
+              "value": 0,
+              "load": 5
+            },
+            "conditional_curtail": []
+          }
+        }
+      ]
+    }
+  ]
+}

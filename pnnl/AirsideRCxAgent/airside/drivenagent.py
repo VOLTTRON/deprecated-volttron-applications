@@ -355,10 +355,13 @@ def driven_agent(config_path, **kwargs):
                 try:
                     name_timestamp = app.split('&')
                     _name = name_timestamp[0]
-                    timestamp = name_timestamp[1]
+                    timestamp = self.received_input_datetime
+                    timestamp = str(format_timestamp(timestamp))
                 except:
                     _name = app
-                    timestamp = str(self.received_input_datetime)
+                    timestamp = self.received_input_datetime
+                    timestamp = str(format_timestamp(timestamp))
+
                 headers = {
                     headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON,
                     headers_mod.DATE: timestamp,
@@ -391,7 +394,6 @@ def driven_agent(config_path, **kwargs):
                                 'units': 'float',
                                 }
                 for equipment, _analysis in to_publish.items():
-                    #_log.debug("AIRSIDE Publishing analysis in Local time?: {}".format(headers))
                     self.vip.pubsub.publish('pubsub', equipment, headers, _analysis)
                 to_publish.clear()
             return results

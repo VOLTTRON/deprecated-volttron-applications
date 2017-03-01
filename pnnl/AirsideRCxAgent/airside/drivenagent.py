@@ -70,6 +70,7 @@ from volttron.platform.vip.agent import Agent, Core
 from volttron.platform.jsonrpc import RemoteError
 from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
+import dateutil.tz
 
 __version__ = "3.6.0"
 
@@ -271,6 +272,8 @@ def driven_agent(config_path, **kwargs):
             :type headers: dict
             :type message: dict"""
             _timestamp = parse(headers.get('Date'))
+            to_zone = dateutil.tz.gettz('US/Pacific')
+            _timestamp =_timestamp.astimezone(to_zone)
             self.received_input_datetime = _timestamp
             _log.debug('Current time of publish: {}'.format(_timestamp))
             if self.initialize_time is None:
@@ -388,6 +391,7 @@ def driven_agent(config_path, **kwargs):
                                 'units': 'float',
                                 }
                 for equipment, _analysis in to_publish.items():
+                    #_log.debug("AIRSIDE Publishing analysis in Local time?: {}".format(headers))
                     self.vip.pubsub.publish('pubsub', equipment, headers, _analysis)
                 to_publish.clear()
             return results

@@ -87,6 +87,44 @@ logging.basicConfig(level=logging.info,
                     format='%(asctime)s   %(levelname)-8s %(message)s',
                     datefmt=DATE_FORMAT)
 
+application_headers =  {
+        "Date": "",
+        "TimeStamp": "",
+        "ApplicationCategory": "Building Diagnostics",
+        "ApplicationName": "",
+        "MessageType": "Result"
+    }
+
+message_key = {
+                '-1':  'No Diagnosis',
+                '0.0':   'No problems detected.',
+                '0.1': 'The OAT and MAT sensor readings are not consistent when the outdoor-air damper is fully open.',
+                '1.1': 'A temperature sensor problem was detected the MAT sensor reading is less the the OAT and RAT sensor reading.',
+                '2.1': 'A temperature sensor problem was detected the MAT sensor reading is greater the the OAT and RAT sensor reading.',
+                '3.2': 'The diagnostic resulted in an inconclusive result.',
+                '10.0': 'No problems detected.',
+                '11.1': 'Conditions are favorable for economizing but the OAD is frequently below 100% open.',
+                '12.1': 'The OAD is open for economizing but the OAF indicates the unit is not bringing in near 100% OA.',
+                '13.2': 'The diagnostic resulted in an inconclusive result.',
+                '20.0': 'No problems detected.',
+                '21.1': 'The OAD should be at the minimum position for ventilation but is significantly above that value.',
+                '23.2': 'The diagnostic resulted in an inconclusive result.',
+
+                '30.0': 'No problems detected.',
+                '31.2': 'Inconclusive result;  The OAF calculation led to an unexpected result.',
+                '32.1': 'The OAD should be at the minimum for ventilation but is significantly above that value.',
+                '33.1': 'Excess outdoor air is being provided.  This could significantly increase heating and cooling costs.',
+                '34.1': 'The OAD should be at the minimum for ventilation but is significantly above that value. Excess outdoor air is being provided; This could significantly increase heating and cooling costs.',
+                '35.2': 'The diagnostic resulted in an inconclusive result.',
+
+                '40.0': 'No problems detected.',
+                '41.2': 'Inconclusive result;  The OAF calculation led to an unexpected result.',
+                '42.1': 'The OAD position is significantly below the minimum configured OAD position.',
+                '43.1': 'Insufficient OA for ventilation is being provided.',
+                '44.2': 'The diagnostic resulted in an inconclusive result.'
+            
+}
+
 
 def driven_agent(config_path, **kwargs):
     """Reads agent configuration and converts it to run driven agent.
@@ -97,12 +135,16 @@ def driven_agent(config_path, **kwargs):
     actuator_lock_required = config.get('require_actuator_lock', False)
     multiple_devices = isinstance(config['device']['unit'], dict)
     campus_building_config = config['device']
+    campus_building = dict((key, campus_building_config[key]) for key in ['campus', 'building'])
+    # For dashboard -----------------------------------------------------------------------------
     analysis_name = campus_building_config.get('analysis_name', 'analysis_name')
+    application_name = campus_building_config.get("pretty_name", analysis_name)
+    application_instance = ''.join([campus_building.get('building'), ' ', application_name])
+    # -------------------------------------------------------------------------------------------
     analysis_dict = {'analysis_name': analysis_name}
     arguments.update(analysis_dict)
     agent_id = config.get('agentid', None)
     actuator_id = agent_id if agent_id is not None else analysis_name
-    campus_building = dict((key, campus_building_config[key]) for key in ['campus', 'building'])
     analysis = deepcopy(campus_building)
     analysis.update(analysis_dict)
     device_config = config['device']['unit']
@@ -393,7 +435,19 @@ def driven_agent(config_path, **kwargs):
                                 'type': datatype,
                                 'units': 'float',
                                 }
+
+                app_header = application_headers
+                app_header.update({"TimeStamp": timestamp})
+                app_header.update({"Date": timestamp})
+                app_header.update({"ApplicationName": application_name})
+
                 for equipment, _analysis in to_publish.items():
+                    application_result = _analysis[0]
+                    if application_result.has_key('diagnostic message'):
+                        application_topic = equipment.replace(analysis_name, application_instance)
+                        look_up_msg = message_key[str(application_result['diagnostic message'])]
+                        application_result_message = [{"Result": look_up_msg}, {"Result": {"tz": "US/Pacific", "type": "string"}}]
+                        self.vip.pubsub.publish('pubsub', application_topic, app_header, application_result_message)
                     self.vip.pubsub.publish('pubsub', equipment, headers, _analysis)
                 to_publish.clear()
             return results

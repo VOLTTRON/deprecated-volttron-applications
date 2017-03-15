@@ -974,10 +974,24 @@ $(function() {
         $("body").removeClass("loading");
     }
 
+    function get2DigitValue(value) {
+        if (value<10) value = '0' + value;
+        return value;
+    }
+
     function getTsFormat(d){
-        var datePart = [d.getFullYear(), d.getMonth()+1, d.getDate()].join('-');
-        var timePart =[d.getHours(), d.getMinutes(), d.getSeconds()].join(':');
-        return [datePart,timePart].join(' ');
+        var dd = get2DigitValue(d.getDate());
+        var MM = get2DigitValue(d.getMonth() + 1);
+        var yy = d.getFullYear();
+
+        var hh = get2DigitValue(d.getHours());
+        var mm = get2DigitValue(d.getMinutes());
+        var ss = get2DigitValue(d.getSeconds());
+
+        var fullDatePart = [yy, MM, dd].join('-');
+        var fullTimePart = [hh, mm, ss].join(':');
+
+        return [fullDatePart, fullTimePart].join(' ');
     }
 
     function loadData() {

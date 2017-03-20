@@ -69,7 +69,7 @@ EC = 'EconomizerCondition'
 ST = 'State'
 
 def create_table_key(table_name, timestamp):
-    return '&'.join([table_name, timestamp.strftime('%m-%d-%y %H:%M')])
+    return '&'.join([table_name, timestamp.isoformat()])
 
 class TempSensorDx(object):
     '''Air-side HVAC temperature sensor diagnostic for AHU/RTU systems.

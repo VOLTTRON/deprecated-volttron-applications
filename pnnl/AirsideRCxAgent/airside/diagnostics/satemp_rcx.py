@@ -64,7 +64,7 @@ DATA = '/data/'
 SAT_NAME = 'supply-air temperature'
 
 def create_table_key(table_name, timestamp):
-    return '&'.join([table_name, timestamp.strftime('%m-%d-%y %H:%M')])
+    return '&'.join([table_name, timestamp.isoformat()])
 
 
 class SupplyTempRcx(object):

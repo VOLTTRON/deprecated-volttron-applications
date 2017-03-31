@@ -155,6 +155,7 @@ def driven_agent(config_path, **kwargs):
     interval = config.get('interval', 60)
     vip_destination = config.get('vip_destination', None)
     from_file = config.get('from_file')
+    timezone = config.get('local_timezone', 'US/Pacific')
     for device_name in device_config:
         device_topic = topics.DEVICES_VALUE(campus=campus_building.get('campus'),
                                             building=campus_building.get('building'),
@@ -314,7 +315,7 @@ def driven_agent(config_path, **kwargs):
             :type headers: dict
             :type message: dict"""
             _timestamp = parse(headers.get('Date'))
-            to_zone = dateutil.tz.gettz('US/Pacific')
+            to_zone = dateutil.tz.gettz(timezone)
             _timestamp =_timestamp.astimezone(to_zone)
             self.received_input_datetime = _timestamp
             _log.debug('Current time of publish: {}'.format(_timestamp))

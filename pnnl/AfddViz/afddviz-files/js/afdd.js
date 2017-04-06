@@ -1053,8 +1053,8 @@ $(function() {
                     if (data['result'].hasOwnProperty('values')) {
                         $.each(data['result']['values'], function (key, value) {
                             preCacheData[key] = value;
-                            console.log(key);
-                            console.log(JSON.stringify(value));
+                            //console.log(key);
+                            //console.log(JSON.stringify(value));
                         });
                     }
                 },
@@ -1092,6 +1092,7 @@ $(function() {
                     }
                     //if (topicData['result'].hasOwnProperty('values')){
                         //topicData['result']['values'].forEach(function(dx_msg){
+                        var curEIPointer = 0;
                         topicData.forEach(function(dx_msg){
                             var newItem = {};
                             var err_code = dx_msg[1].toString();
@@ -1102,18 +1103,17 @@ $(function() {
                             newItem['diagnostic_message'] = error_messages[dx][err_code];
                             var ei_topic = [dx,site,building,device,algo,'energy impact'].join('/');
                             if (preCacheData.hasOwnProperty(ei_topic)) {
-                                //if (preCacheData[ei_topic].hasOwnProperty('result') &&
-                                //    preCacheData[ei_topic]['result'].hasOwnProperty('values')) {
-                                    //preCacheData[ei_topic]['result']['values'].forEach(function(ei_msg){
-                                    preCacheData[ei_topic].forEach(function(ei_msg){
-                                        eiParts = ei_msg[0].split(':');
-                                        dxParts = dx_msg[0].split(':');
-                                        if (eiParts[0]===dxParts[0] && //up to hour
-                                            eiParts[1]===dxParts[1]) { //minute
-                                            newItem['energy_impact'] = ei_msg[1];
-                                        }
-                                    })
-                                //}
+                                for (; curEIPointer < preCacheData[ei_topic].length; curEIPointer++)
+                                {
+                                    var ei_msg = preCacheData[ei_topic][curEIPointer];
+                                    eiParts = ei_msg[0].split(':');
+                                    dxParts = dx_msg[0].split(':');
+                                    if (eiParts[0]===dxParts[0] && //up to hour
+                                        eiParts[1]===dxParts[1]) { //minute
+                                        newItem['energy_impact'] = ei_msg[1];
+                                        break;
+                                    }
+                                }
                             }
                             cacheData[algo_path].push(newItem);
                         });

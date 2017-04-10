@@ -33,6 +33,11 @@ $(function() {
                 'name': 'AHU4',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
+            'name': 'BUILDING3',
+            'devices': [{
+                'name': 'INTERIOR_AHU',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+        }]}, {
             'name': 'BUILDING4',
             'devices': [{
                 'name': 'RTU3',
@@ -42,6 +47,63 @@ $(function() {
                 'dx': ['Economizer_RCx', 'Airside_RCx']
             }, {
                 'name': 'RTU5',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+        }]}, {
+            'name': 'BUILDING5',
+            'devices': [{
+                'name': 'INTERIOR_AHU',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+        }]}, {
+            'name': 'BUILDING6',
+            'devices': [{
+                'name': 'HP1',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP2',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP3',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP4',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP5',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP6',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP7',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP8',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP9',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP10',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP11',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+        }]}, {
+            'name': 'BUILDING7',
+            'devices': [{
+                'name': 'HP1',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP2',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP3',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP4',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP5',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
             'name': 'BUILDING8',
@@ -61,17 +123,68 @@ $(function() {
                 'name': 'HP7',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}, {
-            'name': 'BUILDING3',//'ROI',
+            'name': 'BUILDING9',
             'devices': [{
-                'name': 'INTERIOR_AHU',
+                'name': 'AHU6',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-            }]}, {
-            'name': 'BUILDING3',//'ROII',
+            }, {
+                'name': 'AHU7',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'AHU8',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'AHU13',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'AHU20',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+        }]}, {
+            'name': 'BUILDING10',
             'devices': [{
-                'name': 'INTERIOR_AHU',
+                'name': 'HP1',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP2',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP3',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP4',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP5',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP6',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP7',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP8',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP9',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP10',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }, {
+                'name': 'HP11',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
         }]}
-    ]}];
+    ]}, {
+        'name': 'PNNL-SEQUIM',
+        'buildings': [{
+            'name': 'MSL5',
+            'devices': [{
+                'name': 'AHU1',
+                'dx': ['Economizer_RCx', 'Airside_RCx']
+            }]
+        }]
+    }];
     var points_available = {
         'Economizer_RCx': ['diagnostic message', 'energy impact'],
         'Airside_RCx': ['diagnostic message']
@@ -550,7 +663,7 @@ $(function() {
         // For the purpose of deciding which Rcx is running
         //if (data.length < 1) {
         if ($.isEmptyObject(data)) {
-            console.log("There is no data in this time period.");
+            console.log("No data received.");
             return false; //No Data
         }
         for (var i = 0; i < data.length && !foundDiagnosticList; i++) {
@@ -967,11 +1080,11 @@ $(function() {
 
     function uiResultLoaded(resp) {
         //console.log(json);
+        $("body").removeClass("loading");
         var timezone = parseInt($("#timezone").val());
         timezone = 0; //disable timezone for now
         var svg = retroCommissioningAFDDSVG(resp,timezone);
         $('#retro-commissioning-afdd').append(svg);
-        $("body").removeClass("loading");
     }
 
     function get2DigitValue(value) {

@@ -18,7 +18,8 @@ $(function() {
 
     var siteObjs = [{
         'name': 'PNNL',
-        buildings: [{
+        buildings: [
+        {
             'name': 'BUILDING1',
             'devices': [{
                 'name': 'AHU1',
@@ -32,12 +33,15 @@ $(function() {
             }, {
                 'name': 'AHU4',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING3',
             'devices': [{
                 'name': 'INTERIOR_AHU',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]
+        },
+        {
             'name': 'BUILDING4',
             'devices': [{
                 'name': 'RTU3',
@@ -48,12 +52,14 @@ $(function() {
             }, {
                 'name': 'RTU5',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING5',
             'devices': [{
                 'name': 'INTERIOR_AHU',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING6',
             'devices': [{
                 'name': 'HP1',
@@ -88,7 +94,8 @@ $(function() {
             }, {
                 'name': 'HP11',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING7',
             'devices': [{
                 'name': 'HP1',
@@ -105,7 +112,8 @@ $(function() {
             }, {
                 'name': 'HP5',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING8',
             'devices': [{
                 'name': 'HP3',
@@ -122,7 +130,8 @@ $(function() {
             }, {
                 'name': 'HP7',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING9',
             'devices': [{
                 'name': 'AHU6',
@@ -139,7 +148,8 @@ $(function() {
             }, {
                 'name': 'AHU20',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}, {
+        }]},
+        {
             'name': 'BUILDING10',
             'devices': [{
                 'name': 'HP1',
@@ -174,17 +184,14 @@ $(function() {
             }, {
                 'name': 'HP11',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-        }]}
-    ]}, {
-        'name': 'PNNL-SEQUIM',
-        'buildings': [{
+        }]},
+        {
             'name': 'BUILDING14',
             'devices': [{
                 'name': 'AHU1',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
-            }]
-        }]
-    }];
+        }]}
+    ]}];
     var points_available = {
         'Economizer_RCx': ['diagnostic message', 'energy impact'],
         'Airside_RCx': ['diagnostic message']

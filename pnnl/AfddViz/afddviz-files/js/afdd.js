@@ -178,7 +178,7 @@ $(function() {
     ]}, {
         'name': 'PNNL-SEQUIM',
         'buildings': [{
-            'name': 'MSL5',
+            'name': 'BUILDING14',
             'devices': [{
                 'name': 'AHU1',
                 'dx': ['Economizer_RCx', 'Airside_RCx']
@@ -188,7 +188,7 @@ $(function() {
     var points_available = {
         'Economizer_RCx': ['diagnostic message', 'energy impact'],
         'Airside_RCx': ['diagnostic message']
-    }
+    };
     var algo_set = {
         'Economizer_RCx': [
             'Temperature Sensor Dx',
@@ -207,7 +207,7 @@ $(function() {
             'No Supply-air Temperature Reset Dx',
             'Operational Schedule Dx',
             'Supply-air Temperature Set Point Control Loop Dx'
-    ]}
+    ]};
     var color_codes = {
         'Economizer_RCx': {
             '-1': 'GREY',
@@ -294,7 +294,7 @@ $(function() {
             '80.0': 'GREEN',
             '81.1': 'RED'
         }
-    }
+    };
     var error_messages = {
         'Economizer_RCx': {
             '-1': 'No Diagnosis',
@@ -367,18 +367,18 @@ $(function() {
             '80.0': 'No problems detected.',
             '81.1': 'A discharge-air temperature reset was not detected.  Discharge-air temperature reset can save significant energy/money.'
         }
-    }
+    };
 
     //Extensions & support functions
     Date.prototype.stdTimezoneOffset = function() {
         var jan = new Date(this.getFullYear(), 0, 1);
         var jul = new Date(this.getFullYear(), 6, 1);
         return Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
-    }
+    };
 
     Date.prototype.dst = function() {
         return this.getTimezoneOffset() < this.stdTimezoneOffset();
-    }
+    };
 
     function formatDate(d) {
         var dd = d.getDate();
@@ -923,9 +923,9 @@ $(function() {
             .on('mouseout', tip.hide)
             .on('mousedown', function(d) {
                 d3.select("#hrData").remove();
-                if (d.diagnostic == "No Supply-air Temperature Reset Dx" ||
-                    d.diagnostic == "No Static Pressure Reset Dx" ||
-                    d.diagnostic == "") {
+                if (d.diagnostic === "No Supply-air Temperature Reset Dx" ||
+                    d.diagnostic === "No Static Pressure Reset Dx" ||
+                    d.diagnostic === "") {
                     return;
                 }
                 //DetailedArea has 3 <g> elements: border, label, hrDataArea (actual drawing)

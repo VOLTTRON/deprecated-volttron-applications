@@ -209,7 +209,7 @@ class Application(AbstractDrivenAgent):
                         self.warm_up_flag = True
                     fan_status_data.append(bool(int(fan_speedcmd)))
                 if fan_speedcmd < self.low_supply_fan_threshold:
-                    _log.debug('Fan is operating below minimum configured speed.')
+                    dx_result.log('Fan is operating below minimum configured speed.')
                     return dx_result
                     
             if supply_fan_off:

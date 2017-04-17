@@ -288,6 +288,7 @@ def driven_agent(config_path, **kwargs):
             :rtype: boolean"""
             tagged_device_data = {}
             device_tag = device_topic_dict[topic]
+            _log.debug("Current device: {}".format(device_tag))
             if device_tag not in self._needed_devices:
                 return False
             for key, value in device_data.items():
@@ -315,17 +316,18 @@ def driven_agent(config_path, **kwargs):
             :type headers: dict
             :type message: dict"""
             _timestamp = parse(headers.get('Date'))
-            to_zone = dateutil.tz.gettz(timezone)
-            _timestamp =_timestamp.astimezone(to_zone)
-            self.received_input_datetime = _timestamp
-            _log.debug('Current time of publish: {}'.format(_timestamp))
-            if self.initialize_time is None:
+
+            if self.initialize_time is None and len(self._master_devices) > 1:
                 self.initialize_time = self.find_reinitialize_time(_timestamp)
             
             if self.initialize_time is not None and _timestamp < self.initialize_time:
                 if len(self._master_devices) > 1:
                     return
 
+            to_zone = dateutil.tz.gettz(timezone)
+            _timestamp = _timestamp.astimezone(to_zone)
+            self.received_input_datetime = _timestamp
+            _log.debug('Current time of publish: {}'.format(_timestamp))
             device_data = message[0]
             if isinstance(device_data, list):
                 device_data = device_data[0]

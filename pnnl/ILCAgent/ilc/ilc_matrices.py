@@ -58,7 +58,6 @@ import sys
 import operator
 import logging
 import math
-from xlrd import open_workbook
 from volttron.platform.agent import utils
 from collections import defaultdict
 MATRIX_ROWSTRING = "%20s\t%12.2f%12.2f%12.2f%12.2f%12.2f"

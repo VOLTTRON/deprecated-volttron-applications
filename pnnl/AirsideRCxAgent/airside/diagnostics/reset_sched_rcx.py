@@ -149,6 +149,7 @@ class SchedResetRcx(object):
             run_diagnostic = True
 
         if not run_diagnostic:
+            dx_result.log('{}: Collecting and aggregating data.'.format(SCHED_VALIDATE, logging.DEBUG))
             if current_time.time() < schedule[0] or current_time.time() > schedule[1]:
                 self.stcpr_arr.extend(stcpr_data)
                 self.fanstat_values.append((current_time, int(max(fan_stat_data))))
@@ -163,15 +164,20 @@ class SchedResetRcx(object):
 
         reset_key = create_table_key(self.reset_file_name_id, self.timestamp[0])
         schedule_key = create_table_key(self.sched_file_name_id, self.timestamp[0])
+
         file_key = create_table_key(VALIDATE_FILE_TOKEN, current_time)
         if run_diagnostic and len(self.timestamp) >= self.no_req_data:
             dx_result = self.unocc_fan_operation(dx_result)
+            dx_status += 1
+            dx_result.log('{}: Running Schedule diagnostic.'.format(SCHED_VALIDATE, logging.DEBUG))
             if len(self.stcpr_stpt_arr) >= self.no_req_data:
+                dx_result.log('{}: Running static pressure reset diagnostic.'.format(SCHED_VALIDATE, logging.DEBUG))
                 dx_result = self.no_static_pr_reset(dx_result)
                 dx_status += 1
             if len(self.sat_stpt_arr) >= self.no_req_data:
+                dx_result.log('{}: Running supply temperature reset diagnostic.'.format(SCHED_VALIDATE, logging.DEBUG))
                 dx_result = self.no_sat_stpt_reset(dx_result)
-                dx_status += 2
+                dx_status += 1
             if self.dx_table:
                 dx_result.insert_table_row(reset_key, self.dx_table)
             
@@ -181,7 +187,7 @@ class SchedResetRcx(object):
             dx_msg = 61.2
             dx_table = {SCHED_RCX + DX:  dx_msg}
             dx_result.insert_table_row(schedule_key, dx_table)
-            
+            dx_result.log('{}: Not enough data to process.'.format(SCHED_VALIDATE, logging.DEBUG))
             self.reinitialize(start_new_analysis_time, start_new_analysis_sat_stpt,
                               start_new_analysis_stcpr_stpt, stcpr_data, fan_status)
             dx_status = 0

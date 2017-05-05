@@ -316,7 +316,7 @@ def driven_agent(config_path, **kwargs):
             :type headers: dict
             :type message: dict"""
             _timestamp = parse(headers.get('Date'))
-
+            missing_but_running = False
             if self.initialize_time is None and len(self._master_devices) > 1:
                 self.initialize_time = self.find_reinitialize_time(_timestamp)
             
@@ -334,13 +334,16 @@ def driven_agent(config_path, **kwargs):
 
             device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
-                _log.error("Warning device values already present, "
-                           "reinitializing at publishin: {}".format(_timestamp))
-                self._initialize_devices()
-                device_needed = self.aggregate_subdevice(device_data, topic)
-                return
+                if (len(self._needed_devices)/len(self._master_devices)) > 0.10:
+                    _log.error("Warning device values already present, "
+                               "reinitializing at publishin: {}".format(_timestamp))
+                    self._initialize_devices()
+                    device_needed = self.aggregate_subdevice(device_data, topic)
+                    return
+                missing_but_running = True
+                _log.warning("Warning device values already present. Using available data for diagnostic.: {}".format(_timestamp))
 
-            if self._should_run_now():
+            if self._should_run_now() or missing_but_running:
                 field_names = {}
                 for key, value in self._device_values.items():
                     field_names[key.lower() if isinstance(key, str) else key] = value
@@ -350,6 +353,8 @@ def driven_agent(config_path, **kwargs):
                 results = app_instance.run(_timestamp, device_data)
                 self._process_results(results)
                 self._initialize_devices()
+                if missing_but_running:
+                    device_needed = self.aggregate_subdevice(device_data, topic)
             else:
                 _log.info("Still need {} before running.".format(self._needed_devices))
 
@@ -446,7 +451,7 @@ def driven_agent(config_path, **kwargs):
 
                 for equipment, _analysis in to_publish.items():
                     application_result = _analysis[0]
-                    if application_result.has_key('diagnostic message'):
+                    if application_result.has_key('diagnostic message') and application_name != "AirsideAIRCx":
                         application_topic = equipment.replace(analysis_name, application_instance)
                         look_up_msg = message_key[str(application_result['diagnostic message'])]
                         application_result_message = [{"Result": look_up_msg}, {"Result": {"tz": "US/Pacific", "type": "string"}}]

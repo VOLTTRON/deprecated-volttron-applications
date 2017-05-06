@@ -400,7 +400,7 @@ def driven_agent(config_path, **kwargs):
                 try:
                     name_timestamp = app.split('&')
                     _name = name_timestamp[0]
-                    timestamp = self.received_input_datetime
+                    timestamp =  name_timestamp[1]
                     timestamp = str(format_timestamp(timestamp))
                 except:
                     _name = app

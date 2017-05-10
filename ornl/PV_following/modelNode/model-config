@@ -1,0 +1,8 @@
+{
+    "setPoint" : 298,
+    "modelnodeplatform" : "modelnode0",
+    "masterVIP1": "tcp://10.0.0.11:22916",
+    "masterVIP2": "tcp://10.0.0.12:22916",
+    "numNodes":2,
+    "scanPeriod":2
+}

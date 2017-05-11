@@ -1,0 +1,8 @@
+Volttron Point Name,Type,Units,Starting Value,Writable,Notes
+power_kw,float,Float,0.0,TRUE,
+last_timestamp,time,Timestamp,,TRUE,
+csv_file_path,string,String,,TRUE,
+timestamp_column_header,string,String,local_date,TRUE,
+power_column_header,string,String,load_kw,TRUE,
+data_frequency_min,integer,Integer,15,TRUE,
+data_year,string,String,2015,TRUE

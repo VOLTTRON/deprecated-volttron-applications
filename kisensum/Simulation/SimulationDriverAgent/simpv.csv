@@ -1,0 +1,9 @@
+Volttron Point Name,Type,Units,Starting Value,Writable,Notes
+power_kw,float,Float,0.0,TRUE,
+last_timestamp,time,Timestamp,,TRUE,
+csv_file_path,string,String,,TRUE,
+max_power_kw,float,Float,10.0,TRUE,
+panel_area,float,Float,50.0,TRUE,
+efficiency,float,Float,0.75,TRUE,
+data_frequency_min,integer,Integer,30,TRUE,
+data_year,string,String,2015,TRUE

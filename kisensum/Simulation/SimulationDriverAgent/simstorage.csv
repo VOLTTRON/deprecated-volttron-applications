@@ -1,0 +1,10 @@
+Volttron Point Name,Type,Units,Starting Value,Writable,Notes
+dispatch_kw,float,Float,0.0,TRUE,
+power_kw,float,Float,0.0,TRUE,
+last_timestamp,time,Timestamp,,TRUE,
+soc_kwh,float,Float,25.0,TRUE,
+max_soc_kwh,float,Float,50.0,TRUE,
+max_charge_kw,float,Float,15.0,TRUE,
+max_discharge_kw,float,Float,15.0,TRUE,
+reduced_charge_soc_threshold,float,Float,0.8,TRUE,
+reduced_discharge_soc_threshold,float,Float,0.2,TRUE

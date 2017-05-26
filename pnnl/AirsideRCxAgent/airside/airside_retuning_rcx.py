@@ -187,6 +187,8 @@ class Application(AbstractDrivenAgent):
         try:
             device_dict = {}
             dx_result = Results()
+            dx_result.log("VALIDATE: time passed by driven agent: {}".format(cur_time))
+            dx_result.log("VALIDATE -- topic is: {}".format(validate_topic))
             fan_status_data = []
             supply_fan_off = False
             low_dx_cond = False
@@ -272,7 +274,7 @@ class Application(AbstractDrivenAgent):
                               'the duct static pressure diagnostics.')
             if not zn_dmpr_data:
                 missing_data.append(self.zone_damper_name)
-            if not fan_status:
+            if not fan_status_data:
                 missing_data.append(self.fan_status_name)
             if missing_data:
                 raise Exception('Missing required data: {}'.format(missing_data))
@@ -280,7 +282,7 @@ class Application(AbstractDrivenAgent):
             dx_status, dx_result = (
                 self.sched_occ_dx.sched_rcx_alg(cur_time, stc_pr_data,
                                                 stcpr_sp_data, sat_stpt_data,
-                                                fan_status, dx_result))
+                                                fan_status_data, dx_result))
             validate_data.update({SCHED_NAME: dx_status})
 
             if supply_fan_off:

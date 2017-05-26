@@ -100,6 +100,7 @@ def driven_agent(config_path, **kwargs):
 
     analysis_name = config.get('analysis_name', 'analysis_name')
     application_name = config.get("pretty_name", analysis_name)
+    arguments.update({'analysis_name': analysis_name})
 
     actuator_id = analysis_name
     analysis = campus_building

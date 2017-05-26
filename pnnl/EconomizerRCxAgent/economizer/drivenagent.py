@@ -98,8 +98,8 @@ def driven_agent(config_path, **kwargs):
     campus_building_config = config['device']
     campus_building = dict((key, campus_building_config[key]) for key in ['campus', 'building'])
 
-    analysis_name = arguments.get('analysis_name', 'analysis_name')
-    application_name = arguments.get("pretty_name", analysis_name)
+    analysis_name = config.get('analysis_name', 'analysis_name')
+    application_name = config.get("pretty_name", analysis_name)
 
     actuator_id = analysis_name
     analysis = campus_building

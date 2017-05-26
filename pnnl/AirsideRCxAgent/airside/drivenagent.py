@@ -98,10 +98,8 @@ def driven_agent(config_path, **kwargs):
     campus_building_config = config['device']
     campus_building = dict((key, campus_building_config[key]) for key in ['campus', 'building'])
 
-    # For dashboard -----------------------------------------------------------------------------
-    analysis_name = arguments.get('analysis_name', 'analysis_name')
-    application_name = arguments.get("pretty_name", analysis_name)
-    # -------------------------------------------------------------------------------------------
+    analysis_name = config.get('analysis_name', 'analysis_name')
+    application_name = config.get("pretty_name", analysis_name)
 
     actuator_id = analysis_name
     analysis = campus_building
@@ -312,8 +310,8 @@ def driven_agent(config_path, **kwargs):
                 self._initialize_devices()
                 if missing_but_running:
                     device_needed = self.aggregate_subdevice(device_data, topic)
-            # else:
-            #    _log.info("Still need {} before running.".format(self._needed_devices))
+            else:
+                _log.info("Still need {} before running.".format(self._needed_devices))
 
         def _process_results(self, results):
             """
@@ -523,4 +521,5 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt:
         pass
+
 

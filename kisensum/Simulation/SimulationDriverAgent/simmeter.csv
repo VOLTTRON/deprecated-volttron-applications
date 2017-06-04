@@ -1,0 +1,3 @@
+Volttron Point Name,Type,Units,Starting Value,Writable,Notes
+power_kw,float,Float,0.0,TRUE,
+last_timestamp,time,Timestamp,,TRUE,

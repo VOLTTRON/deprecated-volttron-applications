@@ -8,11 +8,11 @@ Since home-assistant provides a RESTful API, that API is used for the integratio
 
 | Component Name | Message Topic |
 |:---:|---|
-| Climate | hass/climate/entityId | 
-| Light | hass/light/entityId | 
-|Lock | hass/lock/entityId | 
-| Switch | hass/switch/entityId | 
-| MQTT | hass/mqtt/entityId | 
+| Climate | record/hass/climate/entityId | 
+| Light | record/hass/light/entityId | 
+|Lock | record/hass/lock/entityId | 
+| Switch | record/hass/switch/entityId | 
+| MQTT | record/hass/mqtt/entityId | 
 
 
 2.	HASS Climate Agent: This agent subscribes to all the messages published about climate components by HASS Agent. Climate components (https://home-assistant.io/components/climate/) are devices that can manage heating, ventilating, and air conditioning(HVAC) units. This agent can also change the state of a specific (like temperature, set points, fan mode, operation mode, etc.) climate device by sending appropriate service calls to HASS API.

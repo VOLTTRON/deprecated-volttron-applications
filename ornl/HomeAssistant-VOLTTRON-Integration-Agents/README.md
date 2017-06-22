@@ -2,6 +2,8 @@
 The agents available in this folder can be used to integrate [VOLTTRON](https://github.com/VOLTTRON/volttron) and [Home Assistant](https://home-assistant.io/). Because of this integration, the information about the components loaded on Home-Assistant are available on the VOLTTRON message bus and other agents can use this information or make changes to them.
 Before running the agents, both VOLTTRON and home-assistant should be installed and running. To install and run home-assistant, please follow the instruction on this link: https://home-assistant.io/getting-started/ .
 
+![image](https://github.com/heliazandi/volttron-applications/blob/master/ornl/HomeAssistant-VOLTTRON-Integration-Agents/images/HASS-VOlttron-integration.PNG)
+
 Since home-assistant provides a RESTful API, that API is used for the integrations. Different agents implemented in VOLTTRON for supporting the integration are explained below. For each of these agents, the HASS API address, the API password, and the agent id are provided to the agent in the agent configuration file.
 1.	HASS AGENT: This agent uses VOLTTRON as a platform and communicates with home assistant API. This agent is responsible for checking the state of the components loaded on HASS every 30 seconds (this value is configurable) and publishes the information about each device on VOLTTRON message bus. The list of topics used by HASS agent can be found in the following table:     
 

@@ -1,46 +1,16 @@
-# 
-# Copyright 2017 , UT-Battelle, LLC
-# All rights reserved
-# [Home Assistant- VOLTTRON Integration, Version 1.0]
-# OPEN SOURCE LICENSE (Permissive)
-# 
-# Subject to the conditions of this License, UT-Battelle, LLC (the “Licensor”)
-# hereby grants, free of charge, to any person (the “Licensee”) obtaining a copy
-# of this software and associated documentation files (the "Software"), a perpetual,
-# worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license 
-# to use, copy, modify, merge, publish, distribute, and/or sublicense copies of the
-#  Software.
-# 
-# 1. Redistributions of Software must retain the above open source license grant, 
-#    copyright and license notices, this list of conditions, and the disclaimer listed
-#    below.  Changes or modifications to, or derivative works of the Software must be
-#    noted with comments and the contributor and organization’s name.
-# 
-# 2. Neither the names of Licensor, the Department of Energy, or their employees may
-#    be used to endorse or promote products derived from this Software without their
-#    specific prior written permission.
-# 
-# 3. If the Software is protected by a proprietary trademark owned by Licensor or the
-#    Department of Energy, then derivative works of the Software may not be distributed
-#    using the trademark without the prior written approval of the trademark owner. 
-#     
-# 
-# 
-# ****************************************************************************************************************
-# DISCLAIMER
-# 
-# UT-Battelle, LLC AND THE GOVERNMENT MAKE NO REPRESENTATIONS AND DISCLAIM ALL WARRANTIES,
-# BOTH EXPRESSED AND IMPLIED.  THERE ARE NO EXPRESS OR IMPLIED WARRANTIES OF MERCHANTABILITY
-# OR FITNESS FOR A PARTICULAR PURPOSE, OR THAT THE USE OF THE SOFTWARE WILL NOT INFRINGE ANY
-# PATENT, COPYRIGHT, TRADEMARK, OR OTHER PROPRIETARY RIGHTS, OR THAT THE SOFTWARE WILL  
-# ACCOMPLISH THE INTENDED RESULTS OR THAT THE SOFTWARE OR ITS USE WILL NOT RESULT IN INJURY
-# OR DAMAGE.  The user assumes responsibility for all liabilities, penalties, fines, claims,
-# causes of action, and costs and expenses, caused by, resulting from or arising out of, in
-# whole or in part the use, storage or disposal of the SOFTWARE.
-# 
-# ****************************************************************************************************************
-#
+'''
+Implemented by Helia Zandi
+email: zandih@ornl.gov
 
+This material was prepared by UT-Battelle, LLC (UT-Battelle) under Contract DE-AC05-00OR22725
+with the U.S. Department of Energy (DOE). All rights in the material are reserved by DOE on 
+behalf of the Government and UT-Battelle pursuant to the contract. You are authorized to use
+the material for Government purposes but it is not to be released or distributed to the public.
+NEITHER THE UNITED STATES NOR THE UNITED STATES DEPARTMENT OF ENERGY, NOR UT-Battelle, NOR ANY
+OF THEIR EMPLOYEES, MAKES ANY WARRANTY, EXPRESS OR IMPLIED, OR ASSUMES ANY LEGAL LIABILITY OR
+RESPONSIBILITY FOR THE ACCURACY, COMPLETENESS, OR USEFULNESS OF ANY INFORMATION, APPARATUS, 
+PRODUCT, OR PROCESS DISCLOSED, OR REPRESENTS THAT ITS USE WOULD NOT INFRINGE PRIVATELY OWNED RIGHTS.
+'''
 
 import logging
 import sys
@@ -52,7 +22,6 @@ from StringIO import StringIO
 from volttron.platform.vip.agent import Agent, Core, PubSub
 from volttron.platform.agent import utils
 from master_driver.interfaces import BaseInterface, BasicRevert, BaseRegister
-from _pydev_bundle.pydev_console_utils import Null
 from gevent.ares import result
 
 
@@ -138,7 +107,7 @@ class Interface(BasicRevert, BaseInterface):
                             registers data about the climate device with entity ID
                         '''
                         msg =  entry['attributes']
-                        climatePointName = 'hass/climate/' + entityId + '/'
+                        climatePointName = 'climate/' + entityId + '/'
                         
                         for key,value in msg.items():
                             
@@ -159,8 +128,13 @@ class Interface(BasicRevert, BaseInterface):
                             elif key == "min_temp":
                                 self.register_device(False, climatePointName + key, 'float','Shows the min temperature value')
                             elif key == "temperature":
-                                self.register_device(False, climatePointName + key, 'float','Shows the target temperature value')                              
-                      
+                                self.register_device(False, climatePointName + key, 'float','Shows the target temperature value')
+                            elif key == "swing_mode":
+                                self.register_device(False, climatePointName + key, 'string','Shows the swing mode value')  
+                            elif key == "target_temp_low":
+                                self.register_device(False, climatePointName + key, 'float','Shows the target temperature low value')                            
+                            elif key == "target_temp_high":
+                                self.register_device(False, climatePointName + key, 'float','Shows the target temperature high value')
 ################################################################################################################################################################
                                 
         except requests.exceptions.RequestException as e:
@@ -189,11 +163,11 @@ class Interface(BasicRevert, BaseInterface):
         '''
         
         pointNameInfo = entityId = point_name.split('/')
-        if(len(pointNameInfo) < 4):
+        if(len(pointNameInfo) < 3):
             _log.error("invalid point_name format")
             return 
         
-        val = self.get_point_name_value(pointNameInfo[1], point_name)
+        val = self.get_point_name_value(pointNameInfo[0], point_name)
 
         return str(val)
     
@@ -221,12 +195,12 @@ class Interface(BasicRevert, BaseInterface):
                 msg = []
                 
                 pointNameInfo =  point_name.split('/')
-                if(len(pointNameInfo) < 4):
+                if(len(pointNameInfo) < 3):
                     _log.error("invalid point_name format")
                     return 
                 
-                entityId = pointNameInfo[2]
-                property= pointNameInfo[3]
+                entityId = pointNameInfo[1]
+                property= pointNameInfo[2]
                 
                 
                 for entry in self.data:
@@ -253,13 +227,13 @@ class Interface(BasicRevert, BaseInterface):
         '''
         
         pointNameInfo = point_name.split('/')
-        if(len(pointNameInfo) < 4):
+        if(len(pointNameInfo) < 3):
             _log.error("invalid point_name format")
             return 
         
-        componentType = pointNameInfo[1]
-        entityId = pointNameInfo[2]
-        property = pointNameInfo[3]
+        componentType = pointNameInfo[0]
+        entityId = pointNameInfo[1]
+        property = pointNameInfo[2]
         
         if (componentType == "climate"):
             
@@ -274,28 +248,31 @@ class Interface(BasicRevert, BaseInterface):
             elif property == "fan_mode":
                 self.hassClimate.SetFanMode(entityId, value)
                 
+            elif property == "swing_mode":
+                self.hassClimate.SetSwingMode(entityId, value)
+                
             elif property == "temperature":
                 pointNamePrefix = pointNameInfo[0] +'/'+pointNameInfo[1] + '/' + pointNameInfo[2] + '/'
-                min_temp = self.get_point(pointNamePrefix + 'min_temp')
-                max_temp = self.get_point(pointNamePrefix + 'max_temp')
+                temp_high = self.get_point(pointNamePrefix + 'target_temp_high')
+                temp_low = self.get_point(pointNamePrefix + 'target_temp_low')
                 operation_mode = self.get_point(pointNamePrefix + 'operation_mode')
-                self.hassClimate.SetTemperature(entityId, min_temp, max_temp, value, operation_mode)
+                self.hassClimate.SetTemperature(entityId, temp_low, temp_high, value, operation_mode)
                 return str(value)
             
-            elif property == "min_temp":
+            elif property == "target_temp_low":
                 pointNamePrefix = pointNameInfo[0] +'/'+pointNameInfo[1] + '/' + pointNameInfo[2] + '/'
                 temperature = self.get_point(pointNamePrefix + 'temperature')
-                max_temp = self.get_point(pointNamePrefix + 'max_temp')
+                temp_high = self.get_point(pointNamePrefix + 'target_temp_high')
                 operation_mode = self.get_point(pointNamePrefix + 'operation_mode')
-                self.hassClimate.SetTemperature(entityId, value, max_temp, temperature, operation_mode)
+                self.hassClimate.SetTemperature(entityId, value, temp_high, temperature, operation_mode)
                 return str(value)
             
-            elif property == "max_temp":
+            elif property == "target_temp_high":
                 pointNamePrefix = pointNameInfo[0] +'/'+pointNameInfo[1] + '/' + pointNameInfo[2] + '/'
                 temperature = self.get_point(pointNamePrefix + 'temperature')
-                min_temp = self.get_point(pointNamePrefix + 'min_temp')
+                temp_low = self.get_point(pointNamePrefix + 'target_temp_low')
                 operation_mode = self.get_point(pointNamePrefix + 'operation_mode')
-                self.hassClimate.SetTemperature(entityId, min_temp, value, temperature, operation_mode)
+                self.hassClimate.SetTemperature(entityId, temp_low, value, temperature, operation_mode)
                 return str(value)   
             
 

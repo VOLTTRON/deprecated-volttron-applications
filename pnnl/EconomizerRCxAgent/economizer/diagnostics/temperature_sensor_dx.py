@@ -1,4 +1,4 @@
-'''
+"""
 Copyright (c) 2016, Battelle Memorial Institute
 All rights reserved.
 
@@ -47,183 +47,213 @@ United States Government or any agency thereof.
 PACIFIC NORTHWEST NATIONAL LABORATORY
 operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
-'''
+"""
 import logging
 from datetime import timedelta as td
+from volttron.platform.agent.math_utils import mean
 
-__version__ = '3.1'
+__version__ = "3.2"
 
-ECON1 = 'Temperature Sensor Dx'
+ECON1 = "Temperature Sensor Dx"
+DX = "/diagnostic message"
+EI = "/energy impact"
 
-DX = '/diagnostic message'
-EI = '/energy impact'
-DATA = '/data/'
-
-RAT = 'ReturnAirTemperature'
-MAT = 'MixedAirTemperature'
-OAT = 'OutsideAirTemperature'
-OAD = 'OutsideDamperSignal'
-CC = 'CoolCall'
-FS = 'SupplyFanSpeed'
-EC = 'EconomizerCondition'
-ST = 'State'
 
 def create_table_key(table_name, timestamp):
-    return '&'.join([table_name, timestamp.strftime('%m-%d-%y %H:%M')])
+    return "&".join([table_name, timestamp.isoformat()])
+
 
 class TempSensorDx(object):
-    '''Air-side HVAC temperature sensor diagnostic for AHU/RTU systems.
+    """
+    Air-side HVAC temperature sensor diagnostic for AHU/RTU systems.
 
     TempSensorDx uses metered data from a BAS or controller to
     diagnose if any of the temperature sensors for an AHU/RTU are accurate and
     reliable.
-    '''
+    """
     def __init__(self, data_window, no_required_data, temp_diff_thr, open_damper_time,
                  oat_mat_check, temp_damper_threshold, analysis):
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.timestamp = []
-        self.open_oat = []
-        self.open_mat = []
-        self.econ_check = False
-        self.steady_state_st = None
-        self.open_damper_time = int(open_damper_time)
-        self.econ_time_check = td(minutes=self.open_damper_time - 1)
-        TempSensorDx.temp_sensor_problem = None
+
+        self.temp_sensor_problem = None
         self.analysis = analysis
-        self.max_dx_time = 60
+        self.max_dx_time = td(minutes=60)
 
-        '''Application thresholds (Configurable)'''
-        self.data_window = float(data_window)
+        # Application thresholds (Configurable)
+        self.data_window = data_window
         self.no_required_data = no_required_data
-        self.temp_diff_thr = float(temp_diff_thr)
-        self.oat_mat_check = float(oat_mat_check)
-        self.temp_damper_threshold = float(temp_damper_threshold)
+        self.oat_mat_check = oat_mat_check
+        self.temp_diff_thr = temp_diff_thr
+        self.sensor_damper_dx = DamperSensorInconsistencyDx(data_window,
+                                                            no_required_data,
+                                                            open_damper_time,
+                                                            oat_mat_check,
+                                                            temp_damper_threshold,
+                                                            analysis)
 
-    def econ_alg1(self, dx_result, oatemp, ratemp, matemp, damper_signal, cur_time):
-        '''Check app. pre-quisites and assemble data set for analysis.'''
-        if damper_signal > self.temp_damper_threshold:
-            if not self.econ_check:
-                self.econ_check = True
-                self.steady_state_st = cur_time
-            if cur_time - self.steady_state_st >= self.econ_time_check:
-                self.open_oat.append(oatemp)
-                self.open_mat.append(matemp)
-        else:
-            self.econ_check = False
-
-        self.oat_values.append(oatemp)
-        self.mat_values.append(matemp)
-        self.rat_values.append(ratemp)
-        dx_result.log('{}: Debugger: aggregate data'.format(ECON1))
-        if self.timestamp and ((cur_time - self.timestamp[-1]).total_seconds()/60) > 5.0:
-            self.econ_check = False
+    def econ_alg1(self, dx_result, oat, rat, mat, oad, cur_time):
+        """
+        Check app. pre-quisites and manage data set for analysis.
+        :param dx_result:
+        :param oat:
+        :param rat:
+        :param mat:
+        :param oad:
+        :param cur_time:
+        :return:
+        """
+        self.oat_values.append(oat)
+        self.mat_values.append(mat)
+        self.rat_values.append(rat)
         self.timestamp.append(cur_time)
-        elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
-        elapsed_time = elapsed_time if elapsed_time > 0 else 1.0
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
-        if (elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data):
-            self.table_key = create_table_key(self.analysis, self.timestamp[-1])
+        dx_result.log("Elapsed: {} -- required: {}".format(elapsed_time, self.data_window))
+        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
+            table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                dx_result.insert_table_row(self.table_key, {ECON1 + DX: 3.2})
-                dx_result = self.clear_data(dx_result)
-                dx_status = 2
-                return dx_result, dx_status
-            dx_result.log('{}: Debugger: running algorithm.'.format(ECON1))
-            dx_result = self.temperature_sensor_dx(dx_result, cur_time)
-            dx_status = 1
-            return dx_result, dx_status
-        dx_result.log('{}: Debugger: collecting data'.format(ECON1))
-        dx_status = 0
-        return dx_result, dx_status
+                dx_msg = {"low": 3.2, "normal": 3.2, "high": 3.2}
+                dx_result.insert_table_row(table_key, {ECON1 + DX: dx_msg})
+                self.clear_data()
+                return dx_result, self.temp_sensor_problem
 
-    def temperature_sensor_dx(self, dx_result, cur_time):
-        '''
-        If the detected problems(s) are
-        consistent then generate a fault message(s).
-        '''
+            dx_result = self.temperature_sensor_dx(dx_result, table_key)
+            return dx_result, self.temp_sensor_problem
+
+        dx_result = self.sensor_damper_dx.econ_alg(dx_result, oat, mat, oad, cur_time)
+        return dx_result, self.temp_sensor_problem
+
+    def aggregate_data(self):
         oa_ma = [(x - y) for x, y in zip(self.oat_values, self.mat_values)]
         ra_ma = [(x - y) for x, y in zip(self.rat_values, self.mat_values)]
         ma_oa = [(y - x) for x, y in zip(self.oat_values, self.mat_values)]
-        ma_ra = [(y - x)for x, y in zip(self.rat_values, self.mat_values)]
-        avg_oa_ma = sum(oa_ma) / len(oa_ma)
-        avg_ra_ma = sum(ra_ma) / len(ra_ma)
-        avg_ma_oa = sum(ma_oa) / len(ma_oa)
-        avg_ma_ra = sum(ma_ra) / len(ma_ra)
-        dx_table = {}
+        ma_ra = [(y - x) for x, y in zip(self.rat_values, self.mat_values)]
+        avg_oa_ma = mean(oa_ma)
+        avg_ra_ma = mean(ra_ma)
+        avg_ma_oa = mean(ma_oa)
+        avg_ma_ra = mean(ma_ra)
+        return avg_oa_ma, avg_ra_ma, avg_ma_oa, avg_ma_ra
 
-        if len(self.open_oat) > self.no_required_data:
-            mat_oat_diff_list = [abs(x - y) for x, y in zip(self.open_oat, self.open_mat)]
-            open_damper_check = sum(mat_oat_diff_list) / len(mat_oat_diff_list)
+    def temperature_sensor_dx(self, dx_result, table_key):
+        """
+        Temperature sensor diagnostic.
+        :param dx_result:
+        :param table_key:
+        :return:
+        """
+        avg_oa_ma, avg_ra_ma, avg_ma_oa, avg_ma_ra = self.aggregate_data()
+        diagnostic_msg = {}
+        for key, value in self.temp_diff_thr.items():
+            if avg_oa_ma > value and avg_ra_ma > value:
+                msg = ("{}: MAT is less than OAT and RAT - Sensitivity: {}".format(ECON1, key))
+                result = 1.1
+            elif avg_ma_oa > value and avg_ma_ra > value:
+                msg = ("{}: MAT is greater than OAT and RAT - Sensitivity: {}".format(ECON1, key))
+                result = 2.1
+            else:
+                msg = "{}: No problems were detected - Sensitivity: {}".format(ECON1, key)
+                result = 0.0
+                self.temp_sensor_problem = False
 
-            if open_damper_check > self.oat_mat_check:
-                TempSensorDx.temp_sensor_problem = True
-                msg = ('{}: The OAT and MAT sensor readings are not consistent '
-                       'when the outdoor-air damper is fully open.'.format(ECON1))
-                dx_msg = 0.1
-                dx_table = {
-                    ECON1 + DX: dx_msg,
-                    ECON1 + EI: 0.0
-                }
-                dx_result.log(msg, logging.INFO)
-                dx_result.insert_table_row(self.table_key, dx_table)
-            self.open_oat = []
-            self.open_mat = []
+            diagnostic_msg.update({key: result})
 
-        if avg_oa_ma > self.temp_diff_thr and avg_ra_ma > self.temp_diff_thr:
-            msg = ('{}: Temperature sensor problem detected. Mixed-air '
-                   'temperature is less than outdoor-air and return-air'
-                   'temperatures.'.format(ECON1))
-            dx_msg = 1.1
-            dx_table = {
-                ECON1 + DX: dx_msg,
-                ECON1 + EI: 0.0
-            }
-            TempSensorDx.temp_sensor_problem = True
+        if diagnostic_msg["normal"] > 0.0:
+            self.temp_sensor_problem = True
 
-        elif avg_ma_oa > self.temp_diff_thr and avg_ma_ra > self.temp_diff_thr:
-            msg = ('{}: Temperature sensor problem detected Mixed-air '
-                   'temperature is greater than outdoor-air and return-air '
-                   'temperatures.'.format(ECON1))
-            dx_msg = 2.1
-            dx_table = {
-                ECON1 + DX: dx_msg,
-                ECON1 + EI: 0.0
-            }
-            TempSensorDx.temp_sensor_problem = True
-
-        elif TempSensorDx.temp_sensor_problem is None or not TempSensorDx.temp_sensor_problem:
-            msg = '{}: No problems were detected.'.format(ECON1)
-            dx_msg = 0.0
-            dx_table = {
-                ECON1 + DX: dx_msg,
-                ECON1 + EI: 0.0
-            }
-            TempSensorDx.temp_sensor_problem = False
-
-        else:
-            msg = '{}: diagnostic was inconclusive.'.format(ECON1)
-            # color_code = 'GREY'
-            dx_msg = 3.2
-            dx_table = {
-                ECON1 + DX: dx_msg,
-                ECON1 + EI: 0.0
-            }
-            TempSensorDx.temp_sensor_problem = False
-
-        dx_result.insert_table_row(self.table_key, dx_table)
-        dx_result.log(msg, logging.INFO)
-        dx_result = self.clear_data(dx_result)
+        dx_table = {ECON1 + DX: diagnostic_msg}
+        dx_result.insert_table_row(table_key, dx_table)
+        dx_result.log(msg)
+        self.clear_data()
         return dx_result
 
-    def clear_data(self, dx_result):
-        '''
-        reinitialize class insufficient_oa data
-        '''
+    def clear_data(self):
+        """
+        Reinitialize data arrays.
+        :return:
+        """
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.timestamp = []
+        if self.temp_sensor_problem:
+            self.temp_sensor_problem = None
+
+
+class DamperSensorInconsistencyDx(object):
+    """
+    Air-side HVAC temperature sensor diagnostic for AHU/RTU systems.
+
+    TempSensorDx uses metered data from a BAS or controller to
+    diagnose if any of the temperature sensors for an AHU/RTU are accurate and
+    reliable.
+    """
+    def __init__(self, data_window, no_required_data, open_damper_time,
+                 oat_mat_check, temp_damper_threshold, analysis):
+        self.oat_values = []
+        self.mat_values = []
+        self.timestamp = []
+        self.steady_state = None
+        self.open_damper_time = open_damper_time
+        self.econ_time_check = open_damper_time
+        self.data_window = data_window
+        self.no_required_data = no_required_data
+        self.oad_temperature_threshold = temp_damper_threshold
+        self.oat_mat_check = oat_mat_check
+        self.analysis = analysis
+
+    def econ_alg(self, dx_result, oat, mat, oad, cur_time):
+        """
+        Check diagnostic prerequisites and manage data arrays.
+        :param dx_result:
+        :param oat:
+        :param mat:
+        :param oad:
+        :param cur_time:
+        :return:
+        """
+        if oad > self.oad_temperature_threshold:
+            if self.steady_state is None:
+                self.steady_state = cur_time
+            elif cur_time - self.steady_state >= self.econ_time_check:
+                self.oat_values.append(oat)
+                self.mat_values.append(mat)
+                self.timestamp.append(cur_time)
+        else:
+            self.steady_state = None
+
+        elapsed_time = self.timestamp[-1] - self.timestamp[0] if self.timestamp else td(minutes=0)
+
+        if elapsed_time >= self.data_window:
+            if len(self.oat_values) > self.no_required_data:
+                mat_oat_diff_list = [abs(x - y) for x, y in zip(self.oat_values, self.mat_values)]
+                open_damper_check = mean(mat_oat_diff_list)
+                table_key = create_table_key(self.analysis, self.timestamp[-1])
+                diagnostic_msg = {}
+                for key, threshold in self.oat_mat_check.items():
+                    if open_damper_check > threshold:
+                        msg = "{}: The OAT and MAT at 100% OAD - Sensitivity: {}".format(ECON1, key)
+                        result = 0.1
+                        dx_result.log(msg)
+                    else:
+                        result = 0.0
+                    diagnostic_msg.update({key: result})
+
+                dx_table = {ECON1 + DX: diagnostic_msg}
+                dx_result.insert_table_row(table_key, dx_table)
+                self.oat_values = []
+                self.mat_values = []
         return dx_result
+
+    def clear_data(self):
+        """
+        Reinitialize data arrays.
+        :return:
+        """
+        self.oat_values = []
+        self.mat_values = []
+        self.steady_state = None
+        self.timestamp = []

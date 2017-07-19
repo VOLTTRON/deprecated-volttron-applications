@@ -1,4 +1,4 @@
-'''
+"""
 Copyright (c) 2016, Battelle Memorial Institute
 All rights reserved.
 
@@ -47,34 +47,28 @@ United States Government or any agency thereof.
 PACIFIC NORTHWEST NATIONAL LABORATORY
 operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
-'''
+"""
 import logging
+from datetime import timedelta as td
+from volttron.platform.agent.math_utils import mean
 
-ECON4 = 'Excess Outdoor-air Intake Dx'
-ECON5 = 'Insufficient Outdoor-air Intake Dx'
-DX = '/diagnostic message'
-EI = '/energy impact'
-DATA = '/data/'
+ECON4 = "Excess Outdoor-air Intake Dx"
+ECON5 = "Insufficient Outdoor-air Intake Dx"
+DX = "/diagnostic message"
+EI = "/energy impact"
 
-RAT = 'ReturnAirTemperature'
-MAT = 'MixedAirTemperature'
-OAT = 'OutsideAirTemperature'
-OAD = 'OutsideDamperSignal'
-CC = 'CoolCall'
-FS = 'SupplyFanSpeed'
-EC = 'EconomizerCondition'
-ST = 'State'
 
 def create_table_key(table_name, timestamp):
-    return '&'.join([table_name, timestamp.strftime('%m-%d-%y %H:%M')])
-    
+    return "&".join([table_name, timestamp.isoformat()])
+
 
 class ExcessOA(object):
-    ''' Air-side HVAC ventilation diagnostic.
+    """
+    Air-side HVAC ventilation diagnostic.
 
     ExcessOA uses metered data from a controller or
     BAS to diagnose when an AHU/RTU is providing excess outdoor air.
-    '''
+    """
     def __init__(self, data_window, no_required_data, excess_oaf_threshold,
                  min_damper_sp, excess_damper_threshold, desired_oaf,
                  cfm, eer, analysis):
@@ -82,249 +76,268 @@ class ExcessOA(object):
         self.rat_values = []
         self.mat_values = []
         self.oad_values = []
-        self.cool_call_values = []
         self.timestamp = []
-        self.fan_speed_values = []
+        self.fan_spd_values = []
+        self.economizing = None
+
         # Application thresholds (Configurable)
         self.cfm = cfm
         self.eer = eer
-        self.max_dx_time = 60
-        self.data_window = float(data_window)
+        self.max_dx_time = td(minutes=60)
+        self.data_window = data_window
         self.no_required_data = no_required_data
-        self.excess_oaf_threshold = float(excess_oaf_threshold)
-        self.min_damper_sp = float(min_damper_sp)
-        self.desired_oaf = float(desired_oaf)
-        self.excess_damper_threshold = float(excess_damper_threshold)
+        self.excess_oaf_threshold = excess_oaf_threshold
+        self.min_damper_sp = min_damper_sp
+        self.desired_oaf = desired_oaf
+        self.excess_damper_threshold = excess_damper_threshold
         self.analysis = analysis
 
-    def econ_alg4(self, dx_result, oatemp, ratemp, matemp,
-                  damper_signal, econ_condition, cur_time,
-                  fan_sp, cooling_call):
-        '''Check app. pre-quisites and assemble data set for analysis.'''
-        if econ_condition:
-            dx_result.log('{}: The unit may be economizing, data corresponding '
-                          'to {} will not be used for this diagnostic.'
-                          .format(ECON4, cur_time), logging.DEBUG)
-            dx_status = 3
-            return dx_result, dx_status
-
-        self.oad_values.append(damper_signal)
-        self.oat_values.append(oatemp)
-        self.rat_values.append(ratemp)
-        self.mat_values.append(matemp)
-        self.timestamp.append(cur_time)
-        dx_result.log('{}: Debugger - aggregate data'.format(ECON4))
-
-        fan_sp = fan_sp/100.0 if fan_sp is not None else 1.0
-        self.fan_speed_values.append(fan_sp)
-        elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
-        elapsed_time = elapsed_time if elapsed_time > 0 else 1.0
-
-        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            self.table_key = create_table_key(self.analysis, self.timestamp[-1])
-            if elapsed_time > self.max_dx_time:
-                dx_result.insert_table_row(self.table_key, {ECON4 + DX: 35.2})
-                dx_result = self.clear_data(dx_result)
-                dx_status = 2
-                return dx_result, dx_status
-            dx_result.log('{}: Debugger - running algorithm'.format(ECON4))
-            dx_result = self.excess_oa(dx_result, cur_time)
-            dx_status = 1
-            return dx_result, dx_status
-        dx_result.log('{}: Debugger - collecting data'.format(ECON4))
-        dx_status = 0
-        return dx_result, dx_status
-
-    def excess_oa(self, dx_result, cur_time):
-        '''If the detected problems(s) are
-        consistent generate a fault message(s).
-        '''
-        def energy_impact_calculation(energy_impact):
-            energy_impact = 0.0
-            energy_calc = [
-                (1.08 * spd * self.cfm * (ma - (oa * desired_oaf +
-                                                (ra * (1.0 - desired_oaf))))) /
-                (1000.0 * self.eer)
-                for ma, oa, ra, spd in zip(self.mat_values,
-                                           self.oat_values,
-                                           self.rat_values,
-                                           self.fan_speed_values)
-                if (ma - (oa * desired_oaf + (ra * (1.0 - desired_oaf)))) > 0]
-            if energy_calc:
-                dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0
-                energy_impact = (sum(energy_calc) * 60.0) / (len(energy_calc) * dx_time)
-            return energy_impact
-            
-        avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60 if len(self.timestamp) > 1 else 1
-        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
-        avg_oaf = sum(oaf) / len(oaf) * 100
-        avg_damper = sum(self.oad_values) / len(self.oad_values)
-        desired_oaf = self.desired_oaf / 100.0
-        energy_impact = 0.0
-        msg = ''
-        dx_msg = 30.0
-
-        if avg_oaf < 0 or avg_oaf > 125.0:
-            msg = ('{}: Inconclusive result, the OAF calculation led to an '
-                   'unexpected value: {}'.format(ECON4, avg_oaf))
-            # color_code = 'GREY'
-            dx_msg = 31.2
-            dx_result.log(msg, logging.INFO)
-            dx_table = {
-                ECON4 + DX: dx_msg,
-                ECON4 + EI: 0.0
-            }
-            dx_result.insert_table_row(self.table_key, dx_table)
-            dx_result = self.clear_data(dx_result)
+    def econ_alg4(self, dx_result, oat, rat, mat,oad, econ_condition, cur_time, fan_sp):
+        """
+        Check app. prerequisites and assemble data set for analysis.
+        :param dx_result:
+        :param oat:
+        :param rat:
+        :param mat:
+        :param oad:
+        :param econ_condition:
+        :param cur_time:
+        :param fan_sp:
+        :return:
+        """
+        if self.economizer_conditions(dx_result, econ_condition, cur_time):
             return dx_result
 
-        if avg_damper - self.min_damper_sp > self.excess_damper_threshold:
-            msg = ('{}: The OAD should be at the minimum position for '
-                   'ventilation but is significantly higher than this value.'
-                   .format(ECON4))
-            # color_code = 'RED'
-            dx_msg = 32.1
+        self.oad_values.append(oad)
+        self.oat_values.append(oat)
+        self.rat_values.append(rat)
+        self.mat_values.append(mat)
+        self.timestamp.append(cur_time)
 
-        if avg_oaf - self.desired_oaf > self.excess_oaf_threshold:
-            if dx_msg > 30.0:
-                msg += ('{}: The OAD should be at the minimum for ventilation '
-                        'but is significantly above that value. Excess outdoor air is '
-                        'being provided; This could significantly increase '
-                        'heating and cooling costs'.format(ECON4))
-                dx_msg = 34.1
-            else:
-                msg = ('{}: Excess outdoor air is being provided, this could '
-                       'increase heating and cooling energy consumption.'.format(ECON4))
-                dx_msg = 33.1
-            # color_code = 'RED'
-        
-        elif dx_msg == 30.0:
-            msg = ('{}: The calculated outdoor-air fraction is within '
-                   'configured limits.'.format(ECON4))
+        fan_sp = fan_sp / 100.0 if fan_sp is not None else 1.0
+        self.fan_spd_values.append(fan_sp)
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
-        if dx_msg > 30:
-            energy_impact = energy_impact_calculation(energy_impact)
-            energy_impact = round(energy_impact, 2)
-
-        dx_table = {
-            ECON4 + DX: dx_msg,
-            ECON4 + EI: energy_impact
-        }
-        dx_result.insert_table_row(self.table_key, dx_table)
-        dx_result.log(msg, logging.INFO)
-        dx_result = self.clear_data(dx_result)
+        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
+            table_key = create_table_key(self.analysis, self.timestamp[-1])
+            if elapsed_time > self.max_dx_time:
+                result = {"low": 35.2, "normal": 35.2, "high": 35.2}
+                dx_result.insert_table_row(table_key, {ECON3 + DX: result})
+                self.clear_data()
+                return dx_result
+            dx_result = self.excess_oa(dx_result, table_key)
+            return dx_result
         return dx_result
 
-    def clear_data(self, dx_result):
-        '''reinitialize class insufficient_oa data.'''
+    def excess_oa(self, dx_result, table_key):
+        """
+        If the detected problems(s) are consistent generate a fault message(s).
+        :param dx_result:
+        :param table_key:
+        :return:
+        """
+        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
+        avg_oaf = mean(oaf) * 100.0
+        avg_damper = mean(self.oad_values)
+        desired_oaf = self.desired_oaf / 100.0
+        msg = ""
+        diagnostic_msg = {}
+        energy_impact = {}
+
+        if avg_oaf < 0 or avg_oaf > 125.0:
+            msg = ("{}: Inconclusive result, unexpected OAF value: {}".format(ECON4, avg_oaf))
+            # color_code = "GREY"
+            result = {"low": 31.2, "normal": 31.2, "high": 31.2}
+            dx_table = {ECON4 + DX: result}
+            dx_result.log(msg)
+            dx_result.insert_table_row(table_key, dx_table)
+            self.clear_data()
+            return dx_result
+
+        thresholds = zip(self.excess_damper_threshold.items(), self.excess_oaf_threshold.items())
+        for (key, damper_thr), (key2, oaf_thr) in thresholds:
+            result = 30.0
+            energy = 0.0
+            if avg_damper - self.min_damper_sp > damper_thr:
+                msg = "{}: The OAD should be at the minimum but is significantly higher.".format(ECON4)
+                # color_code = "RED"
+                result = 32.1
+
+            if avg_oaf - self.desired_oaf > oaf_thr:
+                if result > 30.0:
+                    msg += ("{}: The OAD should be at the minimum for ventilation "
+                            "but is significantly above that value. Excess outdoor air is "
+                            "being provided; This could significantly increase "
+                            "heating and cooling costs".format(ECON4))
+                    result = 34.1
+                else:
+                    msg = ("{}: Excess outdoor air is being provided, this could "
+                           "increase heating and cooling energy consumption.".format(ECON4))
+                    result = 33.1
+                    # color_code = "RED"
+
+            elif result == 30.0:
+                msg = ("{}: The calculated OAF is within configured limits.".format(ECON4))
+
+            if result > 30:
+                energy = self.energy_impact_calculation(desired_oaf)
+            energy_impact.update({key: energy})
+            diagnostic_msg.update({key: result})
+
+        dx_table = {
+            ECON4 + DX: diagnostic_msg,
+            ECON4 + EI: energy_impact
+        }
+        dx_result.insert_table_row(table_key, dx_table)
+        dx_result.log(msg)
+        self.clear_data()
+        return dx_result
+
+    def clear_data(self):
+        """
+        Reinitialize class insufficient_oa data.
+        :return:
+        """
         self.oad_values = []
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
-        self.fan_speed_values = []
+        self.fan_spd_values = []
         self.timestamp = []
-        return dx_result
+        self.economizing = None
+        return
 
+    def energy_impact_calculation(self, desired_oaf):
+        ei = 0.0
+        energy_calc = [
+            (1.08 * spd * self.cfm * (m - (o * desired_oaf + (r * (1.0 - desired_oaf))))) / (1000.0 * self.eer)
+            for m, o, r, spd in zip(self.mat_values, self.oat_values, self.rat_values, self.fan_spd_values)
+            if (m - (o * desired_oaf + (r * (1.0 - desired_oaf)))) > 0
+        ]
+        if energy_calc:
+            avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds() / 60 if len(self.timestamp) > 1 else 1
+            dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0
+            ei = (sum(energy_calc) * 60.0) / (len(energy_calc) * dx_time)
+            ei = round(ei, 2)
+        return ei
+
+    def economizer_conditions(self, dx_result, econ_condition, cur_time):
+        if econ_condition:
+            dx_result.log("{}: economizing, for data {} .".format(ECON4, cur_time))
+            if self.economizing is None:
+                self.economizing = cur_time
+            if cur_time - self.economizing >= self.data_window:
+                dx_result.log("{}: economizing - reinitialize!".format(ECON4))
+                diagnostic_msg = {"low": 25.2, "normal": 25.2, "high": 25.2}
+                dx_table = {ECON4 + DX: diagnostic_msg}
+                table_key = create_table_key(self.analysis, cur_time)
+                dx_result.insert_table_row(table_key, dx_table)
+                self.clear_data()
+            return dx_result, False
+        else:
+            self.economizing = None
+        return dx_result, True
 
 class InsufficientOA(object):
-    ''' Air-side HVAC ventilation diagnostic.
+    """
+    Air-side HVAC ventilation diagnostic.
 
     insufficient_oa_intake uses metered data from a controller or
     BAS to diagnose when an AHU/RTU is providing inadequate ventilation.
-    '''
-    def __init__(self, data_window, no_required_data, ventilation_oaf_threshold,
-                 min_damper_sp, insufficient_damper_threshold, desired_oaf, analysis):
+    """
+
+    def __init__(self, data_window, no_required_data, ventilation_oaf_threshold, desired_oaf, analysis):
 
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
-        self.oad_values = []
-        self.cool_call_values = []
         self.timestamp = []
-        self.max_dx_time = 60
+        self.max_dx_time = td(minutes=60)
 
-        '''Application thresholds (Configurable)'''
-        self.data_window = float(data_window)
+        # Application thresholds (Configurable)
+        self.data_window = data_window
         self.no_required_data = no_required_data
-        self.ventilation_oaf_threshold = float(ventilation_oaf_threshold)
-        self.insufficient_damper_threshold = float(insufficient_damper_threshold)
-        self.min_damper_sp = float(min_damper_sp)
-        self.desired_oaf = float(desired_oaf)
+        self.ventilation_oaf_threshold = ventilation_oaf_threshold
+        self.desired_oaf = desired_oaf
         self.analysis = analysis
 
-    def econ_alg5(self, dx_result, oatemp, ratemp, matemp, damper_signal,
-                  econ_condition, cur_time, cooling_call):
-        '''Check app. pre-quisites and assemble data set for analysis.'''
+    def econ_alg5(self, dx_result, oatemp, ratemp, matemp, damper_signal,cur_time):
+        """
+        Check app. pre-quisites and assemble data set for analysis.
+        :param dx_result:
+        :param oatemp:
+        :param ratemp:
+        :param matemp:
+        :param damper_signal:
+        :param econ_condition:
+        :param cur_time:
+        :param cooling_call:
+        :return:
+        """
         self.oat_values.append(oatemp)
         self.rat_values.append(ratemp)
         self.mat_values.append(matemp)
-        self.oad_values.append(damper_signal)
-        dx_result.log('{}: Debugger - aggregating data'.format(ECON5))
-
         self.timestamp.append(cur_time)
-        elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
-        elapsed_time = elapsed_time if elapsed_time > 0 else 1.0
+
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            self.table_key = create_table_key(self.analysis, self.timestamp[-1])
+            table_key = create_table_key(self.analysis, self.timestamp[-1])
             if elapsed_time > self.max_dx_time:
-                dx_result.insert_table_row(self.table_key, {ECON5 + DX: 44.2})
-                dx_result = self.clear_data(dx_result)
-                dx_status = 2
-                return dx_result, dx_status
-            dx_result.log('{}: Debugger - running algorithm'.format(ECON5))
-            dx_result = self.insufficient_oa(dx_result, cur_time)
-            dx_status = 1
-            return dx_result, dx_status
-        dx_result.log('{}: Debugger - collecting data'.format(ECON5))
-        dx_status = 0
-        return dx_result, dx_status
-
-    def insufficient_oa(self, dx_result, cur_time):
-        '''If the detected problems(s) are
-        consistent generate a fault message(s).
-        '''
-        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
-        avg_oaf = sum(oaf) / len(oaf) * 100.0
-        avg_damper_signal = sum(self.oad_values) / len(self.oad_values)
-
-        if avg_oaf < 0 or avg_oaf > 125.0:
-            msg = ('{}: Inconclusive result, the OAF calculation led to an '
-                   'unexpected value: {}'.format(ECON5, avg_oaf))
-            dx_result.log(msg, logging.INFO)
-            dx_msg = 41.2
-            dx_table = {
-                ECON5 + DX: dx_msg,
-                ECON5 + EI: 0.0
-            }
-            dx_result.insert_table_row(self.table_key, dx_table)
-            dx_result = self.clear_data(dx_result)
+                dx_msg = {"low": 44.2, "normal": 44.2, "high": 44.2}
+                dx_result.insert_table_row(table_key, {ECON1 + DX: dx_msg})
+                self.clear_data()
+                return dx_result
+            dx_result = self.insufficient_oa(dx_result, cur_time, table_key)
             return dx_result
-        msg = ''
-        if self.desired_oaf - avg_oaf > self.ventilation_oaf_threshold:
-            msg = '{}: Insufficient outdoor-air is being provided for ventilation.'.format(ECON5)
-            dx_msg = 43.1
-            dx_table = {
-                ECON5 + DX: dx_msg,
-                ECON5 + EI: 0.0
-            }
-        else:
-            msg = '{}: The calculated outdoor-air fraction was within acceptable limits.'.format(ECON5)
-            dx_msg = 40.0
-            dx_table = {
-                ECON5 + DX: dx_msg,
-                ECON5 + EI: 0.0
-            }
-        dx_result.insert_table_row(self.table_key, dx_table)
-        dx_result.log(msg, logging.INFO)
-        dx_result = self.clear_data(dx_result)
         return dx_result
 
-    def clear_data(self, dx_result):
-        '''reinitialize class insufficient_oa data.'''
-        self.oad_values = []
+    def insufficient_oa(self, dx_result, cur_time, table_key):
+        """
+        If the detected problems(s) are
+        consistent generate a fault message(s).
+        :param dx_result:
+        :param cur_time:
+        :param table_key:
+        :return:
+        """
+        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
+        avg_oaf = mean(oaf) * 100.0
+        diagnostic_msg = {}
+
+        if avg_oaf < 0 or avg_oaf > 125.0:
+            msg = ("{}: Inconclusive result, the OAF calculation led to an "
+                   "unexpected value: {}".format(ECON4, avg_oaf))
+            # color_code = "GREY"
+            result = {"low": 41.2, "normal": 41.2, "high": 41.2}
+            dx_table = {ECON5 + DX: result}
+            dx_result.log(msg)
+            dx_result.insert_table_row(table_key, dx_table)
+            self.clear_data()
+            return dx_result
+
+        for key, threshold in self.ventilation_oaf_threshold.items():
+            if self.desired_oaf - avg_oaf > threshold:
+                msg = "{}: Insufficient OA is being provided for ventilation - sensitivity: {}".format(ECON5, key)
+                result = 43.1
+            else:
+                msg = "{}: The calculated OAF was within acceptable limits - sensitivity: {}".format(ECON5, key)
+                result = 40.0
+            diagnostic_msg.update({key: result})
+
+        dx_table = {ECON5 + DX: diagnostic_msg}
+        dx_result.insert_table_row(table_key, dx_table)
+        dx_result.log(msg)
+        self.clear_data()
+        return dx_result
+
+    def clear_data(self):
+        """
+        Reinitialize class insufficient_oa data.
+        :return:
+        """
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.timestamp = []
-        return dx_result
+        return

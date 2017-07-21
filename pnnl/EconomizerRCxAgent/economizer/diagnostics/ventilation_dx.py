@@ -121,8 +121,8 @@ class ExcessOA(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             table_key = create_table_key(self.analysis, self.timestamp[-1])
             if elapsed_time > self.max_dx_time:
-                result = {"low": 35.2, "normal": 35.2, "high": 35.2}
-                dx_result.insert_table_row(table_key, {ECON3 + DX: result})
+                result = {'low': 35.2, 'normal': 35.2, 'high': 35.2}
+                dx_result.insert_table_row(table_key, {ECON4 + DX: result})
                 self.clear_data()
                 return dx_result
             dx_result = self.excess_oa(dx_result, table_key)
@@ -147,7 +147,7 @@ class ExcessOA(object):
         if avg_oaf < 0 or avg_oaf > 125.0:
             msg = ("{}: Inconclusive result, unexpected OAF value: {}".format(ECON4, avg_oaf))
             # color_code = "GREY"
-            result = {"low": 31.2, "normal": 31.2, "high": 31.2}
+            result = {'low': 31.2, 'normal': 31.2, 'high': 31.2}
             dx_table = {ECON4 + DX: result}
             dx_result.log(msg)
             dx_result.insert_table_row(table_key, dx_table)
@@ -228,7 +228,7 @@ class ExcessOA(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 dx_result.log("{}: economizing - reinitialize!".format(ECON4))
-                diagnostic_msg = {"low": 25.2, "normal": 25.2, "high": 25.2}
+                diagnostic_msg = {'low': 36.2, 'normal': 36.2, 'high': 36.2}
                 dx_table = {ECON4 + DX: diagnostic_msg}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
@@ -237,6 +237,7 @@ class ExcessOA(object):
         else:
             self.economizing = None
         return dx_result, True
+
 
 class InsufficientOA(object):
     """
@@ -261,7 +262,7 @@ class InsufficientOA(object):
         self.desired_oaf = desired_oaf
         self.analysis = analysis
 
-    def econ_alg5(self, dx_result, oatemp, ratemp, matemp, damper_signal,cur_time):
+    def econ_alg5(self, dx_result, oatemp, ratemp, matemp, cur_time):
         """
         Check app. pre-quisites and assemble data set for analysis.
         :param dx_result:
@@ -284,15 +285,15 @@ class InsufficientOA(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             table_key = create_table_key(self.analysis, self.timestamp[-1])
             if elapsed_time > self.max_dx_time:
-                dx_msg = {"low": 44.2, "normal": 44.2, "high": 44.2}
-                dx_result.insert_table_row(table_key, {ECON1 + DX: dx_msg})
+                dx_msg = {'low': 44.2, 'normal': 44.2, 'high': 44.2}
+                dx_result.insert_table_row(table_key, {ECON5 + DX: dx_msg})
                 self.clear_data()
                 return dx_result
-            dx_result = self.insufficient_oa(dx_result, cur_time, table_key)
+            dx_result = self.insufficient_oa(dx_result, table_key)
             return dx_result
         return dx_result
 
-    def insufficient_oa(self, dx_result, cur_time, table_key):
+    def insufficient_oa(self, dx_result, table_key):
         """
         If the detected problems(s) are
         consistent generate a fault message(s).
@@ -307,9 +308,9 @@ class InsufficientOA(object):
 
         if avg_oaf < 0 or avg_oaf > 125.0:
             msg = ("{}: Inconclusive result, the OAF calculation led to an "
-                   "unexpected value: {}".format(ECON4, avg_oaf))
+                   "unexpected value: {}".format(ECON5, avg_oaf))
             # color_code = "GREY"
-            result = {"low": 41.2, "normal": 41.2, "high": 41.2}
+            result = {'low': 41.2, 'normal': 41.2, 'high': 41.2}
             dx_table = {ECON5 + DX: result}
             dx_result.log(msg)
             dx_result.insert_table_row(table_key, dx_table)

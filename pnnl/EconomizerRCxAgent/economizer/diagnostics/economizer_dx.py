@@ -131,7 +131,7 @@ class EconCorrectlyOn(object):
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                result = {"low": 13.2, "normal": 13.2, "high": 13.2}
+                result = {'low': 13.2, 'normal': 13.2, 'high': 13.2}
                 dx_result.insert_table_row(table_key, {ECON2 + DX: result})
                 self.clear_data()
                 return dx_result
@@ -198,7 +198,7 @@ class EconCorrectlyOn(object):
                 self.not_cooling = cur_time
             if cur_time - self.not_cooling >= self.data_window:
                 dx_result.log("{}: unit is not cooling - reinitialize!".format(ECON2))
-                diagnostic_msg = {"low": 14.2, "normal": 14.2, "high": 14.2}
+                diagnostic_msg = {'low': 14.2, 'normal': 14.2, 'high': 14.2}
                 dx_table = {ECON2 + DX: diagnostic_msg}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
@@ -213,7 +213,7 @@ class EconCorrectlyOn(object):
                 self.not_economizing = cur_time
             if cur_time - self.not_economizing >= self.data_window:
                 dx_result.log("{}: unit is not economizing - reinitialize!".format(ECON2))
-                diagnostic_msg = {"low": 15.2, "normal": 15.2, "high": 15.2}
+                diagnostic_msg = {'low': 15.2, 'normal': 15.2, 'high': 15.2}
                 dx_table = {ECON2 + DX: diagnostic_msg}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
@@ -315,7 +315,7 @@ class EconCorrectlyOff(object):
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                result = {"low": 23.2, "normal": 23.2, "high": 23.2}
+                result = {'low': 23.2, 'normal': 23.2, 'high': 23.2}
                 dx_result.insert_table_row(table_key, {ECON3 + DX: result})
                 self.clear_data()
                 return dx_result
@@ -393,7 +393,7 @@ class EconCorrectlyOff(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 dx_result.log("{}: economizing - reinitialize!".format(ECON3))
-                diagnostic_msg = {"low": 25.2, "normal": 25.2, "high": 25.2}
+                diagnostic_msg = {'low': 25.2, 'normal': 25.2, 'high': 25.2}
                 dx_table = {ECON3 + DX: diagnostic_msg}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)

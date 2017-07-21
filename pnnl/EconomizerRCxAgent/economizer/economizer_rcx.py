@@ -71,11 +71,10 @@ dx_list = [ECON1, ECON2, ECON3, ECON4, ECON5]
 
 FAN_OFF = -99.0
 OAF = -89.0
-SENSOR_LIMIT = -79.0
-OAT_LIMIT = -69.0
-RAT_LIMIT = -59.0
-MAT_LIMIT = -49.0
-TEMP_SENSOR = -39.0
+OAT_LIMIT = -79.0
+RAT_LIMIT = -69.0
+MAT_LIMIT = -59.0
+TEMP_SENSOR = -49.0
 
 
 def create_table_key(table_name, timestamp):
@@ -124,7 +123,7 @@ class Application(AbstractDrivenAgent):
             sys.exit()
         Application.analysis = analysis = kwargs["analysis_name"]
 
-        if sensitivity not in ["all", "high", "normal", "low"]:
+        if sensitivity not in ["all", 'high', 'normal', 'low']:
             sensitivity = None
         print("SENS: {}".format(sensitivity))
         # data point name mapping
@@ -165,42 +164,42 @@ class Application(AbstractDrivenAgent):
 
         if sensitivity is not None:
             temp_difference_threshold = {
-                "low": 6.0,
-                "normal": 4.0,
-                "high": 2.0
+                'low': 6.0,
+                'normal': 4.0,
+                'high': 2.0
             }
             oat_mat_check = {
-                "low": oat_mat_check * 1.5,
-                "normal": oat_mat_check,
-                "high": oat_mat_check * 0.5
+                'low': oat_mat_check * 1.5,
+                'normal': oat_mat_check,
+                'high': oat_mat_check * 0.5
             }
             oaf_economizing_threshold = {
-                "low": 70.0,
-                "normal": 50.0,
-                "high": 30.0
+                'low': 70.0,
+                'normal': 50.0,
+                'high': 30.0
             }
             open_damper_threshold = {
-                "low": 40.0,
-                "normal": 20.0,
-                "high": 10.0
+                'low': 40.0,
+                'normal': 20.0,
+                'high': 10.0
             }
             excess_damper_threshold = {
-                "low": 50.0,
-                "normal": 30.0,
-                "high": 10.0
+                'low': 50.0,
+                'normal': 30.0,
+                'high': 10.0
             }
             excess_oaf_threshold = {
-                "low": 50.0,
-                "normal": 30.0,
-                "high": 20.0
+                'low': 50.0,
+                'normal': 30.0,
+                'high': 20.0
             }
             ventilation_oaf_threshold = {
-                "low": 10.0,
-                "normal": 5.0,
-                "high": 0.0
+                'low': 10.0,
+                'normal': 5.0,
+                'high': 0.0
             }
             if sensitivity != "all":
-                remove_sensitivities = [item for item in ["high", "normal", "low"] if item != sensitivity]
+                remove_sensitivities = [item for item in ['high', 'normal', 'low'] if item != sensitivity]
                 if remove_sensitivities:
                     for remove in remove_sensitivities:
                         temp_difference_threshold.pop(remove)
@@ -211,13 +210,13 @@ class Application(AbstractDrivenAgent):
                         excess_oaf_threshold.pop(remove)
                         ventilation_oaf_threshold.pop(remove)
         else:
-            temp_difference_threshold = {"normal": temp_difference_threshold}
-            oat_mat_check = {"normal": oat_mat_check}
-            oaf_economizing_threshold = {"normal": oaf_economizing_threshold}
-            open_damper_threshold = {"normal": open_damper_threshold}
-            excess_damper_threshold = {"normal": excess_damper_threshold}
-            excess_oaf_threshold = {"normal": excess_oaf_threshold}
-            ventilation_oaf_threshold = {"normal": ventilation_oaf_threshold}
+            temp_difference_threshold = {'normal': temp_difference_threshold}
+            oat_mat_check = {'normal': oat_mat_check}
+            oaf_economizing_threshold = {'normal': oaf_economizing_threshold}
+            open_damper_threshold = {'normal': open_damper_threshold}
+            excess_damper_threshold = {'normal': excess_damper_threshold}
+            excess_oaf_threshold = {'normal': excess_oaf_threshold}
+            ventilation_oaf_threshold = {'normal': ventilation_oaf_threshold}
 
         self.econ1 = TempSensorDx(data_window, no_required_data,
                                   temp_difference_threshold, open_damper_time,
@@ -342,7 +341,7 @@ class Application(AbstractDrivenAgent):
             dx_result = self.econ4.econ_alg4(dx_result, oat, rat, mat, oad,
                                              econ_condition, cur_time, fan_sp)
 
-            dx_result = self.econ5.econ_alg5(dx_result, oat, rat, mat, oad, cur_time)
+            dx_result = self.econ5.econ_alg5(dx_result, oat, rat, mat, cur_time)
         elif self.temp_sensor_problem:
             self.pre_conditions(dx_list[1:], TEMP_SENSOR, cur_time, dx_result)
             self.econ2.clear_data()
@@ -451,7 +450,7 @@ class Application(AbstractDrivenAgent):
         :param dx_result:
         :return:
         """
-        dx_msg = {"low": message, "normal": message, "high": message}
+        dx_msg = {'low': message, 'normal': message, 'high': message}
         for diagnostic in diagnostics:
             dx_table = {diagnostic + DX: dx_msg}
             table_key = create_table_key(self.analysis, cur_time)

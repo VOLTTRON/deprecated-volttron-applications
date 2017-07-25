@@ -1,0 +1,242 @@
+{
+    "AHU3/VAV104": {
+        "VAV104": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "ZoneAirFlow>125.0"],
+                "device_status_args": ["OccupancyMode", "ZoneAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "ZoneAirFlow/1100.0 - 1.0",
+                "operation_type": "formula",
+                "operation_args": ["ZoneAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Lobby",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 81.0,
+                "load": 0.05
+            }
+        }
+    },
+    "AHU3/VAV105": {
+        "VAV105": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "ZoneAirFlow>475.0"],
+                "device_status_args": ["OccupancyMode", "ZoneAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "ZoneAirFlow/450.0 - 1.0",
+                "operation_type": "formula",
+                "operation_args": ["ZoneAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 76.0,
+                "load": 0.2
+            }
+        }
+    },
+    "AHU3/VAV107": {
+        "VAV107": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "ZoneAirFlow>125.0"],
+                "device_status_args": ["OccupancyMode", "ZoneAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "ZoneAirFlow/100.0 - 1",
+                "operation_type": "formula",
+                "operation_args": ["ZoneAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 76.0,
+                "load": 0.05
+            }
+        }
+    },
+    "AHU3/VAV108": {
+        "VAV108": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "ZoneAirFlow>100.0"],
+                "device_status_args": ["OccupancyMode", "ZoneAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "ZoneAirFlow/75.0 - 1.0",
+                "operation_type": "formula",
+                "operation_args": ["ZoneAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 76.0,
+                "load": 0.25
+            }
+        }
+    },
+    "AHU3/VAV116": {
+        "VAV116": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "ZoneAirFlow>55.0"],
+                "device_status_args": ["OccupancyMode", "ZoneAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "ZoneAirFlow/50.0 - 1.0",
+                "operation_type": "formula",
+                "operation_args": ["ZoneAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 76.0,
+                "load": 0.025
+            }
+        }
+    },
+    "AHU2": {
+        "AHU2": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "SupplyAirFlow>1000.0"],
+                "device_status_args": ["OccupancyMode", "SupplyAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "SupplyAirFlow/1000.0 - 1.0",
+                "operation_type": "formula",
+                "operation_args": ["SupplyAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 76.0,
+                "revert_priority": 1,
+                "load": 0.5
+            }
+        }
+    },
+    "AHU4": {
+        "AHU4": {
+            "device_status": {
+                "condition": ["OccupancyMode>0", "&", "SupplyAirFlow>1550.0"],
+                "device_status_args": ["OccupancyMode", "SupplyAirFlow"]
+            },
+            "available_zone_airflow_ratio": {
+                "operation": "SupplyAirFlow/1550.0 - 1.0",
+                "operation_type": "formula",
+                "operation_args": ["SupplyAirFlow"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "zonetemperature_setpoint":{
+                "operation": "1/(ZoneTemperature - ZoneCoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["ZoneCoolingTemperatureSetPoint", "ZoneTemperature"],
+                "minimum": 0.0,
+                "maximum": 10.0
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "ZoneTemperatureSetPoint",
+                "curtailment_method": "offset",
+                "offset": 2.0,
+                "value": 76.0,
+                "revert_priority": 1,
+                "load": 0.5
+            }
+        }
+    }
+}

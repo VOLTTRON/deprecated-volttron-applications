@@ -1,0 +1,19 @@
+{
+    "zonetemperature_setpoint": {
+        "curtail_count": 9,
+        "room_type": 5,
+        "available_zone_airflow_ratio": 3
+    },
+
+    "available_zone_airflow_ratio": {
+        "room_type": 3,
+        "curtail_count": 7
+    },
+
+    "room_type": {
+        "curtail_count": 3
+    },
+
+    "curtail_count": {
+    }
+}

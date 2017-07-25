@@ -1,0 +1,704 @@
+{
+    "LIGHTING": {
+        "Corridor": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (CORRIDOR)> 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (CORRIDOR)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (CORRIDOR)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (CORRIDOR)"]
+            },
+            "rated_power": {
+                "value": 0.7376,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Lobby",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "CORRIDOR_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (CORRIDOR) - 70.0)*0.7376*0.01",
+                    "equation_args": ["DimmingOutputLevel (CORRIDOR)"]
+                }
+            }
+        },
+        "RM_102": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23102) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23102)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23102)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23102)"]
+            },
+            "rated_power": {
+                "value": 0.3173,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Conference Room",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM102_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23102) - 70.0)*0.3173*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23102)"]
+                }
+            }
+        },
+        "RM_105": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23105) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23105)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23105)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23105)"]
+            },
+            "rated_power": {
+                "value": 0.2979,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Conference Room",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM105_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23105) - 70.0)*0.2979*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23105)"]
+                }
+            }
+        },
+        "RM_107": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23107) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23107)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23107)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23107)"]
+            },
+            "rated_power": {
+                "value": 0.06,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Conference Room",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM107_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23107) - 70.0)*0.06*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23107)"]
+                }
+            }
+        },
+        "RM_108": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23108) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23108)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23108)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23108)"]
+            },
+            "rated_power": {
+                "value": 0.2172,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Conference Room",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM108_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23108) - 70.0)*0.2172*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23108)"]
+                }
+            }
+        },
+        "RM_112": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23112) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23112)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23112)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23112)"]
+            },
+            "rated_power": {
+                "value": 0.1316,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM112_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23112) - 70.0)*0.1316*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23112)"]
+                }
+            }
+        },
+        "RM_117": {
+            "device_status": {
+                    "condition": "DimmingOutputLevel (RM23117) > 70.0",
+                    "device_status_args": ["DimmingOutputLevel (RM23117)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23117)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23117)"]
+            },
+            "rated_power": {
+                "value": 0.586,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM117_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23117) - 70.0)*0.586*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23117)"]
+                }
+            }
+        },
+        "RM_118": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23118) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23118)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23118)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23118)"]
+            },
+            "rated_power": {
+                "value": 0.205,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM118_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23118) - 70.0)*0.205*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23118)"]
+                }
+            }
+        },
+        "RM_123": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23123) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23123)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23123)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23123)"]
+            },
+            "rated_power": {
+                "value": 0.4386,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM123_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23123) - 70.0)*0.4386*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23123)"]
+                }
+            }
+        },
+        "RM_127": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23127) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23127)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23127)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23127)"]
+            },
+            "rated_power": {
+                "value": 1.65,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM127_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23127) - 70.0)*1.65*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23127)"]
+                }
+            }
+        },
+        "RM_128": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23128) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23128)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23128)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23128)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM128_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23128) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23128)"]
+                }
+            }
+        },
+        "RM_129": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23129) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23129)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23129)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23129)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM129_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23129) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23129)"]
+                }
+            }
+        },
+        "RM_130": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23130) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23130)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23130)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23130)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM130_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23130) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23130)"]
+                }
+            }
+        },
+        "RM_131": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23131) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23131)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23131)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23131)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM131_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23131) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23131)"]
+                }
+            }
+        },
+        "RM_133": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23133) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23133)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23133)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23133)"]
+            },
+            "rated_power": {
+                "value": 0.1687,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM133_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23133) - 70.0)*0.1687*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23133)"]
+                }
+            }
+        },
+        "RM_134": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23134) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23134)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23134)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23134)"]
+            },
+            "rated_power": {
+                "value": 0.1687,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM134_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23134) - 70.0)*0.1687*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23134)"]
+                }
+            }
+        },
+        "RM_135": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23135) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23135)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23135)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23135)"]
+            },
+            "rated_power": {
+                "value": 0.1687,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM135_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23135) - 70.0)*0.1687*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23135)"]
+                }
+            }
+        },
+        "RM_136": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23136) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23136)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23136)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23136)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM136_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23136) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23136)"]
+                }
+            }
+        },
+        "RM_137": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23137) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23137)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23137)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23137)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM137_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23137) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23137)"]
+                }
+            }
+        },
+        "RM_138": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23138) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23138)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23138)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23138)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM138_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23138) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23138)"]
+                }
+            }
+        },
+        "RM_139": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23139) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23139)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23139)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23139)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM139_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23139) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23139)"]
+                }
+            }
+        },
+        "RM_141": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23141) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23141)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23141)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23141)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM141_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23141) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23141)"]
+                }
+            }
+        },
+        "RM_142": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23142) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23142)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23142)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23142)"]
+            },
+            "rated_power": {
+                "value": 0.1769,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM142_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23142) - 70.0)*0.1769*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23142)"]
+                }
+            }
+        },
+        "RM_143": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23143) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23143)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23143)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23143)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM143_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23143) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23143)"]
+                }
+            }
+        },
+        "RM_150": {
+            "device_status": {
+                    "condition": ["DimmingOutputLevel (RM23150) > 70.0"],
+                    "device_status_args": ["DimmingOutputLevel (RM23150)"]
+            },
+            "lighting_level": {
+                "operation": "DimmingOutputLevel (RM23150)",
+                "operation_type": "formula",
+                "operation_args": ["DimmingOutputLevel (RM23150)"]
+            },
+            "rated_power": {
+                "value": 0.125,
+                "operation_type": "constant"
+            },
+            "room_type": {
+                "map_key": "Private Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "curtail": {
+                "point": "RM150_70%",
+                "value": true,
+                "load": {
+                    "operation": "(DimmingOutputLevel (RM23150) - 70.0)*0.125*0.01",
+                    "equation_args": ["DimmingOutputLevel (RM23150)"]
+                }
+            }
+        }
+    }
+}

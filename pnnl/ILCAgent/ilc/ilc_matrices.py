@@ -168,8 +168,8 @@ def validate_input(pairwise_matrix, col_sums,
     consistency_ratio = consistency_index / random_index[len(col_sums)]
     _log.debug("Consistency ratio: {}".format(consistency_ratio))
     if consistency_ratio < 0.2:
-        return False
-    return True
+        return True
+    return False
     #return consistency_ratio < 0.2
 
 

@@ -62,11 +62,10 @@ from collections import defaultdict
 from sympy.parsing.sympy_parser import parse_expr
 from volttron.platform.agent.utils import setup_logging
 
-mappers = {}
-criterion_registry = {}
 
 setup_logging()
 _log = logging.getLogger(__name__)
+
 
 def parse_sympy(data, condition=False):
     """
@@ -107,14 +106,13 @@ class CurtailmentCluster(object):
     def __init__(self, cluster_config, actuator):
         self.devices = {}
         for device_name, device_config in cluster_config.items():
-            
             self.devices[device_name, actuator] = CurtailmentManager(device_config)
 
     def get_all_on_devices(self):
         results = []
-        for name, device in self.devices.items():
+        for device_info, device in self.devices.items():
             for device_id in device.get_on_commands():
-                results.append((name[0], device_id, name[1]))
+                results.append((device_info[0], device_id, device_info[1]))
         return results
 
 
@@ -168,11 +166,12 @@ class CurtailmentManager(object):
             for settings in conditional_curtailment:
                 conditional_curtailment = ConditionalCurtailment(**settings)
                 self.conditional_curtailments[device_id].append(conditional_curtailment)
-
             self.default_curtailment[device_id] = CurtailmentSetting(**default_curtailment)
+
             device_status_dict = curtail_config.pop('device_status')
             device_status_args = parse_sympy(device_status_dict['device_status_args'])
             condition = device_status_dict['condition']
+
             self.device_status_args[device_id] = device_status_args
             self.condition[device_id] = parse_sympy(condition, condition=True)
             self.points[device_id] = symbols(device_status_args)
@@ -185,15 +184,15 @@ class CurtailmentManager(object):
     def ingest_data(self, data):
         for device_id, conditional_curtailment in self.conditional_curtailments.items():
             for conditional_curtail_instance in conditional_curtailment:
-                cconditional_curtail_instance.ingest_data(data)
-        
+                conditional_curtail_instance.ingest_data(data)
+
         for device_id in self.command_status:
-            condition_points = []
+            conditional_points = []
             for item in self.device_status_args[device_id]:
-                condition_points.append((item, data[item]))
+                conditional_points.append((item, data[item]))
             conditional_value = False
-            if condition_points:
-                conditional_value = self.expr[device_id].subs(condition_points)
+            if conditional_points:
+                conditional_value = self.expr[device_id].subs(conditional_points)
         _log.debug('{} evaluated to {}'.format(self.condition[device_id], conditional_value))
         self.command_status[device_id] = bool(conditional_value)
 
@@ -291,24 +290,24 @@ class ConditionalCurtailment(object):
             raise ValueError('Missing parameter')
         self.conditional_args = parse_sympy(conditional_args)
         self.points = symbols(self.conditional_args)
-        self.condition = parse_sympy(condition, condition=True)
-        self.expr = parse_expr(self.condition)
+        self.conditional_expr = parse_sympy(condition, condition=True)
+        self.expr = parse_expr(self.conditional_expr)
         self.curtailment = CurtailmentSetting(**kwargs)
-        self.pt_list = []
+        self.conditional_points = []
 
     def check_condition(self):
-        if self.pt_list:
-            val = self.expr.subs(self.pt_list)
-            _log.debug('{} evaluated to {}'.format(self.condition, val))
+        if self.conditional_points:
+            value = self.expr.subs(self.conditional_points)
+            _log.debug('{} evaluated to {}'.format(self.conditional_expr, value))
         else:
-            val = False
-        return val
+            value = False
+        return value
 
     def ingest_data(self, data):
-        pt_list = []
-        for item in self.conditional_args:
-            pt_list.append((item, data[item]))
-        self.pt_list = pt_list
+        point_list = []
+        for point in self.conditional_args:
+            point_list.append((point, data[point]))
+        self.point_list = point_list
 
     def get_curtailment(self):
         return self.curtailment.get_curtailment_dict()

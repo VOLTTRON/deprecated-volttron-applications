@@ -66,6 +66,8 @@ from datetime import timedelta as td
 from volttron.platform.agent.utils import setup_logging
 from ilc.ilc_matrices import (extract_criteria, calc_column_sums, normalize_matrix,
                               validate_input, build_score, input_matrix)
+setup_logging()
+_log = logging.getLogger(__name__)
 
 global mappers
 
@@ -83,7 +85,10 @@ try:
     }
 except KeyError:
     mappers = {}
+
 criterion_registry = {}
+
+
 def register_criterion(name):
     def decorator(klass):
         criterion_registry[name] = klass
@@ -125,23 +130,20 @@ def parse_sympy(data, condition=False):
      #_log.debug("Parsing: {} to {}".format(data, return_data))
     return return_data
 
-setup_logging()
-_log = logging.getLogger(__name__)
-
 
 class CriteriaCluster(object):
     def __init__(self, priority, criteria_labels, row_average, cluster_config):
-        self.device_criteria = {}
+        self.criteria = {}
         self.priority = priority
         self.criteria_labels = criteria_labels
         self.row_average = row_average
 
         for device_name, device_criteria in cluster_config.items():
-            self.device_criteria[device_name] = DeviceCriteria(device_criteria)
+            self.criteria[device_name] = DeviceCriteria(device_criteria)
 
-    def get_all_device_evaluations(self):
+    def get_all_evaluations(self):
         results = {}
-        for name, device in self.device_criteria.items():
+        for name, device in self.criteria.items():
             for device_id in device.criteria.keys():
                 evaluations = device.evaluate(device_id)
                 results[name, device_id] = evaluations
@@ -155,26 +157,26 @@ class CriteriaContainer(object):
 
     def add_criteria_cluster(self, cluster):
         self.clusters.append(cluster)
-        self.devices.update(cluster.device_criteria)
+        self.devices.update(cluster.criteria)
 
     def get_score_order(self):
-        all_scored_devices = []
+        all_scored = []
         for cluster in self.clusters:
-            device_evaluations = cluster.get_all_device_evaluations()
+            evaluations = cluster.get_all_evaluations()
 
-            _log.debug('Device Evaluations: ' + str(device_evaluations))
+            _log.debug('Device Evaluations: ' + str(evaluations))
 
-            if not device_evaluations:
+            if not evaluations:
                 continue
 
-            input_arr = input_matrix(device_evaluations, cluster.criteria_labels)
+            input_arr = input_matrix(evaluations, cluster.criteria_labels)
             _log.debug('Input Array: ' + str(input_arr))
-            scored_devices = build_score(input_arr, cluster.row_average, cluster.priority)
-            _log.debug('Scored devices: ' + str(scored_devices))
-            all_scored_devices.extend(scored_devices)
+            scores = build_score(input_arr, cluster.row_average, cluster.priority)
+            _log.debug('Scored devices: ' + str(scores))
+            all_scored.extend(scores)
 
-        all_scored_devices.sort(reverse=True)
-        results = [x[1] for x in all_scored_devices]
+        all_scored.sort(reverse=True)
+        results = [x[1] for x in all_scored]
 
         return results
 
@@ -199,6 +201,7 @@ class DeviceCriteria(object):
 
     def evaluate(self, token):
         return self.criteria[token].evaluate()
+
 
 class Criteria(object):
     def __init__(self, criteria):
@@ -320,20 +323,20 @@ class FormulaCriterion(BaseCriterion):
         self.operation_args = parse_sympy(operation_args)
         self.points = symbols(self.operation_args)
         self.expr = parse_expr(parse_sympy(operation))
-        self.pt_list = []
+        self.point_list = []
 
     def evaluate(self):
-        if self.pt_list:
-            val = self.expr.subs(self.pt_list)
+        if self.point_list:
+            value = self.expr.subs(self.point_list)
         else:
-            val = self.minimum
-        return val
+            value = self.minimum
+        return value
 
     def ingest_data(self, time_stamp, data):
-        pt_list = []
-        for item in self.operation_args:
-            pt_list.append((item, data[item]))
-        self.pt_list = pt_list
+        point_list = []
+        for point in self.operation_args:
+            point_list.append((point, data[point]))
+        self.point_list = point_list
 
 
 @register_criterion('mapper')
@@ -358,7 +361,6 @@ class HistoryCriterion(BaseCriterion):
         self.comparison_type = comparison_type
         self.point_name = point_name
         self.previous_time_delta = td(minutes=previous_time)
-
         self.current_value = None
         self.history_time = None
 
@@ -386,10 +388,10 @@ class HistoryCriterion(BaseCriterion):
         self.history.append((post_timestamp, post_value))
         prev_value = self.linear_interpolation(pre_timestamp, pre_value, post_timestamp, post_value, self.history_time)
         if self.comparison_type == 'direct':
-            val = abs(prev_value - self.current_value)
+            value = abs(prev_value - self.current_value)
         elif self.comparison_type == 'inverse':
-            val = 1 / abs(prev_value - self.current_value)
-        return val
+            value = 1 / abs(prev_value - self.current_value)
+        return value
 
     def ingest_data(self, time_stamp, data):
         self.history_time = time_stamp - self.previous_time_delta

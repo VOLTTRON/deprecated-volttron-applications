@@ -700,16 +700,16 @@ class ILCAgent(Agent):
 
             if current_time >= self.break_end:
                 _log.debug('Release all in contingency.')
-                self.reinit_stagger()
+                self.reinitialize_stagger()
             return
 
         self.device_group_size = len(self.devices_curtailed)
         _log.debug('Current devices held curtailed: {}'.format(self.devices_curtailed))
-        self.reinit_stagger()
+        self.reinitialize_stagger()
 
     def stagger_release_setup(self):
         _log.debug('Number or curtailed devices: {}'.format(len(self.devices_curtailed)))
-        self.confirm_in_minutes = self.curtail_confirm.total_seconds()/60.0
+        confirm_in_minutes = self.curtail_confirm.total_seconds()/60.0
         release_steps = max(1, math.floor(self.stagger_release_time / confirm_in_minutes + 1))
         self.device_group_size = [math.floor(len(self.devices_curtailed) / release_steps)]*release_steps
         for group in range(self.device_group_size % release_steps):
@@ -778,7 +778,7 @@ class ILCAgent(Agent):
 
         return return_value
 
-    def reinit_stagger(self):
+    def reinitialize_stagger(self):
         if self.devices_curtailed:
             self.device_group_size = [len(self.devices_curtailed)]
             self.reset_devices()

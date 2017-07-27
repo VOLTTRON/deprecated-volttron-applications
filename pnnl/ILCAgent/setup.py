@@ -61,18 +61,18 @@ from setuptools import setup, find_packages
 packages = find_packages('.')
 package = packages[0]
 
-_temp = __import__(package+'.agent', globals(), locals(), ['__version__'], -1)
+_temp = __import__(package+'.ilc_agent', globals(), locals(), ['__version__'], -1)
 __version__ = _temp.__version__
 
 setup(
     include_package_data=True,
     name=package + 'agent',
     version=__version__,
-    install_requires=['volttron>=3.0', 'sympy', 'xlrd'],
+    install_requires=['volttron>=3.0', 'sympy'],
     packages=packages,
     entry_points={
         'setuptools.installation': [
-            'eggsecutable = ' + package + '.agent:main',
+            'eggsecutable = ' + package + '.ilc_agent:main',
         ]
     }
 )

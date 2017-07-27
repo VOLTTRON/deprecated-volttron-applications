@@ -136,7 +136,7 @@ class Interface(BasicRevert, BaseInterface):
                             registers data about the climate device with entity ID
                         '''
                         msg =  entry['attributes']
-                        climatePointName = 'climate/' + entityId + '/'
+                        climatePointName = 'climate#' + entityId + '#'
                         
                         for key,value in msg.items():
                             
@@ -191,7 +191,7 @@ class Interface(BasicRevert, BaseInterface):
             returns the value for the point_name
         '''
         
-        pointNameInfo = entityId = point_name.split('/')
+        pointNameInfo = point_name.split('#')
         if(len(pointNameInfo) < 3):
             _log.error("invalid point_name format")
             return 
@@ -223,7 +223,7 @@ class Interface(BasicRevert, BaseInterface):
                 
                 msg = []
                 
-                pointNameInfo =  point_name.split('/')
+                pointNameInfo =  point_name.split('#')
                 if(len(pointNameInfo) < 3):
                     _log.error("invalid point_name format")
                     return 
@@ -255,7 +255,7 @@ class Interface(BasicRevert, BaseInterface):
             sets the value for the point_name
         '''
         
-        pointNameInfo = point_name.split('/')
+        pointNameInfo = point_name.split('#')
         if(len(pointNameInfo) < 3):
             _log.error("invalid point_name format")
             return 
@@ -280,28 +280,25 @@ class Interface(BasicRevert, BaseInterface):
             elif property == "swing_mode":
                 self.hassClimate.SetSwingMode(entityId, value)
                 
+            elif property == "operation_mode":
+                self.hassClimate.SetOperationMode(entityId, value)
+                 
             elif property == "temperature":
-                pointNamePrefix = pointNameInfo[0] +'/'+pointNameInfo[1] + '/' + pointNameInfo[2] + '/'
-                temp_high = self.get_point(pointNamePrefix + 'target_temp_high')
-                temp_low = self.get_point(pointNamePrefix + 'target_temp_low')
+                pointNamePrefix = pointNameInfo[0] + '#' + pointNameInfo[1] + '#'
                 operation_mode = self.get_point(pointNamePrefix + 'operation_mode')
-                self.hassClimate.SetTemperature(entityId, temp_low, temp_high, value, operation_mode)
+                self.hassClimate.SetTargetTemperature(entityId, value, operation_mode)
                 return str(value)
             
             elif property == "target_temp_low":
-                pointNamePrefix = pointNameInfo[0] +'/'+pointNameInfo[1] + '/' + pointNameInfo[2] + '/'
-                temperature = self.get_point(pointNamePrefix + 'temperature')
-                temp_high = self.get_point(pointNamePrefix + 'target_temp_high')
+                pointNamePrefix = pointNameInfo[0] + '#' + pointNameInfo[1] + '#'
                 operation_mode = self.get_point(pointNamePrefix + 'operation_mode')
-                self.hassClimate.SetTemperature(entityId, value, temp_high, temperature, operation_mode)
+                self.hassClimate.SetSetPointLow(entityId, value, operation_mode)
                 return str(value)
             
             elif property == "target_temp_high":
-                pointNamePrefix = pointNameInfo[0] +'/'+pointNameInfo[1] + '/' + pointNameInfo[2] + '/'
-                temperature = self.get_point(pointNamePrefix + 'temperature')
-                temp_low = self.get_point(pointNamePrefix + 'target_temp_low')
+                pointNamePrefix = pointNameInfo[0] + '#' + pointNameInfo[1] + '#'
                 operation_mode = self.get_point(pointNamePrefix + 'operation_mode')
-                self.hassClimate.SetTemperature(entityId, temp_low, value, temperature, operation_mode)
+                self.hassClimate.SetSetPointHigh(entityId, value, operation_mode)
                 return str(value)   
             
 
@@ -319,33 +316,73 @@ class Interface(BasicRevert, BaseInterface):
 
 class HASSClimate(object):
     
+    
     def __init__(self, url):
         
         self.url = url
         
         
-        
-    def SetTemperature(self, entityId, setPointLow, setpointHigh, targetTemp, opMode):
+    def SetTargetTemperature(self, entityId, targetTemp, opMode):
         '''
-            Sets temperature value for set point high, set point low, target temperature
-            for  the climate.entityId device
+            Sets temperature value for  target temperature
+            for  the climate.entityId device in operation mode opMode
         '''
         
-        if setpointHigh is None or setPointLow is None or targetTemp is None:
+        if targetTemp is None or (targetTemp == "N/A"):
             return
         
         urlServices = self.url+'services/climate/set_temperature'
         
-        try:
-            
-            jsonMsg = json.dumps({"entity_id" : entityId, "temperature": targetTemp, "target_temp_low":setPointLow, 
-                         "target_temp_high": setpointHigh, "operation_mode":  opMode})
+        try:   
+            jsonMsg = json.dumps({"entity_id" : entityId, "temperature": targetTemp, "operation_mode":  opMode})
             
             header = {'Content-Type': 'application/json'}
             
             requests.post(urlServices, data = jsonMsg, headers = header)
             
-            self.on_publish_topic()
+        except requests.exceptions.RequestException as e:
+            print(e)
+            
+            
+    def SetSetPointLow(self, entityId, setPointLow,  opMode):
+        '''
+            Sets temperature value for set point low
+            for  the climate.entityId device at operation mode
+        '''
+        
+        if setPointLow is None or setPointLow == "N/A":
+            return
+        
+        urlServices = self.url+'services/climate/set_temperature'
+        
+        try:   
+            jsonMsg = json.dumps({"entity_id" : entityId, "target_temp_low":setPointLow, "operation_mode":  opMode})
+            
+            header = {'Content-Type': 'application/json'}
+            
+            requests.post(urlServices, data = jsonMsg, headers = header)
+            
+        except requests.exceptions.RequestException as e:
+            print(e)
+            
+            
+    def SetSetPointHigh(self, entityId, setpointHigh, opMode):
+        '''
+            Sets temperature value for set point high for  the climate.entityId device
+            in current operation mode
+        '''
+        
+        if setpointHigh is None or setpointHigh == "N/A":
+            return
+        
+        urlServices = self.url+'services/climate/set_temperature'
+        
+        try:   
+            jsonMsg = json.dumps({"entity_id" : entityId, "target_temp_high": setpointHigh, "operation_mode":  opMode})
+            
+            header = {'Content-Type': 'application/json'}
+            
+            requests.post(urlServices, data = jsonMsg, headers = header)
             
         except requests.exceptions.RequestException as e:
             print(e)
@@ -369,9 +406,7 @@ class HASSClimate(object):
             header = {'Content-Type': 'application/json'}
             
             requests.post(urlServices, data = jsonMsg, headers = header)
-            
-            self.on_publish_topic()
-            
+
         except requests.exceptions.RequestException as e:
             print(e)
             
@@ -394,8 +429,6 @@ class HASSClimate(object):
             header = {'Content-Type': 'application/json'}
             
             requests.post(urlServices, data = jsonMsg, headers = header)
-            
-            self.on_publish_topic()
             
         except requests.exceptions.RequestException as e:
             print(e)
@@ -420,8 +453,6 @@ class HASSClimate(object):
             
             requests.post(urlServices, data = jsonMsg, headers = header)
             
-            self.on_publish_topic()
-            
         except requests.exceptions.RequestException as e:
             print(e)
             
@@ -444,8 +475,6 @@ class HASSClimate(object):
             header = {'Content-Type': 'application/json'}
             
             requests.post(urlServices, data = jsonMsg, headers = header)
-            
-            self.on_publish_topic()
             
         except requests.exceptions.RequestException as e:
             print(e)
@@ -470,8 +499,6 @@ class HASSClimate(object):
             
             requests.post(urlServices, data = jsonMsg, headers = header)
             
-            self.on_publish_topic()
-            
         except requests.exceptions.RequestException as e:
             print(e)
             
@@ -495,7 +522,7 @@ class HASSClimate(object):
             
             requests.post(urlServices, data = jsonMsg, headers = header)
             
-            self.on_publish_topic()
-            
         except requests.exceptions.RequestException as e:
             print(e)
+            
+            

@@ -137,7 +137,8 @@ class CurtailmentContainer(object):
 
     def reset_currently_curtailed(self):
         for device in self.devices.itervalues():
-            device.reset_currently_curtailed()
+            for device_id in self.command_status:
+                device.reset_currently_curtailed(device_id)
 
     def get_on_devices(self):
         all_on_devices = []

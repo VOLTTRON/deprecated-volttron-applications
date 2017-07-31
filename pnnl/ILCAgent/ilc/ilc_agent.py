@@ -114,7 +114,7 @@ class ILCAgent(Agent):
         if campus is not None and campus:
             self.update_base_topic = self.update_base_topic + campus + "/"
         if building is not None and building:
-            self.update_base_topic = self.update_base_topic + building + "/"
+            self.update_base_topic = self.update_base_topic + building
 
         global mappers
 
@@ -710,12 +710,12 @@ class ILCAgent(Agent):
     def stagger_release_setup(self):
         _log.debug('Number or curtailed devices: {}'.format(len(self.devices_curtailed)))
         confirm_in_minutes = self.curtail_confirm.total_seconds()/60.0
-        release_steps = max(1, math.floor(self.stagger_release_time / confirm_in_minutes + 1))
-        self.device_group_size = [math.floor(len(self.devices_curtailed) / release_steps)]*release_steps
-        for group in range(self.device_group_size % release_steps):
+        release_steps = int(max(1, math.floor(self.stagger_release_time / confirm_in_minutes + 1)))
+        self.device_group_size = [int(math.floor(len(self.devices_curtailed) / release_steps))]*release_steps
+        for group in range(int(self.device_group_size[0] % release_steps)):
             self.device_group_size[group] += 1
         self.current_stagger = [math.floor(self.stagger_release_time / (release_steps - 1))]*(release_steps - 1)
-        for group in range(self.stagger_release_time % (release_steps - 1)):
+        for group in range(int(self.stagger_release_time % (release_steps - 1))):
             self.current_stagger[group] += 1
         _log.debug('Current stagger time:  {}'.format(self.current_stagger))
         _log.debug('Current group size:  {}'.format(self.device_group_size))
@@ -748,6 +748,7 @@ class ILCAgent(Agent):
             except RemoteError as ex:
                 _log.warning('Failed to revert point {} (RemoteError): {}'.format(curtailed_point, str(ex)))
                 continue
+        self.devices_curtailed = current_devices_curtailed
 
     def get_revert_value(self, device, revert_priority, revert_value):
         """
@@ -841,7 +842,7 @@ class ILCAgent(Agent):
         device_token = self.curtailment.devices[device_name].command_status.keys()[0]
         curtail = self.curtailment.get_device(device_name).get_curtailment(device_token)
         curtail_pt = curtail['point']
-        device_update_topic = self.update_base_topic + device_name[0] + "/" + curtail_pt
+        device_update_topic = "\".join([self.update_base_topic, device_name[0], curtail_pt]
         previous_value = data[curtail_pt]
         control_time = None
         device_state = "Inactive"

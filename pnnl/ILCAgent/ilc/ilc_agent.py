@@ -459,8 +459,8 @@ class ILCAgent(Agent):
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            #if len(self.bldg_power) < 10:
-            #    return
+            if len(self.bldg_power) < 3:
+                return
 
             self.check_load(average_power, current_time)
         finally:
@@ -508,6 +508,7 @@ class ILCAgent(Agent):
         if bldg_power > self.demand_limit:
             result = 'Current load of {} kW exceeds demand limit of {} kW.'.format(bldg_power, self.demand_limit)
             score_devices = self.criteria.get_score_order()
+            _log.debug("Scored devices: {}".format(score_devices))
             on_devices = self.curtailment.get_on_devices()
             _log.debug("On devices: {}".format(on_devices))
             score_order = []
@@ -709,23 +710,46 @@ class ILCAgent(Agent):
 
     def stagger_release_setup(self):
         _log.debug('Number or curtailed devices: {}'.format(len(self.devices_curtailed)))
+
         confirm_in_minutes = self.curtail_confirm.total_seconds()/60.0
         release_steps = int(max(1, math.floor(self.stagger_release_time / confirm_in_minutes + 1)))
+
         self.device_group_size = [int(math.floor(len(self.devices_curtailed) / release_steps))]*release_steps
-        for group in range(int(self.device_group_size[0] % release_steps)):
-            self.device_group_size[group] += 1
+        _log.debug('Current group size:  {}'.format(self.device_group_size))
+
+        if len(self.devices_curtailed) > release_steps:
+            for group in range(len(self.devices_curtailed) % release_steps):
+                self.device_group_size[group] += 1
+        else:
+            self.device_group_size = [1]*release_steps
+            for group in range(release_steps - len(self.devices_curtailed)):
+                group_offset = group + 1 if group + 1 < len(self.device_group_size) - 1 else len(self.device_group_size) - 1
+                self.device_group_size[group_offset] = 0
+
         self.current_stagger = [math.floor(self.stagger_release_time / (release_steps - 1))]*(release_steps - 1)
         for group in range(int(self.stagger_release_time % (release_steps - 1))):
             self.current_stagger[group] += 1
+
         _log.debug('Current stagger time:  {}'.format(self.current_stagger))
         _log.debug('Current group size:  {}'.format(self.device_group_size))
 
     def reset_devices(self):
         _log.info('Resetting Devices: {}'.format(self.devices_curtailed))
-        current_devices_curtailed = self.devices_curtailed[:]
+        current_devices_curtailed = []
+        scored_devices = self.criteria.get_score_order()
+        for scored in scored_devices:
+            for curtailed in self.devices_curtailed:
+                if scored in [(curtailed[0], curtailed[1])]:
+                     current_devices_curtailed.append(curtailed)
+        _log.debug("Curtailed devices: {}".format(self.devices_curtailed))
+        _log.debug("Scored order for release: {}".format(scored_devices))
+        _log.debug("Curtailed devices for release: {}".format(current_devices_curtailed))
+        current_devices_curtailed = current_devices_curtailed[::-1]
+        current_device_iterate = current_devices_curtailed[:]
+        _log.debug("Curtailed devices for release reverse sort: {}".format(current_devices_curtailed))
         index_counter = 0
         for item in range(self.device_group_size.pop(0)):
-            device_name, device_id, revert_val, revert_priority, modified_time, device_actuator = self.devices_curtailed[item]
+            device_name, device_id, revert_val, revert_priority, modified_time, device_actuator = current_device_iterate[item]
             curtail = self.curtailment.get_device((device_name, device_actuator)).get_curtailment(device_id)
             curtail_pt = curtail['point']
             curtailed_point = self.base_rpc_path(unit=device_name, point=curtail_pt)
@@ -740,10 +764,9 @@ class ILCAgent(Agent):
                     result = self.vip.rpc.call(device_actuator, 'revert_point', "ilc", curtailed_point).get(timeout=5)
                     _log.debug('Reverted point: {} - Result: {}'.format(curtailed_point, result))
                 if current_devices_curtailed:
-                    _log.debug('Removing from curtailed list: {} '.format(self.devices_curtailed[item]))
-                    _index = self.devices_curtailed.index(self.devices_curtailed[item]) - index_counter
+                    _log.debug('Removing from curtailed list: {} '.format(current_device_iterate[item]))
+                    _index = current_device_iterate.index(current_device_iterate[item]) - index_counter
                     current_devices_curtailed.pop(_index)
-                    _log.debug('Sucess!: {} '.format(self.devices_curtailed[item]))
                     index_counter += 1
             except RemoteError as ex:
                 _log.warning('Failed to revert point {} (RemoteError): {}'.format(curtailed_point, str(ex)))
@@ -768,7 +791,7 @@ class ILCAgent(Agent):
                 current_device_list.append(curtailed)
 
         if len(current_device_list) <= 1:
-            return return_value
+            return revert_value
 
         index_value = min(current_device_list, key=lambda t: t[3])
         return_value = index_value[2]
@@ -842,7 +865,7 @@ class ILCAgent(Agent):
         device_token = self.curtailment.devices[device_name].command_status.keys()[0]
         curtail = self.curtailment.get_device(device_name).get_curtailment(device_token)
         curtail_pt = curtail['point']
-        device_update_topic = "\".join([self.update_base_topic, device_name[0], curtail_pt]
+        device_update_topic = "/".join([self.update_base_topic, device_name[0], curtail_pt])
         previous_value = data[curtail_pt]
         control_time = None
         device_state = "Inactive"

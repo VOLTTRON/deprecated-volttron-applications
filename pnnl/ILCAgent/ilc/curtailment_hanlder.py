@@ -207,8 +207,9 @@ class CurtailmentManager(object):
 
         return curtailment
 
-    def reset_curtail_count(self, device_id):
-        self.curtail_count[device_id] = 0.0
+    def reset_curtail_count(self):
+        for device_id in self.curtail_count:
+            self.curtail_count[device_id] = 0.0
 
     def increment_curtail(self, device_id):
         self.currently_curtailed[device_id] = False

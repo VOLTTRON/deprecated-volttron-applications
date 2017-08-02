@@ -694,8 +694,9 @@ class ILCAgent(Agent):
             if current_time >= self.next_release:
                 _log.debug('Release group stagger.')
                 self.reset_devices()
-                self.next_release = current_time + td(minutes=self.current_stagger.pop(0))
-                _log.debug('Next scheduled release: {}'.format(self.next_release))
+                if self.current_stagger:
+                    self.next_release = current_time + td(minutes=self.current_stagger.pop(0))
+                    _log.debug('Next scheduled release: {}'.format(self.next_release))
 
             if current_time >= self.break_end:
                 _log.debug('Release all in contingency.')

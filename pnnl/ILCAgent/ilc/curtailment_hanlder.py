@@ -280,7 +280,7 @@ class CurtailmentSetting(object):
             return {
                 'point': self.point,
                 'load': self.load,
-                'offset': self.offset,
+                'value': self.value,
                 'revert_priority': self.revert_priority,
                 'curtailment_method': self.curtailment_method
             }

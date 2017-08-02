@@ -296,7 +296,6 @@ class Application(AbstractDrivenAgent):
             missing_data.append(self.cool_call_name)
         if not fan_status_data and not fan_sp_data:
             missing_data.append(self.fan_status_name)
-            raise Exception("Missing required data from device publish!: {}".format(missing_data))
         if missing_data:
             dx_result.log("Missing data from publish: {}".format(missing_data))
             return dx_result

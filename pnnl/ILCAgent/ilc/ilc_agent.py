@@ -284,42 +284,42 @@ class ILCAgent(Agent):
         self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
 
     def demand_limit_handler(self, peer, sender, bus, topic, headers, message):
-        """
-        Handle message from TargetAgent for setting scheduling for CBP program.
-        :param peer:
-        :param sender:
-        :param bus:
-        :param topic:
-        :param headers:
-        :param message:
-        :return:
-        """
         if isinstance(message, list):
-            target_info = message[0]
-            tz_info = message[1]['start']['tz']
+            target_info = message[0]["value"]
+            # tz_info = message[1]["value"]['tz']
+            tz_info = "US/Pacific"
         else:
             target_info = message
             tz_info = "US/Pacific"
 
         self.tz = to_zone = dateutil.tz.gettz(tz_info)
-        start = parser.parse(target_info['start']).astimezone(to_zone)
-        end = parser.parse(target_info.get('end', start.replace(hour=23, minute=59, second=59))).astimezone(to_zone)
+        start_time = parser.parse(target_info['start']).astimezone(to_zone)
+        end_time = parser.parse(target_info.get('end', start_time.replace(hour=23, minute=59, second=59))).astimezone(to_zone)
 
         demand_goal = float(target_info['target'])
         task_id = target_info['id']
-
+        _log.debug("TARGET_DEBUG2: {} -- {}-- {}".format(target_info['id'], start_time, demand_goal))
         for key, value in self.tasks.items():
-            if (start < value['end'] and end > value['start']) or value['start'] <= start <= value['end']:
+            if start_time == value['end']:
+                start_time += td(seconds=15)
+
+            if (start_time < value['end'] and end_time > value['start']) or value['start'] <= start_time <= value['end']:
+                _log.debug("TARGET_DEBUG4: {}".format(target_info['id']))
                 for item in self.tasks.pop(key)['schedule']:
                     item.cancel()
 
+        current_task_exits = self.tasks.get(target_info['id'])
+        if current_task_exits is not None:
+            _log.debug("TARGET_DEBUG5: duplicate task received - {}".format(target_info['id']))
+            for item in self.tasks.pop(target_info['id'])['schedule']:
+                item.cancel()
+        _log.debug("TARGET_DEBUG6: create schedule for id: {}".format(target_info['id']))
         self.tasks[target_info['id']] = {
-            "schedule": [
-                self.core.schedule(start, self.demand_limit_update, demand_goal, task_id),
-                self.core.schedule(end, self.demand_limit_update, None, task_id)
-
-            ],
-            "start": start, "end": end, "target": demand_goal
+            "schedule": [self.core.schedule(start_time, self.demand_limit_update, demand_goal, task_id),
+                         self.core.schedule(end_time, self.demand_limit_update, None, task_id)],
+            "start": start_time,
+            "end": end_time,
+            "target": demand_goal
         }
         return
 
@@ -721,10 +721,17 @@ class ILCAgent(Agent):
             for group in range(len(self.devices_curtailed) % release_steps):
                 self.device_group_size[group] += 1
         else:
-            self.device_group_size = [1]*release_steps
-            for group in range(release_steps - len(self.devices_curtailed)):
-                group_offset = group + 1 if group + 1 < len(self.device_group_size) - 1 else len(self.device_group_size) - 1
-                self.device_group_size[group_offset] = 0
+            self.device_group_size = [0]*release_steps
+            interval = int(math.ceil(float(release_steps) / len(self.devices_curtailed)))
+            for group in range(0, len(self.devices_curtailed), interval):
+                self.device_group_size[group] = 1
+            unassigned = len(self.devices_curtailed) - sum(self.device_group_size)
+            for group, value in enumerate(self.device_group_size):
+                if value == 0:
+                    self.device_group_size[group] = 1
+                    unassigned -= 1
+                if unassigned <= 0:
+                    break
 
         self.current_stagger = [math.floor(self.stagger_release_time / (release_steps - 1))]*(release_steps - 1)
         for group in range(int(self.stagger_release_time % (release_steps - 1))):

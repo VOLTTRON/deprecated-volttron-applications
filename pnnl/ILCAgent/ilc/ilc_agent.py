@@ -294,7 +294,7 @@ class ILCAgent(Agent):
 
         self.tz = to_zone = dateutil.tz.gettz(tz_info)
         start_time = parser.parse(target_info['start']).astimezone(to_zone)
-        end_time = parser.parse(target_info.get('end', start_time.replace(hour=23, minute=59, second=59))).astimezone(to_zone)
+        end_time = parser.parse(target_info.get('end', start_time.replace(hour=23, minute=59, second=45))).astimezone(to_zone)
 
         demand_goal = float(target_info['target'])
         task_id = target_info['id']
@@ -302,9 +302,7 @@ class ILCAgent(Agent):
         for key, value in self.tasks.items():
             if start_time == value['end']:
                 start_time += td(seconds=15)
-
             if (start_time < value['end'] and end_time > value['start']) or value['start'] <= start_time <= value['end']:
-                _log.debug("TARGET_DEBUG4: {}".format(target_info['id']))
                 for item in self.tasks.pop(key)['schedule']:
                     item.cancel()
 
@@ -723,7 +721,8 @@ class ILCAgent(Agent):
         else:
             self.device_group_size = [0]*release_steps
             interval = int(math.ceil(float(release_steps) / len(self.devices_curtailed)))
-            for group in range(0, len(self.devices_curtailed), interval):
+            _log.debug("Release interval offset: {}".format(interval))
+            for group in range(0, len(self.device_group_size), interval):
                 self.device_group_size[group] = 1
             unassigned = len(self.devices_curtailed) - sum(self.device_group_size)
             for group, value in enumerate(self.device_group_size):

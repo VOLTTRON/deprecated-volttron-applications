@@ -69,23 +69,6 @@ from ilc.ilc_matrices import (extract_criteria, calc_column_sums, normalize_matr
 setup_logging()
 _log = logging.getLogger(__name__)
 
-global mappers
-
-try:
-    mappers = {
-        "zone_type": {
-            "Directors office": 1,
-            "Office": 3,
-            "Empty Office": 7,
-            "Conference Room": 1,
-            "Mechanical Room": 9,
-            "Computer Lab": 2,
-            "Kitchen": 6
-        }
-    }
-except KeyError:
-    mappers = {}
-
 criterion_registry = {}
 
 
@@ -139,6 +122,11 @@ class CriteriaCluster(object):
         self.priority = priority
         self.criteria_labels = criteria_labels
         self.row_average = row_average
+        global mappers
+        try:
+            mappers = cluster_config.pop("mappers")
+        except KeyError:
+            mappers = {}
 
         for device_name, device_criteria in cluster_config.items():
             self.criteria[device_name] = DeviceCriteria(device_criteria)
@@ -194,8 +182,8 @@ class DeviceCriteria(object):
         self.expressions = {}
         self.condition = {}
 
-        for device_id, cluster_config in criteria_config.items():
-            criteria = Criteria(cluster_config)
+        for device_id, device_criteria in criteria_config.items():
+            criteria = Criteria(device_criteria)
             self.criteria[device_id] = criteria
 
     def ingest_data(self, time_stamp, data):

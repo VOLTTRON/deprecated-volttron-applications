@@ -847,28 +847,31 @@ class ILCAgent(Agent):
         :param result:
         :return:
         """
-        application_state = "Inactive"
-        if self.devices_curtailed:
-            application_state = "Active"
+        try:
+            application_state = "Inactive"
+            if self.devices_curtailed:
+                application_state = "Active"
 
-        headers = {
-            "Date": current_time_str,
-            "min_compatible_version": "3.0",
-            "ApplicationCategory": self.application_category,
-            "ApplicationName": self.application_name,
-            "MessageType": "Result",
-            "TimeStamp": current_time_str
-        }
-
-        application_message = [
-            {
-                "Result": result
-            },
-            {
-                "Result": {"tz": self.power_meta["tz"], "type": "string", "units": "None"}
+            headers = {
+                "Date": current_time_str,
+                "min_compatible_version": "3.0",
+                "ApplicationCategory": self.application_category,
+                "ApplicationName": self.application_name,
+                "MessageType": "Result",
+                "TimeStamp": current_time_str
             }
-        ]
-        self.vip.pubsub.publish("pubsub", self.ilc_topic, headers=headers, message=application_message).get(timeout=4.0)
+
+            application_message = [
+                {
+                    "Result": result
+                },
+                {
+                    "Result": {"tz": self.power_meta["tz"], "type": "string", "units": "None"}
+                }
+            ]
+            self.vip.pubsub.publish("pubsub", self.ilc_topic, headers=headers, message=application_message).get(timeout=4.0)
+        except:
+            _log.debug("Unable to publish application status message.")
 
     def create_device_status_publish(self, current_time_str, device_name, data, topic, meta):
         """
@@ -917,7 +920,7 @@ class ILCAgent(Agent):
             ]
             self.vip.pubsub.publish("pubsub", device_update_topic, headers=headers, message=device_message).get(timeout=4.0)
         except:
-            _log.debug("Unable to publish application status message.")
+            _log.debug("Unable to publish device status message.")
 
     def simulation_demand_limit_handler(self, peer, sender, bus, topic, headers, message):
         if isinstance(message, list):

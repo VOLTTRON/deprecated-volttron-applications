@@ -453,7 +453,7 @@ class ILCAgent(Agent):
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            if len(self.bldg_power) < 5:
+            if len(self.bldg_power) < 1:
                 return
 
             self.check_load(average_power, current_time)
@@ -517,7 +517,7 @@ class ILCAgent(Agent):
             result = "Current load of {} kW exceeds demand limit of {} kW.".format(bldg_power, self.demand_limit)
             scored_devices = self.criteria.get_score_order()
             on_devices = self.curtailment.get_on_devices()
-            score_order = [device for scored in scored_devices for device in on_devices if scored in [device[0], device[1]]]
+            score_order = [device for scored in scored_devices for device in on_devices if scored in [(device[0], device[1])]]
 
             _log.debug("Scored devices: {}".format(scored_devices))
             _log.debug("On devices: {}".format(on_devices))
@@ -753,7 +753,7 @@ class ILCAgent(Agent):
         _log.info("Resetting Devices: {}".format(self.devices_curtailed))
 
         scored_devices = self.criteria.get_score_order()
-        curtailed = [device for scored in scored_devices for device in self.devices_curtailed if scored in [device[0], device[1]]]
+        curtailed = [device for scored in scored_devices for device in self.devices_curtailed if scored in [(device[0], device[1])]]
 
         _log.debug("Curtailed devices: {}".format(self.devices_curtailed))
         _log.debug("Scored order for release: {}".format(scored_devices))

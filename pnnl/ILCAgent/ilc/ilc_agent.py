@@ -75,10 +75,7 @@ from ilc.curtailment_hanlder import CurtailmentCluster, CurtailmentContainer
 from ilc.criteria_handler import CriteriaContainer, CriteriaCluster, parse_sympy
 
 
-MATRIX_ROWSTRING = '%20s\t%12.2f%12.2f%12.2f%12.2f%12.2f'
-CRITERIA_LABELSTRING = '\t\t\t%12s%12s%12s%12s%12s'
-ALPHA = 0.125
-__version__ = '2.0.1'
+__version__ = "2.0.1"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -90,14 +87,14 @@ class ILCAgent(Agent):
         super(ILCAgent, self).__init__(**kwargs)
         config = utils.load_config(config_path)
         location = {}
-        location['campus'] = campus = config.get('campus')
-        location['building'] = building = config.get('building')
+        location["campus"] = campus = config.get("campus")
+        location["building"] = building = config.get("building")
 
         # For dash board message publishes
-        self.agent_id = config.get('agent_id', 'Intelligent Load Control Agent')
+        self.agent_id = config.get("agent_id", "Intelligent Load Control Agent")
         self.update_base_topic = "MAALKA/{}/".format(self.agent_id)
-        self.application_category = config.get('application_category')
-        self.application_name = config.get('application_name')
+        self.application_category = config.get("application_category")
+        self.application_name = config.get("application_name")
         if campus is not None and campus:
             self.update_base_topic = self.update_base_topic + campus + "/"
         if building is not None and building:
@@ -119,104 +116,104 @@ class ILCAgent(Agent):
         global mappers
 
         try:
-            mappers = config['mappers']
+            mappers = config["mappers"]
         except KeyError:
             mappers = {}
 
-        cluster_configs = config['clusters']
+        cluster_configs = config["clusters"]
 
         self.criteria = CriteriaContainer()
         self.curtailment = CurtailmentContainer()
 
         for cluster_config in cluster_configs:
-            criteria_file_name = cluster_config['pairwise_criteria_file']
+            criteria_file_name = cluster_config["pairwise_criteria_file"]
 
-            if criteria_file_name[0] == '~':
+            if criteria_file_name[0] == "~":
                 criteria_file_name = os.path.expanduser(criteria_file_name)
 
-            device_criteria_config = cluster_config['device_criteria_file']
-            device_curtailment_config = cluster_config['device_curtailment_file']
+            device_criteria_config = cluster_config["device_criteria_file"]
+            device_curtailment_config = cluster_config["device_curtailment_file"]
 
-            cluster_priority = cluster_config['cluster_priority']
-            cluster_actuator = cluster_config.get('cluster_actuator', 'platform.actuator')
+            cluster_priority = cluster_config["cluster_priority"]
+            cluster_actuator = cluster_config.get("cluster_actuator", "platform.actuator")
 
             criteria_labels, criteria_array = extract_criteria(criteria_file_name)
             col_sums = calc_column_sums(criteria_array)
             row_average = normalize_matrix(criteria_array, col_sums)
 
             if not validate_input(criteria_array, col_sums):
-                _log.info('Inconsistent criteria matrix. Check configuration '
-                          'in ' + criteria_file_name)
+                _log.info("Inconsistent criteria matrix. Check configuration "
+                          "in " + criteria_file_name)
                 sys.exit()
 
-            if device_criteria_config[0] == '~':
+            if device_criteria_config[0] == "~":
                 device_criteria_config = os.path.expanduser(device_criteria_config)
 
             criteria_config = utils.load_config(device_criteria_config)
             criteria_cluster = CriteriaCluster(cluster_priority, criteria_labels, row_average, criteria_config)
             self.criteria.add_criteria_cluster(criteria_cluster)
 
-            if device_curtailment_config[0] == '~':
+            if device_curtailment_config[0] == "~":
                 device_curtailment_config = os.path.expanduser(device_curtailment_config)
 
             curtailment_config = utils.load_config(device_curtailment_config)
             curtailment_cluster = CurtailmentCluster(curtailment_config, cluster_actuator)
             self.curtailment.add_curtailment_cluster(curtailment_cluster)
 
-        self.base_device_topic = topics.DEVICES_VALUE(campus=config.get('campus', ''),
-                                                      building=config.get('building', ''),
-                                                      unit=None, path='', point=None)
+        self.base_device_topic = topics.DEVICES_VALUE(campus=config.get("campus", ""),
+                                                      building=config.get("building", ""),
+                                                      unit=None, path="", point=None)
 
-        self.base_rpc_path = topics.RPC_DEVICE_PATH(campus=config.get('campus', ''),
-                                                    building=config.get('building', ''),
-                                                    unit=None, path='', point=None)
+        self.base_rpc_path = topics.RPC_DEVICE_PATH(campus=config.get("campus", ""),
+                                                    building=config.get("building", ""),
+                                                    unit=None, path="", point=None)
         self.device_topic_list = []
         self.device_topic_map = {}
         all_devices = self.curtailment.get_device_name_list()
         for device_name in all_devices:
-            device_topic = topics.DEVICES_VALUE(campus=config.get('campus', ''),
-                                                building=config.get('building', ''),
+            device_topic = topics.DEVICES_VALUE(campus=config.get("campus", ""),
+                                                building=config.get("building", ""),
                                                 unit=device_name[0],
-                                                path='', point='all')
+                                                path="", point="all")
 
             self.device_topic_list.append(device_topic)
             self.device_topic_map[device_topic] = device_name
 
-        power_token = config['power_meter']
-        power_meter = power_token['device']
-        self.power_point = power_token['point']
-        self.power_meter_topic = topics.DEVICES_VALUE(campus=config.get('campus', ''),
-                                                      building=config.get('building', ''),
-                                                      unit=power_meter, path='', point='all')
+        power_token = config["power_meter"]
+        power_meter = power_token["device"]
+        self.power_point = power_token["point"]
+        self.power_meter_topic = topics.DEVICES_VALUE(campus=config.get("campus", ""),
+                                                      building=config.get("building", ""),
+                                                      unit=power_meter, path="", point="all")
         self.kill_device_topic = None
-        kill_token = config.get('kill_switch')
+        kill_token = config.get("kill_switch")
         if kill_token is not None:
-           kill_device = kill_token['device']
-           self.kill_pt = kill_token['point']
+           kill_device = kill_token["device"]
+           self.kill_pt = kill_token["point"]
            self.kill_device_topic = topics.DEVICES_VALUE(campus=campus, building=building,
-                                                         unit=kill_device, path='', point='all')
-        demand_limit = config['demand_limit']
+                                                         unit=kill_device, path="", point="all")
+        demand_limit = config["demand_limit"]
         self.demand_limit = float(demand_limit) if demand_limit != "trigger" else None
-        self.curtail_time = td(minutes=config.get('curtailment_time', 15))
-        self.average_building_power_window = td(minutes=config.get('average_building_power_window', 15))
-        self.curtail_confirm = td(minutes=config.get('curtailment_confirm', 5))
-        self.curtail_break = td(minutes=config.get('curtailment_break', 15))
-        self.actuator_schedule_buffer = td(minutes=config.get('actuator_schedule_buffer', 15)) + self.curtail_break
-        self.reset_curtail_count_time = td(hours=config.get('reset_curtail_count_time', 6.0))
+        self.curtail_time = td(minutes=config.get("curtailment_time", 15))
+        self.average_building_power_window = td(minutes=config.get("average_building_power_window", 15))
+        self.curtail_confirm = td(minutes=config.get("curtailment_confirm", 5))
+        self.curtail_break = td(minutes=config.get("curtailment_break", 15))
+        self.actuator_schedule_buffer = td(minutes=config.get("actuator_schedule_buffer", 15)) + self.curtail_break
+        self.reset_curtail_count_time = td(hours=config.get("reset_curtail_count_time", 6.0))
         self.longest_possible_curtail = len(all_devices) * self.curtail_time * 2
-        self.stagger_release_time = config.get('curtailment_break', 15.0)
-        self.stagger_release = config.get('stagger_release', False)
+        self.stagger_release_time = config.get("curtailment_break", 15.0)
+        self.stagger_release = config.get("stagger_release", False)
 
-        self.stagger_off_time = config.get('stagger_off_time', True)
-        ahp_release_reverse = config.get('reverse_release', False)
-        need_actuator_schedule = config.get('need_actuator_schedule', False)
+        self.stagger_off_time = config.get("stagger_off_time", True)
+        ahp_release_reverse = config.get("reverse_release", False)
+        need_actuator_schedule = config.get("need_actuator_schedule", False)
 
         self.running_ahp = False
         self.next_curtail_confirm = None
         self.curtail_end = None
         self.break_end = None
         self.reset_curtail_count = None
-        self.kill_signal_recieved = False
+        self.kill_signal_received = False
         self.power_data_count = 0
         self.scheduled_devices = set()
         self.devices_curtailed = []
@@ -228,9 +225,9 @@ class ILCAgent(Agent):
         self.power_meta = None
         self.tasks = {}
         self.tz = None
-        self.simulation_running = config.get('simulation_running', False)
+        self.simulation_running = config.get("simulation_running", False)
 
-    @Core.receiver('onstart')
+    @Core.receiver("onstart")
     def starting_base(self, sender, **kwargs):
         """
         Startup method:
@@ -242,20 +239,20 @@ class ILCAgent(Agent):
         :return:
         """
         for device_topic in self.device_topic_list:
-            _log.debug('Subscribing to ' + device_topic)
-            self.vip.pubsub.subscribe(peer='pubsub', prefix=device_topic, callback=self.new_data)
-        _log.debug('Subscribing to ' + self.power_meter_topic)
-        self.vip.pubsub.subscribe(peer='pubsub', prefix=self.power_meter_topic, callback=self.load_message_handler)
+            _log.debug("Subscribing to " + device_topic)
+            self.vip.pubsub.subscribe(peer="pubsub", prefix=device_topic, callback=self.new_data)
+        _log.debug("Subscribing to " + self.power_meter_topic)
+        self.vip.pubsub.subscribe(peer="pubsub", prefix=self.power_meter_topic, callback=self.load_message_handler)
 
         if self.kill_device_topic is not None:
-            _log.debug('Subscribing to ' + self.kill_device_topic)
-            self.vip.pubsub.subscribe(peer='pubsub', prefix=self.kill_device_topic, callback=self.handle_agent_kill)
+            _log.debug("Subscribing to " + self.kill_device_topic)
+            self.vip.pubsub.subscribe(peer="pubsub", prefix=self.kill_device_topic, callback=self.handle_agent_kill)
 
         demand_limit_handler = self.demand_limit_handler if not self.simulation_running else self.simulation_demand_limit_handler
 
-        self.vip.pubsub.subscribe(peer='pubsub', prefix=self.target_agent_subscription, callback=demand_limit_handler)
-        _log.debug('Target agent subscription: ' + self.target_agent_subscription)
-        self.vip.pubsub.publish('pubsub', self.ilc_start_topic, headers={}, message={})
+        self.vip.pubsub.subscribe(peer="pubsub", prefix=self.target_agent_subscription, callback=demand_limit_handler)
+        _log.debug("Target agent subscription: " + self.target_agent_subscription)
+        self.vip.pubsub.publish("pubsub", self.ilc_start_topic, headers={}, message={})
 
     def new_data(self, peer, sender, bus, topic, headers, message):
         """
@@ -268,15 +265,15 @@ class ILCAgent(Agent):
         :param message:
         :return:
         """
-        if self.kill_signal_recieved:
+        if self.kill_signal_received:
             return
 
-        _log.info('Data Received for {}'.format(topic))
+        _log.info("Data Received for {}".format(topic))
         # topic of form:  devices/campus/building/device
         device_name = self.device_topic_map[topic]
         data = message[0]
         meta = message[1]
-        now = parser.parse(headers['Date'])
+        now = parser.parse(headers["Date"])
         current_time_str = format_timestamp(now)
         parsed_data = parse_sympy(data)
         self.criteria.get_device(device_name[0]).ingest_data(now, parsed_data)
@@ -286,33 +283,32 @@ class ILCAgent(Agent):
     def demand_limit_handler(self, peer, sender, bus, topic, headers, message):
         if isinstance(message, list):
             target_info = message[0]["value"]
-            # tz_info = message[1]["value"]['tz']
-            tz_info = "US/Pacific"
+            tz_info = message[1]["value"]["tz"]
         else:
             target_info = message
             tz_info = "US/Pacific"
 
         self.tz = to_zone = dateutil.tz.gettz(tz_info)
-        start_time = parser.parse(target_info['start']).astimezone(to_zone)
-        end_time = parser.parse(target_info.get('end', start_time.replace(hour=23, minute=59, second=45))).astimezone(to_zone)
+        start_time = parser.parse(target_info["start"]).astimezone(to_zone)
+        end_time = parser.parse(target_info.get("end", start_time.replace(hour=23, minute=59, second=45))).astimezone(to_zone)
 
-        demand_goal = float(target_info['target'])
-        task_id = target_info['id']
-        _log.debug("TARGET_DEBUG2: {} -- {}-- {}".format(target_info['id'], start_time, demand_goal))
+        demand_goal = float(target_info["target"])
+        task_id = target_info["id"]
+        _log.debug("TARGET_DEBUG2: {} -- {}-- {}".format(target_info["id"], start_time, demand_goal))
         for key, value in self.tasks.items():
-            if start_time == value['end']:
+            if start_time == value["end"]:
                 start_time += td(seconds=15)
-            if (start_time < value['end'] and end_time > value['start']) or value['start'] <= start_time <= value['end']:
-                for item in self.tasks.pop(key)['schedule']:
+            if (start_time < value["end"] and end_time > value["start"]) or value["start"] <= start_time <= value["end"]:
+                for item in self.tasks.pop(key)["schedule"]:
                     item.cancel()
 
-        current_task_exits = self.tasks.get(target_info['id'])
+        current_task_exits = self.tasks.get(target_info["id"])
         if current_task_exits is not None:
-            _log.debug("TARGET_DEBUG5: duplicate task received - {}".format(target_info['id']))
-            for item in self.tasks.pop(target_info['id'])['schedule']:
+            _log.debug("TARGET_DEBUG5: duplicate task received - {}".format(target_info["id"]))
+            for item in self.tasks.pop(target_info["id"])["schedule"]:
                 item.cancel()
-        _log.debug("TARGET_DEBUG6: create schedule for id: {}".format(target_info['id']))
-        self.tasks[target_info['id']] = {
+        _log.debug("TARGET_DEBUG6: create schedule for id: {}".format(target_info["id"]))
+        self.tasks[target_info["id"]] = {
             "schedule": [self.core.schedule(start_time, self.demand_limit_update, demand_goal, task_id),
                          self.core.schedule(end_time, self.demand_limit_update, None, task_id)],
             "start": start_time,
@@ -331,9 +327,9 @@ class ILCAgent(Agent):
         if self.tasks:
             current_time = current_time.replace(tzinfo=self.tz)
             for key, value in self.tasks.items():
-                if value['start'] <= current_time < value['end']:
-                    self.demand_limit = value['target']
-                elif current_time >= value['end']:
+                if value["start"] <= current_time < value["end"]:
+                    self.demand_limit = value["target"]
+                elif current_time >= value["end"]:
                     self.demand_limit = None
                     self.tasks.pop(key)
 
@@ -362,12 +358,12 @@ class ILCAgent(Agent):
         :return:
         """
         data = message[0]
-        _log.info('Checking kill signal')
+        _log.info("Checking kill signal")
         kill_signal = bool(data[self.kill_pt])
-        _now = parser.parse(headers['Date'])
+        _now = parser.parse(headers["Date"])
         if kill_signal:
-            _log.info('Kill signal received, shutting down')
-            self.kill_signal_recieved = True
+            _log.info("Kill signal received, shutting down")
+            self.kill_signal_received = True
             gevent.sleep(8)
             self.device_group_size = [len(self.devices_curtailed)]
             self.reset_devices()
@@ -407,9 +403,9 @@ class ILCAgent(Agent):
         norm_list = [float(i[1]) for i in self.bldg_power]
         normal_average_power = mean(norm_list) if norm_list else 0.0
 
-        _log.debug('Reported time: {} - instantaneous power: {}'.format(current_time, current_power))
+        _log.debug("Reported time: {} - instantaneous power: {}".format(current_time, current_power))
         _log.debug(
-            '{} minute average power: {} - exponential power: {}'.format(current_average_window, normal_average_power,
+            "{} minute average power: {} - exponential power: {}".format(current_average_window, normal_average_power,
                                                                          average_power))
         return average_power, normal_average_power, current_average_window
 
@@ -427,12 +423,12 @@ class ILCAgent(Agent):
         :return:
         """
         try:
-            if self.kill_signal_recieved:
+            if self.kill_signal_received:
                 return
 
-            _log.debug('Reading building power data.')
+            _log.debug("Reading building power data.")
             current_power = float(message[0][self.power_point])
-            current_time = parser.parse(headers['Date'])
+            current_time = parser.parse(headers["Date"])
             average_power, normal_average_power, current_average_window = self.calculate_average_power(current_power,
                                                                                                        current_time)
 
@@ -441,50 +437,64 @@ class ILCAgent(Agent):
 
             if self.reset_curtail_count is not None:
                 if self.reset_curtail_count <= current_time:
-                    _log.debug('Resetting curtail count')
+                    _log.debug("Resetting curtail count")
                     self.curtailment.reset_curtail_count()
 
             if self.running_ahp:
                 if current_time >= self.next_curtail_confirm and (self.devices_curtailed or self.stagger_off_time):
                     self.confirm_curtail(average_power, current_time)
-                    _log.debug('Current reported time: {} ------- Next Curtail Confirm: {}'.format(current_time,
+                    _log.debug("Current reported time: {} ------- Next Curtail Confirm: {}".format(current_time,
                                                                                                    self.next_curtail_confirm))
                 if current_time >= self.curtail_end:
-                    _log.debug('Running end curtail method')
+                    _log.debug("Running end curtail method")
                     self.end_curtail(current_time)
                 return
 
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            if len(self.bldg_power) < 3:
+            if len(self.bldg_power) < 5:
                 return
 
             self.check_load(average_power, current_time)
         finally:
-            self.vip.pubsub.publish('pubsub', 'applications/ilc/advance', headers={}, message={})
-            headers = {
-                "Date": format_timestamp(current_time),
-                "min_compatible_version": "3.0",
-                "ApplicationCategory": self.application_category,
-                "ApplicationName": self.application_name,
-                "MessageType": "Average Building Load"
-            }
-            load_topic = "/".join([self.update_base_topic, "AverageBuildingPower"])
-            power_message = [
-                {
-                    "AverageBuildingPower": normal_average_power,
-                    "AverageTimeLength": int(current_average_window.total_seconds()/60),
-                    "LoadControlPower": average_power
-                },
-                {
-                    "AverageBuildingPower": {"tz": self.power_meta["tz"], "type": "float", "units": self.power_meta["units"]},
-                    "AverageTimeLength": {"tz": self.power_meta["tz"], "type": "integer", "units": "minutes"},
-                    "LoadControlPower": {"tz": self.power_meta["tz"], "type": "float", "units": self.power_meta["units"]}
+            try:
+                headers = {
+                    "Date": format_timestamp(current_time),
+                    "min_compatible_version": "3.0",
+                    "ApplicationCategory": self.application_category,
+                    "ApplicationName": self.application_name,
+                    "MessageType": "Average Building Load"
                 }
-            ]
-            self.vip.pubsub.publish('pubsub', load_topic, headers=headers, message=power_message).get(timeout=4.0)
-            self.vip.pubsub.publish('pubsub', 'applications/ilc/advance', headers={}, message={})
+                load_topic = "/".join([self.update_base_topic, "AverageBuildingPower"])
+                power_message = [
+                    {
+                        "AverageBuildingPower": normal_average_power,
+                        "AverageTimeLength": int(current_average_window.total_seconds()/60),
+                        "LoadControlPower": average_power
+                    },
+                    {
+                        "AverageBuildingPower": {
+                            "tz": self.power_meta["tz"],
+                            "type": "float",
+                            "units": self.power_meta["units"]
+                        },
+                        "AverageTimeLength": {
+                            "tz": self.power_meta["tz"],
+                            "type": "integer",
+                            "units": "minutes"
+                        },
+                        "LoadControlPower": {
+                            "tz": self.power_meta["tz"],
+                            "type": "float",
+                            "units": self.power_meta["units"]
+                        }
+                    }
+                ]
+                self.vip.pubsub.publish("pubsub", load_topic, headers=headers, message=power_message).get(timeout=4.0)
+            except:
+                _log.debug("Unable to publish average power information.  Input data may not contain metadata.")
+            self.vip.pubsub.publish("pubsub", "applications/ilc/advance", headers={}, message={})
 
     def check_load(self, bldg_power, current_time):
         """
@@ -495,7 +505,7 @@ class ILCAgent(Agent):
         :param current_time:
         :return:
         """
-        _log.debug('Checking building load.')
+        _log.debug("Checking building load.")
 
         if self.demand_limit is None:
             result = "Demand goal has not been set. Current load: ({load}) kW.".format(load=bldg_power)
@@ -504,26 +514,23 @@ class ILCAgent(Agent):
                                                                                              limit=self.demand_limit)
 
         if bldg_power > self.demand_limit:
-            result = 'Current load of {} kW exceeds demand limit of {} kW.'.format(bldg_power, self.demand_limit)
-            score_devices = self.criteria.get_score_order()
-            _log.debug("Scored devices: {}".format(score_devices))
+            result = "Current load of {} kW exceeds demand limit of {} kW.".format(bldg_power, self.demand_limit)
+            scored_devices = self.criteria.get_score_order()
             on_devices = self.curtailment.get_on_devices()
-            _log.debug("On devices: {}".format(on_devices))
-            score_order = []
-            check_on_devices = [(on_device[0], on_device[1]) for on_device in on_devices]
+            score_order = [device for scored in scored_devices for device in on_devices if scored in [device[0], device[1]]]
 
-            for score in score_devices:
-                if score in check_on_devices:
-                   on_device_index = check_on_devices.index(score)
-                   score_order.append(on_devices[on_device_index])
+            _log.debug("Scored devices: {}".format(scored_devices))
+            _log.debug("On devices: {}".format(on_devices))
             _log.debug("Scored and on devices: {}".format(score_order))
 
             if not score_order:
-                _log.info('All devices are off, nothing to curtail.')
+                _log.info("All devices are off, nothing to curtail.")
                 return
+
             self.device_group_size = None
             scored_devices = self.actuator_request(score_order)
             self.curtail(scored_devices, bldg_power, current_time)
+
         self.create_application_status(format_timestamp(current_time), result)
 
     def actuator_request(self, score_order):
@@ -544,27 +551,27 @@ class ILCAgent(Agent):
 
             device, token, device_actuator = item
 
-            _log.debug('Reserving device: ' + device)
+            _log.debug("Reserving device: " + device)
 
             if device in already_handled:
                 if already_handled[device]:
-                    _log.debug('Skipping reserve device (previously reserved): ' + device)
+                    _log.debug("Skipping reserve device (previously reserved): " + device)
                     curtailable_device.append(item)
                 continue
 
-            curtailed_device = self.base_rpc_path(unit=device, point='')
+            curtailed_device = self.base_rpc_path(unit=device, point="")
             schedule_request = [[curtailed_device, start_time_str, end_time_str]]
             try:
-                if self.kill_signal_recieved:
+                if self.kill_signal_received:
                     break
-                result = self.vip.rpc.call(device_actuator, 'request_new_schedule',
-                                           self.agent_id, device, 'HIGH', schedule_request).get(timeout=5)
+                result = self.vip.rpc.call(device_actuator, "request_new_schedule",
+                                           self.agent_id, device, "HIGH", schedule_request).get(timeout=5)
             except RemoteError as ex:
-                _log.warning('Failed to schedule device {} (RemoteError): {}'.format(device, str(ex)))
+                _log.warning("Failed to schedule device {} (RemoteError): {}".format(device, str(ex)))
                 continue
 
-            if result['result'] == 'FAILURE':
-                _log.warn('Failed to schedule device (unavailable) ' + device)
+            if result["result"] == "FAILURE":
+                _log.warn("Failed to schedule device (unavailable) " + device)
                 already_handled[device] = False
             else:
                 already_handled[device] = True
@@ -590,11 +597,11 @@ class ILCAgent(Agent):
                 remaining_devices.remove(current_tuple)
 
         if not self.running_ahp:
-            _log.info('Starting AHP')
+            _log.info("Starting AHP")
             self.running_ahp = True
 
         if not remaining_devices:
-            _log.debug('Everything available has already been curtailed')
+            _log.debug("Everything available has already been curtailed")
             return
 
         self.break_end = current_time + self.curtail_time + self.curtail_break
@@ -603,22 +610,21 @@ class ILCAgent(Agent):
         self.next_curtail_confirm = current_time + self.curtail_confirm
 
         for device in remaining_devices:
-            device_name, device_id, device_actuator = device
-            curtail = self.curtailment.get_device((device_name, device_actuator)).get_curtailment(device_id)
-            _log.debug("DEBUGGING: {}".format(curtail))
+            device_name, device_id, actuator = device
+            curtail = self.curtailment.get_device((device_name, actuator)).get_curtailment(device_id)
             curtail_point, curtail_value, curtail_load, revert_priority, revert_value = self.determine_curtail_parms(curtail, device)
             try:
-                if self.kill_signal_recieved:
+                if self.kill_signal_received:
                     break
-                result = self.vip.rpc.call(device_actuator, "set_point", "ilc_agent", curtail_point, curtail_value).get(timeout=5)
+                result = self.vip.rpc.call(actuator, "set_point", "ilc_agent", curtail_point, curtail_value).get(timeout=5)
             except RemoteError as ex:
-                _log.warning('Failed to set {} to {}: {}'.format(curtail_point, curtail_value, str(ex)))
+                _log.warning("Failed to set {} to {}: {}".format(curtail_point, curtail_value, str(ex)))
                 continue
 
             est_curtailed += curtail_load
-            self.curtailment.get_device((device_name, device_actuator)).increment_curtail(device_id)
+            self.curtailment.get_device((device_name, actuator)).increment_curtail(device_id)
             self.devices_curtailed.append(
-                [device_name, device_id, revert_value, revert_priority, format_timestamp(current_time), device_actuator]
+                [device_name, device_id, revert_value, revert_priority, format_timestamp(current_time), actuator]
             )
             if est_curtailed >= need_curtailed:
                 break
@@ -631,35 +637,40 @@ class ILCAgent(Agent):
         :return:
         """
         device, token, device_actuator = device_dict
-        curtail_pt = curtail['point']
-        curtail_load = curtail['load']
-        revert_priority = curtail['revert_priority']
-        curtailment_method = curtail['curtailment_method']
+        curtail_pt = curtail["point"]
+        curtail_load = curtail["load"]
+        revert_priority = curtail["revert_priority"]
+        curtailment_method = curtail["curtailment_method"]
 
         curtail_point = self.base_rpc_path(unit=device, point=curtail_pt)
 
         if isinstance(curtail_load, dict):
-            load_equation = curtail_load['load_equation']
+            load_equation = curtail_load["load_equation"]
             load_point_values = []
-            for point in curtail_load['load_equation_args']:
+
+            for point in curtail_load["load_equation_args"]:
                 point_to_get = self.base_rpc_path(unit=device, point=point)
-                value = self.vip.rpc.call(device_actuator, 'get_point', point_to_get).get(timeout=5)
+                value = self.vip.rpc.call(device_actuator, "get_point", point_to_get).get(timeout=5)
                 load_point_values.append((point, value))
             curtail_load = load_equation.subs(load_point_values)
 
-        revert_value = self.vip.rpc.call(device_actuator, 'get_point', curtail_point).get(timeout=5)
-        if curtailment_method.lower() == 'offset':
-            curtail_value = revert_value + curtail['offset']
-        elif curtailment_method.lower() == 'equation':
-            equation = curtail['curtail_equation']
+        revert_value = self.vip.rpc.call(device_actuator, "get_point", curtail_point).get(timeout=5)
+
+        if curtailment_method.lower() == "offset":
+            curtail_value = revert_value + curtail["offset"]
+        elif curtailment_method.lower() == "equation":
+            equation = curtail["curtail_equation"]
             equation_point_values = []
-            for item in curtail['curtail_equation_args']:
-                point_get = self.base_rpc_path(unit=device, point=item)
-                value = self.vip.rpc.call(device_actuator, 'get_point', point_get).get(timeout=5)
-                equation_point_values.append((item, value))
-            curtail_value = max(curtail['minimum'], min(equation.subs(equation_point_values), curtail['maximum']))
+
+            for point in curtail["curtail_equation_args"]:
+                point_get = self.base_rpc_path(unit=device, point=point)
+                value = self.vip.rpc.call(device_actuator, "get_point", point_get).get(timeout=5)
+                equation_point_values.append((point, value))
+
+            curtail_value = float(max(curtail["minimum"],
+                                      min(equation.subs(equation_point_values), curtail["maximum"])))
         else:
-            curtail_value = curtail['value']
+            curtail_value = curtail["value"]
         return curtail_point, curtail_value, curtail_load, revert_priority, revert_value
 
     def confirm_curtail(self, cur_pwr, now):
@@ -673,48 +684,46 @@ class ILCAgent(Agent):
         """
         if self.demand_limit is not None:
             if cur_pwr < self.demand_limit:
-                _log.info('Curtail goal for building load met.')
+                _log.info("Curtail goal for building load met.")
             else:
-                _log.info('Curtail goal for building load NOT met.')
+                _log.info("Curtail goal for building load NOT met.")
                 self.check_load(cur_pwr, now)
 
     def end_curtail(self, current_time):
-        _log.info('Stagger release: {}'.format(self.stagger_release))
+        _log.info("Stagger release: {}".format(self.stagger_release))
 
         if self.stagger_release:
-            _log.info('Stagger release enabled.')
+            _log.info("Stagger release enabled.")
 
             if self.device_group_size is None:
-                _log.debug('Stagger setup.')
+                _log.debug("Run stagger release setup.")
                 self.next_curtail_confirm = current_time + self.curtail_confirm
                 self.stagger_release_setup()
                 self.next_release = current_time + td(minutes=self.current_stagger.pop(0))
                 self.reset_devices()
 
-            if current_time >= self.next_release:
-                _log.debug('Release group stagger.')
+            if current_time >= self.next_release and self.current_stagger:
+                _log.debug("Release group stagger.")
                 self.reset_devices()
-                if self.current_stagger:
-                    self.next_release = current_time + td(minutes=self.current_stagger.pop(0))
-                    _log.debug('Next scheduled release: {}'.format(self.next_release))
+                self.next_release = current_time + td(minutes=self.current_stagger.pop(0))
+                _log.debug("Next scheduled release: {}".format(self.next_release))
 
             if current_time >= self.break_end:
-                _log.debug('Release all in contingency.')
-                self.reinitialize_stagger()
+                _log.debug("Release all in contingency.")
+                self.reset_all_devices()
             return
 
-        self.device_group_size = len(self.devices_curtailed)
-        _log.debug('Current devices held curtailed: {}'.format(self.devices_curtailed))
-        self.reinitialize_stagger()
+        _log.debug("Current devices held curtailed: {}".format(self.devices_curtailed))
+        self.reset_all_devices()
 
     def stagger_release_setup(self):
-        _log.debug('Number or curtailed devices: {}'.format(len(self.devices_curtailed)))
+        _log.debug("Number or curtailed devices: {}".format(len(self.devices_curtailed)))
 
         confirm_in_minutes = self.curtail_confirm.total_seconds()/60.0
         release_steps = int(max(1, math.floor(self.stagger_release_time / confirm_in_minutes + 1)))
 
         self.device_group_size = [int(math.floor(len(self.devices_curtailed) / release_steps))]*release_steps
-        _log.debug('Current group size:  {}'.format(self.device_group_size))
+        _log.debug("Current group size:  {}".format(self.device_group_size))
 
         if len(self.devices_curtailed) > release_steps:
             for group in range(len(self.devices_curtailed) % release_steps):
@@ -737,48 +746,49 @@ class ILCAgent(Agent):
         for group in range(int(self.stagger_release_time % (release_steps - 1))):
             self.current_stagger[group] += 1
 
-        _log.debug('Current stagger time:  {}'.format(self.current_stagger))
-        _log.debug('Current group size:  {}'.format(self.device_group_size))
+        _log.debug("Current stagger time:  {}".format(self.current_stagger))
+        _log.debug("Current group size:  {}".format(self.device_group_size))
 
     def reset_devices(self):
-        _log.info('Resetting Devices: {}'.format(self.devices_curtailed))
-        current_devices_curtailed = []
+        _log.info("Resetting Devices: {}".format(self.devices_curtailed))
+
         scored_devices = self.criteria.get_score_order()
-        for scored in scored_devices:
-            for curtailed in self.devices_curtailed:
-                if scored in [(curtailed[0], curtailed[1])]:
-                     current_devices_curtailed.append(curtailed)
+        curtailed = [device for scored in scored_devices for device in self.devices_curtailed if scored in [device[0], device[1]]]
+
         _log.debug("Curtailed devices: {}".format(self.devices_curtailed))
         _log.debug("Scored order for release: {}".format(scored_devices))
-        _log.debug("Curtailed devices for release: {}".format(current_devices_curtailed))
-        current_devices_curtailed = current_devices_curtailed[::-1]
-        current_device_iterate = current_devices_curtailed[:]
-        _log.debug("Curtailed devices for release reverse sort: {}".format(current_devices_curtailed))
+        _log.debug("Curtailed devices for release: {}".format(curtailed))
+
+        currently_curtailed = curtailed[::-1]
+        curtailed_iterate = currently_curtailed[:]
         index_counter = 0
+        _log.debug("Curtailed devices for release reverse sort: {}".format(currently_curtailed))
+
         for item in range(self.device_group_size.pop(0)):
-            device_name, device_id, revert_val, revert_priority, modified_time, device_actuator = current_device_iterate[item]
-            curtail = self.curtailment.get_device((device_name, device_actuator)).get_curtailment(device_id)
-            curtail_pt = curtail['point']
-            curtailed_point = self.base_rpc_path(unit=device_name, point=curtail_pt)
-            revert_value = self.get_revert_value(device_name, revert_priority, revert_val)
-            _log.debug('Returned revert value: {}'.format(revert_value))
+            device, device_id, revert_val, revert_priority, modified_time, actuator = curtailed_iterate[item]
+            curtail = self.curtailment.get_device((device, actuator)).get_curtailment(device_id)
+            curtail_point = curtail["point"]
+            curtailed_point = self.base_rpc_path(unit=device, point=curtail_point)
+            revert_value = self.get_revert_value(device, revert_priority, revert_val)
+
+            _log.debug("Returned revert value: {}".format(revert_value))
 
             try:
                 if revert_value is not None:
-                    result = self.vip.rpc.call(device_actuator, 'set_point', "ilc", curtailed_point, revert_value).get(timeout=5)
-                    _log.debug('Reverted point: {} --------- value: {}'.format(curtailed_point, revert_value))
+                    result = self.vip.rpc.call(actuator, "set_point", "ilc", curtailed_point, revert_value).get(timeout=5)
+                    _log.debug("Reverted point: {} to value: {}".format(curtailed_point, revert_value))
                 else:
-                    result = self.vip.rpc.call(device_actuator, 'revert_point', "ilc", curtailed_point).get(timeout=5)
-                    _log.debug('Reverted point: {} - Result: {}'.format(curtailed_point, result))
-                if current_devices_curtailed:
-                    _log.debug('Removing from curtailed list: {} '.format(current_device_iterate[item]))
-                    _index = current_device_iterate.index(current_device_iterate[item]) - index_counter
-                    current_devices_curtailed.pop(_index)
+                    result = self.vip.rpc.call(actuator, "revert_point", "ilc", curtailed_point).get(timeout=5)
+                    _log.debug("Reverted point: {} - Result: {}".format(curtailed_point, result))
+                if currently_curtailed:
+                    _log.debug("Removing from curtailed list: {} ".format(curtailed_iterate[item]))
+                    index = curtailed_iterate.index(curtailed_iterate[item]) - index_counter
+                    currently_curtailed.pop(index)
                     index_counter += 1
             except RemoteError as ex:
-                _log.warning('Failed to revert point {} (RemoteError): {}'.format(curtailed_point, str(ex)))
+                _log.warning("Failed to revert point {} (RemoteError): {}".format(curtailed_point, str(ex)))
                 continue
-        self.devices_curtailed = current_devices_curtailed
+        self.devices_curtailed = currently_curtailed
 
     def get_revert_value(self, device, revert_priority, revert_value):
         """
@@ -818,15 +828,16 @@ class ILCAgent(Agent):
         self.device_group_size = None
         self.release_devices()
 
-    def release_devices(self):
+    def reset_all_devices(self):
         for device in self.scheduled_devices:
-            # release_all_device = base_rpc_path(unit=device[0], point='')
-            # try:
-            # release_all = self.vip.rpc.call(device[1], 'revert_device', agent_id, release_all_device).get(timeout=10)
-            # _log.debug("RELEASE DEVICE: {} with return value {}".format(release_all_device, release_all))
-            # except RemoteError as ex:
-            # _log.warning('Failed REVERT_ALL on device {} (RemoteError): {}'.format(release_all_device, str(ex)))
-            result = self.vip.rpc.call(device[1], 'request_cancel_schedule', self.agent_id, device[0]).get(timeout=10)
+            release_all_device = self.base_rpc_path(unit=device[0], point="")
+            try:
+                release_all = self.vip.rpc.call(device[1], "revert_device", "ilc", release_all_device).get(timeout=10)
+                _log.debug("Revert device: {} with return value {}".format(release_all_device, release_all))
+            except RemoteError as ex:
+                _log.warning("Failed revert all on device {} (RemoteError): {}".format(release_all_device, str(ex)))
+                continue
+            result = self.vip.rpc.call(device[1], "request_cancel_schedule", self.agent_id, device[0]).get(timeout=10)
         self.scheduled_devices = set()
 
     def create_application_status(self, current_time_str, result):
@@ -854,10 +865,10 @@ class ILCAgent(Agent):
                 "Result": result
             },
             {
-                "Result": {'tz': self.power_meta['tz'], 'type': 'string', 'units': 'None'}
+                "Result": {"tz": self.power_meta["tz"], "type": "string", "units": "None"}
             }
         ]
-        self.vip.pubsub.publish('pubsub', self.ilc_topic, headers=headers, message=application_message).get(timeout=4.0)
+        self.vip.pubsub.publish("pubsub", self.ilc_topic, headers=headers, message=application_message).get(timeout=4.0)
 
     def create_device_status_publish(self, current_time_str, device_name, data, topic, meta):
         """
@@ -869,66 +880,69 @@ class ILCAgent(Agent):
         :param meta:
         :return:
         """
-        device_token = self.curtailment.devices[device_name].command_status.keys()[0]
-        curtail = self.curtailment.get_device(device_name).get_curtailment(device_token)
-        curtail_pt = curtail['point']
-        device_update_topic = "/".join([self.update_base_topic, device_name[0], curtail_pt])
-        previous_value = data[curtail_pt]
-        control_time = None
-        device_state = "Inactive"
-        for item in self.devices_curtailed:
-            if device_name[0] == item[0]:
-                previous_value = item[2]
-                control_time = item[4]
-                device_state = "Active"
+        try:
+            device_token = self.curtailment.devices[device_name].command_status.keys()[0]
+            curtail = self.curtailment.get_device(device_name).get_curtailment(device_token)
+            curtail_pt = curtail["point"]
+            device_update_topic = "/".join([self.update_base_topic, device_name[0], curtail_pt])
+            previous_value = data[curtail_pt]
+            control_time = None
+            device_state = "Inactive"
+            for item in self.devices_curtailed:
+                if device_name[0] == item[0]:
+                    previous_value = item[2]
+                    control_time = item[4]
+                    device_state = "Active"
 
-        headers = {
-            "Date": current_time_str,
-            "min_compatible_version": "3.0",
-            "ApplicationCategory": self.application_category,
-            "ApplicationName": self.application_name,
-            "MessageType": "Control",
-            "TimeStamp": current_time_str
-        }
-
-        device_message = [
-            {
-                "DeviceState": device_state,
-                "PreviousValue": previous_value,
-                "TimeChanged": control_time
-            },
-            {
-                "PreviousValue": meta[curtail_pt],
-                "TimeChanged": {"tz": meta[curtail_pt]["tz"], "type": "datetime"},
-                "DeviceState": {"tz": meta[curtail_pt]["tz"], "type": "string"}
+            headers = {
+                "Date": current_time_str,
+                "min_compatible_version": "3.0",
+                "ApplicationCategory": self.application_category,
+                "ApplicationName": self.application_name,
+                "MessageType": "Control",
+                "TimeStamp": current_time_str
             }
-        ]
-        self.vip.pubsub.publish('pubsub', device_update_topic, headers=headers, message=device_message).get(timeout=4.0)
+
+            device_message = [
+                {
+                    "DeviceState": device_state,
+                    "PreviousValue": previous_value,
+                    "TimeChanged": control_time
+                },
+                {
+                    "PreviousValue": meta[curtail_pt],
+                    "TimeChanged": {"tz": meta[curtail_pt]["tz"], "type": "datetime"},
+                    "DeviceState": {"tz": meta[curtail_pt]["tz"], "type": "string"}
+                }
+            ]
+            self.vip.pubsub.publish("pubsub", device_update_topic, headers=headers, message=device_message).get(timeout=4.0)
+        except:
+            _log.debug("Unable to publish application status message.")
 
     def simulation_demand_limit_handler(self, peer, sender, bus, topic, headers, message):
         if isinstance(message, list):
             target_info = message[0]
-            tz_info = message[1]['start']['tz']
+            tz_info = message[1]["start"]["tz"]
         else:
             target_info = message
             tz_info = "US/Pacific"
 
         self.tz = to_zone = dateutil.tz.gettz(tz_info)
-        start_time = parser.parse(target_info['start']).astimezone(to_zone)
-        end_time = parser.parse(target_info.get('end', start_time.replace(hour=23, minute=59, second=59))).astimezone(to_zone)
+        start_time = parser.parse(target_info["start"]).astimezone(to_zone)
+        end_time = parser.parse(target_info.get("end", start_time.replace(hour=23, minute=59, second=59))).astimezone(to_zone)
 
-        demand_goal = float(target_info['target'])
-        task_id = target_info['id']
+        demand_goal = float(target_info["target"])
+        task_id = target_info["id"]
 
         _log.debug("TARGET_DEBUG: Simulation running.")
         for key, value in self.tasks.items():
-            if (start_time < value['end'] and end_time > value['start']) or (value['start'] <= start_time <= value['end']):
+            if (start_time < value["end"] and end_time > value["start"]) or (value["start"] <= start_time <= value["end"]):
                 self.tasks.pop(key)
 
         _log.debug("Target: received demand goal schedule - start: {} - end: {} - target: {}.".format(start_time,
                                                                                                       end_time,
                                                                                                       demand_goal))
-        self.tasks[target_info['id']] = {"start": start_time, "end": end_time, "target": demand_goal}
+        self.tasks[target_info["id"]] = {"start": start_time, "end": end_time, "target": demand_goal}
         return
 
 
@@ -938,10 +952,10 @@ def main(argv=sys.argv):
         utils.vip_main(ILCAgent)
     except Exception as e:
         print e
-        _log.exception('unhandled exception')
+        _log.exception("unhandled exception")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Entry point for script
     try:
         sys.exit(main())

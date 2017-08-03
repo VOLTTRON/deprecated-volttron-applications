@@ -98,7 +98,9 @@ def register_criterion(name):
 
 def parse_sympy(data, condition=False):
     """
+    Parser for sympy.
     :param data:
+    :param condition:
     :return:
     """
 
@@ -170,10 +172,11 @@ class CriteriaContainer(object):
                 continue
 
             input_arr = input_matrix(evaluations, cluster.criteria_labels)
-            _log.debug('Input Array: ' + str(input_arr))
             scores = build_score(input_arr, cluster.row_average, cluster.priority)
-            _log.debug('Scored devices: ' + str(scores))
             all_scored.extend(scores)
+
+            _log.debug('Input Array: ' + str(input_arr))
+            _log.debug('Scored devices: ' + str(scores))
 
         all_scored.sort(reverse=True)
         results = [x[1] for x in all_scored]
@@ -293,10 +296,10 @@ class StatusCriterion(BaseCriterion):
 
     def evaluate(self):
         if self.current_status:
-            val = self.on_value
+            value = self.on_value
         else:
-            val = self.off_value
-        return val
+            value = self.off_value
+        return value
 
     def ingest_data(self, time_stamp, data):
         self.current_status = bool(data[self.point_name])

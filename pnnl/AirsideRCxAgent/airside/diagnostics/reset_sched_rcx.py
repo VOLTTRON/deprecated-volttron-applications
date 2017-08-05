@@ -54,47 +54,41 @@ import datetime
 from datetime import datetime
 import logging
 from dateutil.parser import parse
-from .common import validation_builder
+from .common import create_table_key, pre_conditions, check_run_status
 
-SCHED_VALIDATE = 'Schedule-Reset ACCx'
 DUCT_STC_RCX3 = 'No Static Pressure Reset Dx'
 SA_TEMP_RCX3 = 'No Supply-air Temperature Reset Dx'
 SCHED_RCX = 'Operational Schedule Dx'
 DX = '/diagnostic message'
-VALIDATE_FILE_TOKEN = 'reset-schedule'
-RESET_FILE_TOKEN = 'reset'
-SCHEDULE_FILE_TOKEN = 'schedule'
-DATA = '/data/'
-ST = 'state'
 
-def create_table_key(table_name, timestamp):
-    return '&'.join([table_name, timestamp.isoformat()])
+INCONSISTENT_DATE = -89.0
+INSUFFICIENT_DATA = -79.0
 
 
-class SchedResetRcx(object):
+class SchedResetAIRCx(object):
     """Schedule, supply-air temperature, and duct static pressure auto-detect
     diagnostics for AHUs or RTUs.
     """
-    def __init__(self, unocc_time_threshold, unocc_stp_threshold,
+    def __init__(self, unocc_time_thr, unocc_stcpr_thr,
                  monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
                  friday_sch, saturday_sch, sunday_sch,
-                 no_req_data, stpr_reset_threshold, sat_reset_threshold,
+                 no_req_data, stcpr_reset_thr, sat_reset_thr,
                  analysis):
-        self.fanstat_values = []
+        self.fan_status_array = []
         self.schedule = {}
-        self.stcpr_arr = []
-        self.stcpr_stpt_arr = []
-        self.sat_stpt_arr = []
-        self.timestamp = []
-        self.sched_time = []
+        self.stcpr_array = []
+        self.schedule_time_array = []
+
+        self.stcpr_stpt_array = []
+        self.sat_stpt_array = []
+        self.reset_table_key = None
+        self.timestamp_array = []
         self.dx_table = {}
 
         def date_parse(dates):
-            return [parse(timestamp).time() for timestamp in dates]
+            return [parse(timestamp_array).time() for timestamp_array in dates]
 
         self.analysis = analysis
-        self.sched_file_name_id = analysis + '-' + SCHEDULE_FILE_TOKEN
-        self.reset_file_name_id = analysis + '-' + RESET_FILE_TOKEN
         self.monday_sch = date_parse(monday_sch)
         self.tuesday_sch = date_parse(tuesday_sch)
         self.wednesday_sch = date_parse(wednesday_sch)
@@ -110,188 +104,208 @@ class SchedResetRcx(object):
         self.pre_msg = ('Current time is in the scheduled hours '
                         'unit is operating correctly.')
 
-        # Application thresholds (Configurable)
+        # Application thrs (Configurable)
         self.no_req_data = no_req_data
-        self.unocc_time_threshold = float(unocc_time_threshold)
-        self.unocc_stp_threshold = float(unocc_stp_threshold)
-        self.stpr_reset_threshold = float(stpr_reset_threshold)
-        self.sat_reset_threshold = float(sat_reset_threshold)
+        self.unocc_time_thr = unocc_time_thr
+        self.unocc_stcpr_thr = unocc_stcpr_thr
+        self.stcpr_reset_thr = stcpr_reset_thr
+        self.sat_reset_thr = sat_reset_thr
 
-    def reinitialize(self, start_new_analysis_time, start_new_analysis_sat_stpt,
-                     start_new_analysis_stcpr_stpt, stcpr_data, fan_status):
-        """Reinitialize data arrays"""
-        self.sat_stpt_arr = []
-        self.stcpr_arr = []
-        self.stcpr_stpt_arr = []
-        self.fanstat_values = []
-        self.sched_time = []
-        self.dx_table = {}
-        if start_new_analysis_stcpr_stpt is not None:
-            self.sat_stpt_arr.append(start_new_analysis_sat_stpt)
-            self.stcpr_stpt_arr.append(start_new_analysis_stcpr_stpt)
-        if fan_status is not None:
-            self.fanstat_values.append((start_new_analysis_time,fan_status))
-            self.stcpr_arr.extend(stcpr_data)
-        self.timestamp = [start_new_analysis_time]
+    def reinitialize_sched(self):
+        """
+        Reinitialize schedule data arrays
+        :return:
+        """
+        self.stcpr_array = []
+        self.fan_status_array = []
+        self.schedule_time_array = []
 
-    def sched_rcx_alg(self, current_time, stcpr_data, stcpr_stpt_data,
-                      sat_stpt_data, fan_stat_data, dx_result):
+    def schedule_reset_aircx(self, current_time, stcpr_data, stcpr_stpt_data,
+                             sat_stpt_data, current_fan_status, dx_result):
+        """
+        Calls Schedule AIRCx and Set Point Reset AIRCx.
+        :param current_time:
+        :param stcpr_data:
+        :param stcpr_stpt_data:
+        :param sat_stpt_data:
+        :param current_fan_status:
+        :param dx_result:
+        :return:
+        """
+        dx_result = self.sched_aircx(current_time, stcpr_data, current_fan_status, dx_result)
+        dx_result = self.setpoint_reset_aircx(current_time, current_fan_status,
+                                              stcpr_stpt_data, sat_stpt_data, dx_result)
+        self.timestamp_array.append(current_time)
+        return dx_result
+
+    def sched_aircx(self, current_time, stcpr_data, current_fan_status, dx_result):
         """Check schedule status and unit operational status."""
-        dx_status = 1
-        fan_status = None
-        schedule = self.schedule[current_time.weekday()]
-        run_diagnostic = False
-        start_new_analysis_sat_stpt = None
-        start_new_analysis_stcpr_stpt = None
+        try:
+            schedule = self.schedule[current_time.weekday()]
+            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, run_schedule="daily")
+            schedule_name = create_table_key(self.analysis, self.timestamp_array[0])
 
-        if self.timestamp and self.timestamp[-1].date() != current_time.date():
-            start_new_analysis_time = current_time
-            run_diagnostic = True
+            if run_status is None:
+                dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
+                dx_result = pre_conditions(INSUFFICIENT_DATA, [SCHED_RCX], schedule_name, current_time, dx_result)
+                self.reinitialize_sched()
+                return dx_result
 
-        if not run_diagnostic:
-            dx_result.log('{}: Collecting and aggregating data.'.format(SCHED_VALIDATE, logging.DEBUG))
+            if run_status:
+                dx_result = self.unocc_fan_operation(dx_result)
+                self.reinitialize_sched()
+
+            return dx_result
+
+        finally:
             if current_time.time() < schedule[0] or current_time.time() > schedule[1]:
-                self.stcpr_arr.extend(stcpr_data)
-                self.fanstat_values.append((current_time, int(max(fan_stat_data))))
-                self.sched_time.append(current_time)
-            if int(max(fan_stat_data)):
+                self.stcpr_array.extend(stcpr_data)
+                self.fan_status_array.append((current_time, current_fan_status))
+                self.schedule_time_array.append(current_time)
+
+    def setpoint_reset_aircx(self, current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data, dx_result):
+        """Check schedule status and unit operational status."""
+        try:
+            stcpr_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
+                                                run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
+
+            self.reset_table_key = create_table_key(self.analysis, self.timestamp_array[0])
+
+            if stcpr_run_status is None:
+                dx_result.log("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
+                dx_result = pre_conditions(INSUFFICIENT_DATA, [DUCT_STC_RCX3], reset_name, current_time, dx_result)
+                self.stcpr_stpt_array = []
+            elif stcpr_run_status:
+                dx_result = self.no_static_pr_reset(dx_result)
+                self.stcpr_stpt_array = []
+
+            sat_run_status = check_run_status(self.sat_stpt_arr, current_time, self.no_req_data,
+                                              run_schedule="daily", minimum_point_array=self.sat_stpt_array)
+
+            if sat_run_status is None:
+                dx_result.log("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
+                dx_result = pre_conditions(INSUFFICIENT_DATA, [SA_TEMP_RCX3], reset_name, current_time, dx_result)
+                self.sat_stpt_array = []
+            elif sat_run_status:
+                dx_result = self.no_sat_stpt_reset(dx_result)
+                self.sat_stpt_array = []
+
+            return dx_result
+
+        finally:
+            if current_fan_status:
                 self.stcpr_stpt_arr.append(mean(stcpr_stpt_data))
                 self.sat_stpt_arr.append(mean(sat_stpt_data))
-        fan_status = int(max(fan_stat_data))
-        start_new_analysis_sat_stpt = mean(stcpr_stpt_data)
-        start_new_analysis_stcpr_stpt = mean(sat_stpt_data)
-        self.timestamp.append(current_time)
-
-        reset_key = create_table_key(self.reset_file_name_id, self.timestamp[0])
-        schedule_key = create_table_key(self.sched_file_name_id, self.timestamp[0])
-
-        file_key = create_table_key(VALIDATE_FILE_TOKEN, current_time)
-        if run_diagnostic and len(self.timestamp) >= self.no_req_data:
-            dx_result = self.unocc_fan_operation(dx_result)
-            dx_status += 1
-            dx_result.log('{}: Running Schedule diagnostic.'.format(SCHED_VALIDATE, logging.DEBUG))
-            if len(self.stcpr_stpt_arr) >= self.no_req_data:
-                dx_result.log('{}: Running static pressure reset diagnostic.'.format(SCHED_VALIDATE, logging.DEBUG))
-                dx_result = self.no_static_pr_reset(dx_result)
-                dx_status += 1
-            if len(self.sat_stpt_arr) >= self.no_req_data:
-                dx_result.log('{}: Running supply temperature reset diagnostic.'.format(SCHED_VALIDATE, logging.DEBUG))
-                dx_result = self.no_sat_stpt_reset(dx_result)
-                dx_status += 1
-            if self.dx_table:
-                dx_result.insert_table_row(reset_key, self.dx_table)
-            
-            self.reinitialize(start_new_analysis_time, start_new_analysis_sat_stpt,
-                              start_new_analysis_stcpr_stpt, stcpr_data, fan_status)
-        elif run_diagnostic:
-            dx_msg = 61.2
-            dx_table = {SCHED_RCX + DX:  dx_msg}
-            dx_result.insert_table_row(schedule_key, dx_table)
-            dx_result.log('{}: Not enough data to process.'.format(SCHED_VALIDATE, logging.DEBUG))
-            self.reinitialize(start_new_analysis_time, start_new_analysis_sat_stpt,
-                              start_new_analysis_stcpr_stpt, stcpr_data, fan_status)
-            dx_status = 0
-
-        return dx_status, dx_result
 
     def unocc_fan_operation(self, dx_result):
-        """If the AHU/RTU is operating during unoccupied periods inform the
+        """
+        If the AHU/RTU is operating during unoccupied periods inform the
         building operator.
+        :param dx_result:
+        :return:
         """
         avg_duct_stcpr = 0
         percent_on = 0
-        fanstat_on = [(fan[0].hour, fan[1]) for fan in self.fanstat_values if int(fan[1]) == 1]
-        fanstat = [(fan[0].hour, fan[1]) for fan in self.fanstat_values]
+        fan_status_on = [(fan[0].hour, fan[1]) for fan in self.fan_status_array if int(fan[1]) == 1]
+        fanstat = [(fan[0].hour, fan[1]) for fan in self.fan_status_array]
         hourly_counter = []
+        thresholds = zip(self.unocc_time_thr.items(), self.unocc_stcpr_thr.items())
+        diagnostic_msg = {}
 
         for counter in range(24):
-            fan_on_count = [fan_status_time[1] for fan_status_time in fanstat_on if fan_status_time[0] == counter]
+            fan_on_count = [fan_status_time[1] for fan_status_time in fan_status_on if fan_status_time[0] == counter]
             fan_count = [fan_status_time[1] for fan_status_time in fanstat if fan_status_time[0] == counter]
             if len(fan_count):
                 hourly_counter.append(fan_on_count.count(1)/len(fan_count)*100)
             else:
                 hourly_counter.append(0)
 
-        if self.sched_time:
-            if self.fanstat_values:
-                percent_on = (len(fanstat_on)/len(self.fanstat_values)) * 100.0
-            if self.stcpr_arr:
-                avg_duct_stcpr = mean(self.stcpr_arr)
+        if self.schedule_time_array:
+            if self.fan_status_array:
+                percent_on = (len(fan_status_on)/len(self.fan_status_array)) * 100.0
+            if self.stcpr_array:
+                avg_duct_stcpr = mean(self.stcpr_array)
 
-            if percent_on > self.unocc_time_threshold:
-                msg = 'Supply fan is on during unoccupied times.'
-                dx_msg = 63.1
-            else:
-                if avg_duct_stcpr < self.unocc_stp_threshold:
-                    msg = 'No problems detected for schedule diagnostic.'
-                    dx_msg = 60.0
+            for (key, unocc_time_thr), (key2, unocc_stcpr_thr) in thresholds:
+                if percent_on > unocc_time_thr:
+                    msg = "{} - Supply fan is on during unoccupied times".format(key)
+                    result = 63.1
                 else:
-                    msg = ('Fan status show the fan is off but the duct static '
-                           'pressure is high, check the functionality of the '
-                           'pressure sensor.')
-                    dx_msg = 64.2
+                    if avg_duct_stcpr < unocc_stcpr_thr:
+                        msg = "{} - No problems detected for schedule diagnostic.".format(key)
+                        result = 60.0
+                    else:
+                        msg = ("Fan status show the fan is off but the duct static "
+                               "pressure is high, check the functionality of the "
+                               "pressure sensor.".format(key))
+                        result = 64.2
+                diagnostic_msg.update({key: result})
+                dx_result.log(msg)
         else:
-            msg = 'No problems detected for schedule diagnostic.'
-            dx_msg = 60.0
+            msg = "ALL - No problems detected for schedule diagnostic."
+            dx_result.log(msg)
+            diagnostic_msg = {"low": 60.0, "normal": 60.0, "high": 60.0}
 
-        if dx_msg != 64.2:
+        if 64.2 not in diagnostic_msg.values():
             for _hour in range(24):
-                push_time = self.timestamp[0].date()
+                diagnostic_msg = {}
+                push_time = self.timestamp_array[0].date()
                 push_time = datetime.combine(push_time, datetime.min.time())
                 push_time = push_time.replace(hour=_hour)
-                dx_table = {SCHED_RCX + DX: 60.0}
-                if hourly_counter[_hour] > self.unocc_time_threshold:
-                    dx_table = {SCHED_RCX + DX:  dx_msg}
-                table_key = create_table_key(self.sched_file_name_id, push_time)
+                diagnostic_msg.update({key: 60.0})
+                for key, unocc_time_thr in self.unocc_time_thr.items():
+                    if hourly_counter[_hour] > unocc_time_thr:
+                        diagnostic_msg.update({key: result})
+                dx_table = {SCHED_RCX + DX:  diagnostic_msg}
+                table_key = create_table_key(self.analysis, push_time)
                 dx_result.insert_table_row(table_key, dx_table)
         else:
-            push_time = self.timestamp[0].date()
-            table_key = create_table_key(self.sched_file_name_id, push_time)
-            dx_result.insert_table_row(table_key, {SCHED_RCX + DX:  dx_msg})
-        dx_result.log(msg, logging.INFO)
+            push_time = self.timestamp_array[0].date()
+            table_key = create_table_key(self.analysis, push_time)
+            dx_result.insert_table_row(table_key, {SCHED_RCX + DX:  diagnostic_msg})
+
         return dx_result
 
     def no_static_pr_reset(self, dx_result):
-        """Auto-RCx  to detect whether a static pressure set point
-
-        reset is implemented.
         """
-        if not self.stcpr_stpt_arr:
-            return dx_result
+        AIRCx  to detect whether a static pressure set point reset is implemented.
+        :param dx_result:
+        :return:
+        """
+        diagnostic_msg = {}
+        stcpr_daily_range = max(self.stcpr_stpt_array) - min(self.stcpr_stpt_array)
+        for key, stcpr_reset_thr in self.stcpr_reset_thr.items():
+            if stcpr_daily_range < stcpr_reset_thr:
+                msg = ('No duct static pressure reset detected. A duct static '
+                       'pressure set point reset can save significant energy.')
+                result = 71.1
+            else:
+                msg = ("{} - No problems detected for duct static pressure set point "
+                       "reset diagnostic.".format(key))
+                result = 70.0
+            dx_result.log(msg)
+            diagnostic_msg.update({key: result})
 
-        stcpr_daily_range = (max(self.stcpr_stpt_arr) - min(self.stcpr_stpt_arr))
-
-        if stcpr_daily_range < self.stpr_reset_threshold:
-            msg = ('No duct static pressure reset detected. A duct static '
-                   'pressure set point reset can save significant energy.')
-            dx_msg = 71.1
-        else:
-            msg = ('No problems detected for duct static pressure set point '
-                   'reset diagnostic.')
-            dx_msg = 70.0
-        dx_table = {DUCT_STC_RCX3 + DX:  dx_msg}
-        self.dx_table = dx_table
-        dx_result.log(msg, logging.INFO)
+        dx_result.insert_table_row(self.reset_table_key, {DUCT_STC_RCX3 + DX:  diagnostic_msg})
         return dx_result
 
     def no_sat_stpt_reset(self, dx_result):
-        """Auto-RCx  to detect whether a supply-air temperature set point
-
-        reset is implemented.
         """
-        if not self.sat_stpt_arr:
-            return dx_result
+        AIRCx to detect whether a supply-air temperature set point reset is implemented.
+        :param dx_result:
+        :return:
+        """
+        diagnostic_msg = {}
+        sat_daily_range = max(self.sat_stpt_array) - min(self.sat_stpt_array)
+        for key, reset_thr in self.sat_reset_thr.items():
+            if sat_daily_range <= reset_thr:
+                msg = "{} - SAT reset was not detected.  This can result in excess energy consumption.".format(key)
+                result = 81.1
+            else:
+                msg = "{} - No problems detected for SAT set point reset diagnostic.".format(key)
+                result = 80.0
+            dx_result.log(msg)
+            diagnostic_msg.update({key: result})
 
-        satemp_daily_range = max(self.sat_stpt_arr) - min(self.sat_stpt_arr)
-        if satemp_daily_range <= self.sat_reset_threshold:
-            msg = ('A supply-air temperature reset was not detected. '
-                   'This can result in excess energy consumption.')
-            dx_msg = 81.1
-        else:
-            msg = ('No problems detected for supply-air temperature set point '
-                   'reset diagnostic.')
-            dx_msg = 80.0
-        dx_table = {SA_TEMP_RCX3 + DX:  dx_msg}
-        self.dx_table.update(dx_table)
-        dx_result.log(msg, logging.INFO)
+        dx_result.insert_table_row(self.reset_table_key, {SA_TEMP_RCX3 + DX:  diagnostic_msg})
         return dx_result

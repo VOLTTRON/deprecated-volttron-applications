@@ -86,27 +86,27 @@ logging.basicConfig(level=logging.info, format='%(asctime)s   %(levelname)-8s %(
 
 
 def driven_agent(config_path, **kwargs):
-    """Reads agent configuration and converts it to run driven agent.
-    :param kwargs: Any driver specific parameters"""
+    """
+    Reads agent configuration and converts it to run driven agent.
+    :param config_path:
+    :param kwargs:
+    :return:
+    """
     config = utils.load_config(config_path)
     arguments = config.get('arguments')
 
     actuation_mode = True if config.get('actuation_mode', 'PASSIVE') == 'ACTIVE' else False
     actuator_lock_required = config.get('require_actuator_lock', False)
 
-    multiple_devices = isinstance(config['device']['unit'], dict)
-    campus_building_config = config['device']
-    campus_building = dict((key, campus_building_config[key]) for key in ['campus', 'building'])
-
+    campus = config['device'].get("campus", '')
+    building = config['device'].get("building", '')
     analysis_name = config.get('analysis_name', 'analysis_name')
+    publish_base = "/".join([analysis_name, campus, building])
     application_name = config.get("pretty_name", analysis_name)
     arguments.update({'analysis_name': analysis_name})
 
-    actuator_id = analysis_name
-    analysis = campus_building
-    analysis.update({'analysis_name': analysis_name})
     device_config = config['device']['unit']
-
+    multiple_devices = isinstance(device_config, dict)
     command_devices = device_config.keys()
     device_topic_dict = {}
     device_topic_list = []
@@ -114,33 +114,31 @@ def driven_agent(config_path, **kwargs):
 
     interval = config.get('interval', 60)
     vip_destination = config.get('vip_destination', None)
-    from_file = config.get('from_file')
     timezone = config.get('local_timezone', 'US/Pacific')
 
     for device_name in device_config:
-        device_topic = topics.DEVICES_VALUE(campus=campus_building.get('campus'),
-                                            building=campus_building.get('building'), unit=device_name, path='',
-                                            point='all')
+        device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name, path='', point='all')
+
         device_topic_dict.update({device_topic: device_name})
         device_topic_list.append(device_name)
         if multiple_devices:
             for subdevice in device_config[device_name]['subdevices']:
                 subdevices_list.append(subdevice)
-                subdevice_topic = topics.DEVICES_VALUE(campus=campus_building.get('campus'),
-                                                       building=campus_building.get('building'), unit=device_name,
+                subdevice_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name,
                                                        path=subdevice, point='all')
+
                 subdevice_name = device_name + "/" + subdevice
                 device_topic_dict.update({subdevice_topic: subdevice_name})
                 device_topic_list.append(subdevice_name)
 
-    base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus_building.get('campus', ''),
-                                                building=campus_building.get('building', ''), unit=None, path='',
-                                                point=None)
+    base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus, building=building, unit=None, path='', point=None)
+
     device_lock_duration = config.get('device_lock_duration', 10.0)
     conversion_map = config.get('conversion_map')
     map_names = {}
     for key, value in conversion_map.items():
         map_names[key.lower() if isinstance(key, str) else key] = value
+
     application = config.get('application')
     validation_error = ''
     if not application:
@@ -148,17 +146,16 @@ def driven_agent(config_path, **kwargs):
     if validation_error:
         _log.error(validation_error)
         raise ValueError(validation_error)
-    config.update(config.get('arguments'))
+
     converter = ConversionMapper()
-    output_file_prefix = config.get('output_file')
-    # unittype_map = config.get('unittype_map', None)
-    # assert unittype_map
+    # output_file_prefix = config.get('output_file')
 
     klass = _get_class(application)
     # This instances is used to call the applications run method when
     # data comes in on the message bus.  It is constructed here
     # so that_process_results each time run is called the application
     # can keep it state.
+    # points = arguments.pop("point_mapping")
     app_instance = klass(**arguments)
 
     class DrivenAgent(Agent):
@@ -174,64 +171,49 @@ def driven_agent(config_path, **kwargs):
 
             # master is where we copy from to get a poppable list of
             # subdevices that should be present before we run the analysis.
-            self._master_devices = device_topic_list
-            self._needed_devices = []
-            self._device_values = {}
-            self._initialize_devices()
+            self.master_devices = device_topic_list
+            self.needed_devices = []
+            self.device_values = self.master_devices[:]
+            self.initialize_devices()
             self.received_input_datetime = None
-            self._kwargs = kwargs
+
             self._header_written = False
             self.file_creation_set = set()
+
             self.actuation_vip = self.vip.rpc
             self.initialize_time = None
             if vip_destination:
-                self.agent = self.setup_remote_actuation(vip_destination)
+                self.agent = setup_remote_actuation(vip_destination)
                 self.actuation_vip = self.agent.vip.rpc
 
-        def _initialize_devices(self):
-            self._needed_devices = deepcopy(self._master_devices)
-            self._device_values = {}
-
-        def find_reinitialize_time(self, _now):
-            midnight = _now.replace(hour=0, minute=0, second=0, microsecond=0)
-            seconds_from_midnight = (_now - midnight).total_seconds()
-            offset = seconds_from_midnight % interval
-            previous_in_seconds = seconds_from_midnight - offset
-            next_in_seconds = previous_in_seconds + interval
-            from_midnight = td(seconds=next_in_seconds)
-            _log.debug('Start of next scrape interval: {}'.format(midnight + from_midnight))
-            return midnight + from_midnight
-
-        def setup_remote_actuation(self, vip_destination):
-            event = gevent.event.Event()
-            agent = Agent(address=vip_destination)
-            gevent.spawn(agent.core.run, event)
-            event.wait(timeout=15)
-            return agent
+        def initialize_devices(self):
+            self.needed_devices = self.master_devices[:]
+            self.device_values = {}
 
         @Core.receiver('onstart')
-        def starup(self, sender, **kwargs):
+        def startup(self, sender, **kwargs):
             """
             Starts up the agent and subscribes to device topics
             based on agent configuration.
             :param sender:
             :param kwargs: Any driver specific parameters
-            :type sender: str"""
-            self._initialize_devices()
-            for device_topic in device_topic_dict:
-                _log.info('Subscribing to ' + device_topic)
-                self.vip.pubsub.subscribe(peer='pubsub', prefix=device_topic, callback=self.on_analysis_message)
+            :type sender: str
+            """
+            for device in device_topic_dict:
+                _log.info('Subscribing to ' + device)
+                self.vip.pubsub.subscribe(peer='pubsub', prefix=device, callback=self.on_analysis_message)
 
         def _should_run_now(self):
             """
             Checks if messages from all the devices are received
                 before running application
             :returns: True or False based on received messages.
-            :rtype: boolean"""
+            :rtype: boolean
+            """
             # Assumes the unit/all values will have values.
-            if not self._device_values.keys():
+            if not self.device_values.keys():
                 return False
-            return not self._needed_devices
+            return not self.needed_devices
 
         def aggregate_subdevice(self, device_data, topic):
             """
@@ -241,13 +223,13 @@ def driven_agent(config_path, **kwargs):
             tagged_device_data = {}
             device_tag = device_topic_dict[topic]
             _log.debug("Current device to aggregate: {}".format(device_tag))
-            if device_tag not in self._needed_devices:
+            if device_tag not in self.needed_devices:
                 return False
             for key, value in device_data.items():
                 device_data_tag = '&'.join([key, device_tag])
                 tagged_device_data[device_data_tag] = value
-            self._device_values.update(tagged_device_data)
-            self._needed_devices.remove(device_tag)
+            self.device_values.update(tagged_device_data)
+            self.needed_devices.remove(device_tag)
             return True
 
         def on_analysis_message(self, peer, sender, bus, topic, headers, message):
@@ -266,55 +248,58 @@ def driven_agent(config_path, **kwargs):
             :type bus: str
             :type topic: str
             :type headers: dict
-            :type message: dict"""
-            _timestamp = parse(headers.get('Date'))
+            :type message: dict
+            """
+            timestamp = parse(headers.get('Date'))
             missing_but_running = False
-            if self.initialize_time is None and len(self._master_devices) > 1:
-                self.initialize_time = self.find_reinitialize_time(_timestamp)
+            if self.initialize_time is None and len(self.master_devices) > 1:
+                self.initialize_time = find_reinitialize_time(timestamp)
 
-            if self.initialize_time is not None and _timestamp < self.initialize_time:
-                if len(self._master_devices) > 1:
+            if self.initialize_time is not None and timestamp < self.initialize_time:
+                if len(self.master_devices) > 1:
                     return
 
             to_zone = dateutil.tz.gettz(timezone)
-            _timestamp = _timestamp.astimezone(to_zone)
-            self.received_input_datetime = _timestamp
-            _log.debug('Current time of publish: {}'.format(_timestamp))
+            timestamp = timestamp.astimezone(to_zone)
+            self.received_input_datetime = timestamp
+            _log.debug('Current time of publish: {}'.format(timestamp))
+
             device_data = message[0]
             if isinstance(device_data, list):
                 device_data = device_data[0]
 
             device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
-                if (len(self._needed_devices) / len(self._master_devices)) < 0.10:
-                    _log.error("Warning device values already present, reinitializing at publish: {}".format(_timestamp))
-                    _log.warning("Warning device values already present: {} -- {} -- {} -- {}".format(topic,
-                                                                                                      self._master_devices,
-                                                                                                      self._needed_devices,
-                                                                                                      float(len(self._needed_devices) / len( self._master_devices))))
-                    self._initialize_devices()
+                fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
+                if fraction_missing < 0.10:
+                    _log.error("Warning device values already present, reinitializing at publish: {}".format(timestamp))
+                    self.initialize_devices()
                     device_needed = self.aggregate_subdevice(device_data, topic)
                     return
                 missing_but_running = True
-                _log.warning("Warning device values already present. Using available data for diagnostic.: {}".format( _timestamp))
-                _log.warning("Warning device values already present: -- {} -- {} -- {} -- {}".format(topic, self._master_devices, self._needed_devices, float(len(self._needed_devices)) / float(len(self._master_devices))))
+                _log.warning(
+                    "Warning device values already present. Using available data for diagnostic.: {}".format(timestamp))
+                _log.warning(
+                    "Warning device values already present: -- {} -- {} -- {} -- {}".format(topic, self.master_devices,
+                                                                                            self.needed_devices))
 
             if self._should_run_now() or missing_but_running:
                 field_names = {}
-                for key, value in self._device_values.items():
+                for key, value in self.device_values.items():
                     field_names[key.lower() if isinstance(key, str) else key] = value
                 if not converter.initialized and conversion_map is not None:
                     converter.setup_conversion_map(map_names, field_names)
+
                 device_data = converter.process_row(field_names)
-                results = app_instance.run(_timestamp, device_data)
-                self._process_results(results)
-                self._initialize_devices()
+                results = app_instance.run(timestamp, device_data)
+                self.process_results(results)
+                self.initialize_devices()
                 if missing_but_running:
                     device_needed = self.aggregate_subdevice(device_data, topic)
             else:
-                _log.info("Still need {} before running.".format(self._needed_devices))
+                _log.info("Still need {} before running.".format(self.needed_devices))
 
-        def _process_results(self, results):
+        def process_results(self, results):
             """
             Runs driven application with converted data. Calls appropriate
                 methods to process commands, log and table_data in results.
@@ -322,7 +307,8 @@ def driven_agent(config_path, **kwargs):
                     log messages and table data.
             :type results: Results object \\volttron.platform.agent.driven
             :returns: Same as results param.
-            :rtype: Results object \\volttron.platform.agent.driven"""
+            :rtype: Results object \\volttron.platform.agent.driven
+            """
             _log.info('Processing Results!')
             actuator_error = False
             if actuation_mode:
@@ -332,12 +318,12 @@ def driven_agent(config_path, **kwargs):
                     actuator_error = self.actuator_request(command_devices)
                 if not actuator_error:
                     results = self.actuator_set(results)
-            for value in results.log_messages:
-                _log.info("LOG: {}".format(value))
+            for log in results.log_messages:
+                _log.info("LOG: {}".format(log))
             for key, value in results.table_output.items():
                 _log.info("TABLE: {}->{}".format(key, value))
-            if output_file_prefix is not None:
-                results = self.create_file_output(results)
+            #if output_file_prefix is not None:
+            #   results = self.create_file_output(results)
             if len(results.table_output.keys()):
                 results = self.publish_analysis_results(results)
             return results
@@ -351,48 +337,28 @@ def driven_agent(config_path, **kwargs):
                     log messages and table data.
             :type results: Results object \\volttron.platform.agent.driven
             :returns: Same as results param.
-            :rtype: Results object \\volttron.platform.agent.driven"""
-
-            headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON,
-                headers_mod.DATE: str(self.received_input_datetime), }
+            :rtype: Results object \\volttron.platform.agent.driven
+            """
+            to_publish = defaultdict(dict)
             for app, analysis_table in results.table_output.items():
                 try:
                     name_timestamp = app.split('&')
-                    _name = name_timestamp[0]
                     timestamp = name_timestamp[1]
                 except:
-                    _name = app
                     timestamp = self.received_input_datetime
                     timestamp = format_timestamp(timestamp)
 
                 headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
-                # The keys in this publish should look like the following
-                # with the values being a dictionary of points off of these
-                # base topics
-                #
-                # Schedule-Reset ACCx/data/interior_ahu/vav1600e
-                # Schedule-Reset ACCx/data/interior_ahu/vav1534
-                to_publish = defaultdict(list)
                 for entry in analysis_table:
-                    for key, value in entry.items():
-                        for _device in command_devices:
-                            analysis['unit'] = _device
-                            analysis_topic = topics.ANALYSIS_VALUE(point=key, **analysis)
-                            datatype = 'float'
-                            if isinstance(value, int):
-                                datatype = 'int'
-                            kbase = key[key.rfind('/') + 1:]
-                            topic_without_point = analysis_topic[:analysis_topic.rfind('/')]
+                    for point, result in entry.items():
+                        for device in command_devices:
+                            publish_topic = "/".join([publish_base, device, point])
+                            analysis_topic = topics.RECORD(subtopic=publish_topic)
+                            datatype = str(type(value))
+                            to_publish[analysis_topic] = result
 
-                            if not to_publish[topic_without_point]:
-                                to_publish[topic_without_point] = [{}, {}]
-
-                            to_publish[topic_without_point][0][kbase] = value
-                            to_publish[topic_without_point][1][kbase] = {'tz': 'US/Pacific', 'type': datatype, 'units': 'float', }
-
-                for equipment, _analysis in to_publish.items():
-                    self.vip.pubsub.publish('pubsub', equipment, headers, _analysis)
-
+                for result_topic, result in to_publish.items():
+                    self.vip.pubsub.publish('pubsub', result_topic, headers, result)
                 to_publish.clear()
             return results
 
@@ -497,6 +463,23 @@ def driven_agent(config_path, **kwargs):
                 make_actuator_set(device, results.commands)
             return results
 
+    def find_reinitialize_time(current_time):
+        midnight = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        seconds_from_midnight = (current_time - midnight).total_seconds()
+        offset = seconds_from_midnight % interval
+        previous_in_seconds = seconds_from_midnight - offset
+        next_in_seconds = previous_in_seconds + interval
+        from_midnight = td(seconds=next_in_seconds)
+        _log.debug('Start of next scrape interval: {}'.format(midnight + from_midnight))
+        return midnight + from_midnight
+
+    def setup_remote_actuation(vip_destination):
+        event = gevent.event.Event()
+        agent = Agent(address=vip_destination)
+        gevent.spawn(agent.core.run, event)
+        event.wait(timeout=15)
+        return agent
+
     DrivenAgent.__name__ = 'DrivenLoggerAgent'
     return DrivenAgent(**kwargs)
 
@@ -522,5 +505,3 @@ if __name__ == '__main__':
         sys.exit(main())
     except KeyboardInterrupt:
         pass
-
-

@@ -202,6 +202,8 @@ class ILCAgent(Agent):
         self.reset_curtail_count_time = td(hours=config.get("reset_curtail_count_time", 6.0))
         self.longest_possible_curtail = len(all_devices) * self.curtail_time * 2
         self.stagger_release_time = config.get("curtailment_break", 15.0)
+        maximum_time_without_release = config.get("maximum_time_without_release")
+        self.maximum_time_without_release = td(minutes=maximum_time_without_release) if maximum_time_without_release is not None else None
         self.stagger_release = config.get("stagger_release", False)
 
         self.stagger_off_time = config.get("stagger_off_time", True)
@@ -340,6 +342,7 @@ class ILCAgent(Agent):
         :param task_id:
         :return:
         """
+        _log.debug("Updating deman limit!")
         self.demand_limit = demand_goal
         if demand_goal is None:
             self.tasks.pop(task_id)
@@ -433,7 +436,12 @@ class ILCAgent(Agent):
                                                                                                        current_time)
 
             if self.power_meta is None:
-                self.power_meta = message[1][self.power_point]
+                try:
+                    self.power_meta = message[1][self.power_point]
+                except:
+                    self.power_meta = {
+                        "tz": "UTC", "units": "kiloWatts", "type": "float"
+                    }
 
             if self.reset_curtail_count is not None:
                 if self.reset_curtail_count <= current_time:
@@ -449,6 +457,9 @@ class ILCAgent(Agent):
                     _log.debug("Running end curtail method")
                     self.end_curtail(current_time)
                 return
+
+                if self.maximum_time_without_release is not None and current_time > self.maximum_time_without_release:
+                    self.self.end_curtail(current_time)
 
             if self.break_end is not None and current_time < self.break_end:
                 return

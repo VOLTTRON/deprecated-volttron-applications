@@ -120,10 +120,8 @@ class SupplyTempRcx(object):
         self.rht_array = []
         self.percent_rht = []
         self.percent_dmpr = []
-        self.data = {}
-        self.dx_table = {}
 
-    def sat_rcx(self, current_time, sat_data, sat_stpt_data,
+    def sat_aircx(self, current_time, sat_data, sat_stpt_data,
                 zone_rht_data, zone_dmpr_data, dx_result):
         """Manages supply-air diagnostic data sets.
 

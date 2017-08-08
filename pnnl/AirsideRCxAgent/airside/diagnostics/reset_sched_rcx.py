@@ -170,7 +170,7 @@ class SchedResetAIRCx(object):
                                                 run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
 
             self.reset_table_key = create_table_key(self.analysis, self.timestamp_array[0])
-
+            reset_name = create_table_key(self.analysis, self.timestamp_array[0])
             if stcpr_run_status is None:
                 dx_result.log("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
                 dx_result = pre_conditions(INSUFFICIENT_DATA, [DUCT_STC_RCX3], reset_name, current_time, dx_result)
@@ -179,7 +179,7 @@ class SchedResetAIRCx(object):
                 dx_result = self.no_static_pr_reset(dx_result)
                 self.stcpr_stpt_array = []
 
-            sat_run_status = check_run_status(self.sat_stpt_arr, current_time, self.no_req_data,
+            sat_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
                                               run_schedule="daily", minimum_point_array=self.sat_stpt_array)
 
             if sat_run_status is None:
@@ -194,8 +194,8 @@ class SchedResetAIRCx(object):
 
         finally:
             if current_fan_status:
-                self.stcpr_stpt_arr.append(mean(stcpr_stpt_data))
-                self.sat_stpt_arr.append(mean(sat_stpt_data))
+                self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
+                self.sat_stpt_array.append(mean(sat_stpt_data))
 
     def unocc_fan_operation(self, dx_result):
         """
@@ -235,7 +235,7 @@ class SchedResetAIRCx(object):
                         msg = "{} - No problems detected for schedule diagnostic.".format(key)
                         result = 60.0
                     else:
-                        msg = ("Fan status show the fan is off but the duct static "
+                        msg = ("{} - Fan status show the fan is off but the duct static "
                                "pressure is high, check the functionality of the "
                                "pressure sensor.".format(key))
                         result = 64.2

@@ -98,7 +98,10 @@ class DuctStaticAIRCx(object):
                          'data corresponding to {} will not be used.')
 
     def reinitialize(self):
-        """Reinitialize data arrays"""
+        """
+        Reinitialize data arrays.
+        :return:
+        """
         self.table_key = None
         self.zn_dmpr_array = []
         self.stcpr_stpt_array = []
@@ -107,8 +110,8 @@ class DuctStaticAIRCx(object):
         self.data = {}
         self.dx_table = {}
 
-    def duct_static(self, current_time, stcpr_stpt_data, stcpr_data,
-                    zn_dmpr_data, low_dx_cond, high_dx_cond, dx_result):
+    def duct_stcpr_aircx(self, current_time, stcpr_stpt_data, stcpr_data,
+                         zn_dmpr_data, low_dx_cond, high_dx_cond, dx_result):
         """
         Check duct static pressure AIRCx pre-requisites and manage analysis data set.
         :param current_time:
@@ -146,7 +149,7 @@ class DuctStaticAIRCx(object):
                                                                              self.stpt_deviation_thr, DUCT_STC_RCX,
                                                                              self.dx_offset, dx_result)
 
-                self.dx_table.update(dx_table)
+                dx_result.insert_table_row(self.table_key, dx_table)
                 dx_result = self.low_stcpr_dx(dx_result, avg_stcpr_stpt)
                 dx_result = self.high_stcpr_dx(dx_result, avg_stcpr_stpt)
                 dx_result.insert_table_row(self.table_key, self.dx_table)

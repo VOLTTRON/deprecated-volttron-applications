@@ -91,7 +91,7 @@ def validation_builder(validate, dx_name, data_tag):
 
 
 def check_run_status(timestamp_array, current_time, no_required_data, minimum_diagnostic_time=None,
-                     run_schedule="hour", minimum_point_array=None):
+                     run_schedule="hourly", minimum_point_array=None):
     """
     The diagnostics run at a regular interval (some minimum elapsed amount of time) and have a
     minimum data count requirement (each time series of data must contain some minimum number of points).

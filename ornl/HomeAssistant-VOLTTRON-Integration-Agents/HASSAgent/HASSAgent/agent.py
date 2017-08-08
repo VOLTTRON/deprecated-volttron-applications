@@ -55,7 +55,7 @@ import requests
 utils.setup_logging()
 _log = logging.getLogger(__name__)
 __version__ = '3.0'
-
+record_topic = 'record/'
 
 class HASSAgent(Agent):
     
@@ -94,9 +94,9 @@ class HASSAgent(Agent):
                 
                 msg = "No data was received from HASS API, Please check the connection to the API and the Agent configuration file"
                 
-                self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/error',
-                                message= msg,
+                self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/error',
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
             
             else: 
@@ -113,9 +113,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/climate/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/climate/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                     
                     ##############################################################################
@@ -126,9 +126,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/sensor/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/sensor/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                     
                     ##############################################################################
@@ -139,9 +139,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/fan/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/fan/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                     
                     ##############################################################################
@@ -152,9 +152,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/mqtt/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic +'hass/mqtt/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                     
                     ##############################################################################
@@ -165,9 +165,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/light/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/light/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                                 
                     ##############################################################################
@@ -178,9 +178,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/lock/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/lock/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                     
                     ##############################################################################
@@ -191,9 +191,9 @@ class HASSAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/switch/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/switch/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
                      
                                 

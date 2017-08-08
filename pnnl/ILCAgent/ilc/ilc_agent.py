@@ -191,9 +191,9 @@ class ILCAgent(Agent):
         self.curtail_confirm = td(minutes=config.get("curtailment_confirm", 5))
         self.curtail_break = td(minutes=config.get("curtailment_break", 15))
         self.actuator_schedule_buffer = td(minutes=config.get("actuator_schedule_buffer", 15)) + self.curtail_break
-        self.reset_curtail_count_time = td(hours=config.get("reset_curtail_count_time", 6.0))
+        self.reset_curtail_count_time = td(hours=config.get("reset_curtail_count_time", 6))
         self.longest_possible_curtail = len(all_devices) * self.curtail_time * 2
-        self.stagger_release_time = config.get("curtailment_break", 15.0)
+        self.stagger_release_time = float(config.get("curtailment_break", 15.0))
         maximum_time_without_release = config.get("maximum_time_without_release")
         self.maximum_time_without_release = td(minutes=maximum_time_without_release) if maximum_time_without_release is not None else None
         self.stagger_release = config.get("stagger_release", False)
@@ -449,6 +449,7 @@ class ILCAgent(Agent):
                     self.end_curtail(current_time)
 
                 if self.maximum_time_without_release is not None and current_time > self.maximum_time_without_release:
+                    _log.debug("Maximum time without curtail release reached!")
                     self.self.end_curtail(current_time)
                 return
 

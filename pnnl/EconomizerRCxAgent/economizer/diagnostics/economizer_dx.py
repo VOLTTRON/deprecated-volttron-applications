@@ -1,4 +1,4 @@
-'''
+"""
 Copyright (c) 2016, Battelle Memorial Institute
 All rights reserved.
 
@@ -47,307 +47,358 @@ United States Government or any agency thereof.
 PACIFIC NORTHWEST NATIONAL LABORATORY
 operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
-'''
+"""
 import logging
 from datetime import timedelta as td
+from volttron.platform.agent.math_utils import mean
 
-ECON2 = 'Not Economizing When Unit Should Dx'
-ECON3 = 'Economizing When Unit Should Not Dx'
-DX = '/diagnostic message'
-EI = '/energy impact'
-DATA = '/data/'
+ECON2 = "Not Economizing When Unit Should Dx"
+ECON3 = "Economizing When Unit Should Not Dx"
+DX = "/diagnostic message"
+EI = "/energy impact"
 
-RAT = 'ReturnAirTemperature'
-MAT = 'MixedAirTemperature'
-OAT = 'OutsideAirTemperature'
-OAD = 'OutsideDamperSignal'
-CC = 'CoolCall'
-FS = 'SupplyFanSpeed'
-EC = 'EconomizerCondition'
-ST = 'State'
+
 
 def create_table_key(table_name, timestamp):
-    return '&'.join([table_name, timestamp.strftime('%m-%d-%y %H:%M')])
-    
+    return "&".join([table_name, timestamp.isoformat()])
+
 
 class EconCorrectlyOn(object):
-    '''Air-side HVAC economizer diagnostic for AHU/RTU systems.
+    """Air-side HVAC economizer diagnostic for AHU/RTU systems.
 
     EconCorrectlyOn uses metered data from a BAS or controller to diagnose
     if an AHU/RTU is economizing when it should.
-    '''
+    """
+
     def __init__(self, oaf_economizing_threshold, open_damper_threshold,
                  data_window, no_required_data, cfm, eer, analysis):
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
-        self.fan_speed_values = []
+        self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
-        self.output_no_run = []
-        self.open_damper_threshold = float(open_damper_threshold)
-        self.oaf_economizing_threshold = float(oaf_economizing_threshold)
-        self.data_window = float(data_window)
+        self.not_cooling = None
+        self.not_economizing = None
+
+        self.open_damper_threshold = open_damper_threshold
+        self.oaf_economizing_threshold = oaf_economizing_threshold
+        self.data_window = data_window
         self.no_required_data = no_required_data
         self.cfm = cfm
         self.eer = eer
-        self.table_key = None
-        self.analysis = analysis
-        self.max_dx_time = 60
 
-        '''Application result messages'''
+        self.analysis = analysis
+        self.max_dx_time = td(minutes=60)
+
+        # Application result messages
         self.alg_result_messages = [
-            'Conditions are favorable for economizing but the '
-            'the outdoor-air damper is frequently below 100% open.',
-            'No problems detected.',
-            'Conditions are favorable for economizing and the '
-            'damper is 100% open but the OAF indicates the unit '
-            'is not brining in near 100% OA.'
+            "Conditions are favorable for economizing but the the OAD is frequently below 100%.",
+            "No problems detected.",
+            "Conditions are favorable for economizing and OAD is 100% but the OAF is too low."
         ]
 
-    def econ_alg2(self, dx_result, cooling_call, oatemp, ratemp,
-                  matemp, damper_signal, econ_condition, cur_time,
-                  fan_sp):
-        '''Check app. pre-quisites and assemble data set for analysis.'''
-        if not cooling_call:
-            dx_result.log('{}: The unit is not cooling, data corresponding to '
-                          '{} will not be used.'.format(ECON2, cur_time), logging.DEBUG)
-            self.output_no_run.append(cur_time)
+    def econ_alg2(self, dx_result, cooling_call, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
+        """
+        Check app. pre-quisites and assemble data set for analysis.
+        :param dx_result:
+        :param cooling_call:
+        :param oat:
+        :param rat:
+        :param mat:
+        :param oad:
+        :param econ_condition:
+        :param cur_time:
+        :param fan_sp:
+        :return:
+        """
+        dx_result, economizing = self.economizer_conditions(dx_result, cooling_call, econ_condition, cur_time)
+        if not economizing:
+            return dx_result
 
-            if (self.output_no_run[-1] - self.output_no_run[0]) >= td(minutes=(self.data_window)):
-                dx_result.log('{}: unit is not cooling or economizing, keep collecting data.'.format(ECON2), logging.DEBUG)
-                self.output_no_run = []
-
-            dx_status = 3
-            return dx_result, dx_status
-
-        if not econ_condition:
-            dx_result.log('{}: Conditions are not favorable for economizing, '
-                          'data corresponding to {} will not be used.'
-                          .format(ECON2, cur_time), logging.DEBUG)
-            self.output_no_run.append(cur_time)
-            if (self.output_no_run[-1] - self.output_no_run[0]) >= td(minutes=(self.data_window)):
-                dx_result.log('{name}: the unit is not cooling or economizing, keep collecting data.'.format(name=ECON2), logging.DEBUG)
-                self.output_no_run = []
-            dx_status = 3
-            return dx_result, dx_status
-
-        self.oat_values.append(oatemp)
-        self.mat_values.append(matemp)
-        self.rat_values.append(ratemp)
+        self.oat_values.append(oat)
+        self.mat_values.append(mat)
+        self.rat_values.append(rat)
+        self.oad_values.append(oad)
         self.timestamp.append(cur_time)
-        self.oad_values.append(damper_signal)
-        dx_result.log('{}: Debugger - aggregate data'.format(ECON2))
-        fan_sp = fan_sp/100.0 if fan_sp is not None else 1.0
-        self.fan_speed_values.append(fan_sp)
-        self.timestamp.append(cur_time)
-        elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
-        elapsed_time = elapsed_time if elapsed_time > 0 else 1.0
 
-        if (elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data):
-            self.table_key = create_table_key(self.analysis, self.timestamp[-1])
+        fan_sp = fan_sp / 100.0 if fan_sp is not None else 1.0
+        self.fan_spd_values.append(fan_sp)
+
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+
+        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
+            table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                dx_result.insert_table_row(self.table_key, {ECON2 + DX: 13.2})
-                dx_result = self.clear_data(dx_result)
-                dx_status = 2
-                return dx_result, dx_status
-            dx_result.log('{}: Debugger - running algorithm'.format(ECON2))
-            dx_result = self.not_economizing_when_needed(dx_result, cur_time)
-            dx_status = 1
-            return dx_result, dx_status
-        dx_result.log('{}: Debugger - collecting data'.format(ECON2))
-        dx_status = 0
-        return dx_result, dx_status
+                result = {'low': 13.2, 'normal': 13.2, 'high': 13.2}
+                dx_result.insert_table_row(table_key, {ECON2 + DX: result})
+                self.clear_data()
+                return dx_result
+            dx_result = self.not_economizing_when_needed(dx_result, table_key)
+            return dx_result
 
-    def not_economizing_when_needed(self, dx_result, cur_time):
-        '''If the detected problems(s) are consistent then generate a fault
-        message(s).
-        '''
-        def energy_impact_calculation(energy_impact):
-            energy_calc = \
-                [1.08 * spd * self.cfm * (ma - oa) / (1000.0 * self.eer)
-                 for ma, oa, spd in zip(self.mat_values, self.oat_values,
-                                        self.fan_speed_values)
-                 if (ma - oa) > 0 and color_code == 'RED']
-            if energy_calc:
-                dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0
-                energy_impact = (sum(energy_calc) * 60.0) / (len(energy_calc) * dx_time)
-                energy_impact = round(energy_impact, 2)
-            return energy_impact
-
-        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
-        avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60 if len(self.timestamp) > 1 else 1
-        avg_oaf = sum(oaf) / len(oaf) * 100.0
-        avg_damper_signal = sum(self.oad_values)/len(self.oad_values)
-        energy_impact = 0.0
-
-        if avg_damper_signal < self.open_damper_threshold:
-            msg = '{}: {}'.format(ECON2, self.alg_result_messages[0])
-            color_code = 'RED'
-            dx_msg = 11.1
-            energy_impact = energy_impact_calculation(energy_impact)
-        else:
-            if (100.0 - avg_oaf) <= self.oaf_economizing_threshold:
-                msg = '{}: {}'.format(ECON2, self.alg_result_messages[1])
-                color_code = 'GREEN'
-                dx_msg = 10.0
-            else:
-                msg = '{}: {}'.format(ECON2, self.alg_result_messages[2])
-                color_code = 'RED'
-                dx_msg = 12.1
-                energy_impact = energy_impact_calculation(energy_impact)
-
-        dx_table = {
-            ECON2 + DX: dx_msg,
-            ECON2 + EI: energy_impact
-        }
-        dx_result.insert_table_row(self.table_key, dx_table)
-        dx_result.log(msg, logging.INFO)
-        dx_result = self.clear_data(dx_result)
         return dx_result
 
-    def clear_data(self, dx_result):
-        '''
-        reinitialize class insufficient_oa data.
-        '''
+    def not_economizing_when_needed(self, dx_result, table_key):
+        """
+        If the detected problems(s) are consistent then generate a fault
+        message(s).
+        :param dx_result:
+        :param table_key:
+        :return:
+        """
+        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
+        avg_oaf = mean(oaf)*100.0
+        avg_damper_signal = mean(self.oad_values)
+        diagnostic_msg = {}
+        energy_impact = {}
+        thresholds = zip(self.open_damper_threshold.items(), self.oaf_economizing_threshold.items())
+        for (key, damper_thr), (key2, oaf_thr) in thresholds:
+            if avg_damper_signal < damper_thr:
+                msg = "{}: {} - sensitivity: {}".format(ECON2, self.alg_result_messages[0], key)
+                # color_code = "RED"
+                result = 11.1
+                energy = self.energy_impact_calculation()
+            else:
+                if 100.0 - avg_oaf <= oaf_thr:
+                    msg = "{}: {} - sensitivity: {}".format(ECON2, self.alg_result_messages[1], key)
+                    # color_code = "GREEN"
+                    result = 10.0
+                    energy = 0.0
+                else:
+                    msg = "{}: {} --OAF: {} - sensitivity: {}".format(ECON2, self.alg_result_messages[2], avg_oaf, key)
+                    # color_code = "RED"
+                    result = 12.1
+                    energy = self.energy_impact_calculation()
+            diagnostic_msg.update({key: result})
+            energy_impact.update({key: energy})
+
+        dx_table = {
+            ECON2 + DX: diagnostic_msg,
+            ECON2 + EI: energy_impact
+        }
+        dx_result.insert_table_row(table_key, dx_table)
+        dx_result.log(msg)
+        self.clear_data()
+        return dx_result
+
+    def economizer_conditions(self, dx_result, cooling_call, econ_condition, cur_time):
+        """
+        Check if unit is in a cooling mode.
+        :param dx_result:
+        :param cooling_call:
+        :param econ_condition:
+        :param cur_time:
+        :return:
+        """
+        if not cooling_call:
+            dx_result.log("{}: not cooling for data for data {}".format(ECON2, cur_time))
+            if self.not_cooling is None:
+                self.not_cooling = cur_time
+            if cur_time - self.not_cooling >= self.data_window:
+                dx_result.log("{}: unit is not cooling - reinitialize!".format(ECON2))
+                diagnostic_msg = {'low': 14.2, 'normal': 14.2, 'high': 14.2}
+                dx_table = {ECON2 + DX: diagnostic_msg}
+                table_key = create_table_key(self.analysis, cur_time)
+                dx_result.insert_table_row(table_key, dx_table)
+                self.clear_data()
+            return dx_result, False
+        else:
+            self.not_cooling = None
+
+        if not econ_condition:
+            dx_result.log("{}: Not economizing, for data {} -- {}.".format(ECON2, cur_time, self.not_economizing))
+            if self.not_economizing is None:
+                self.not_economizing = cur_time
+            if cur_time - self.not_economizing >= self.data_window:
+                dx_result.log("{}: unit is not economizing - reinitialize!".format(ECON2))
+                diagnostic_msg = {'low': 15.2, 'normal': 15.2, 'high': 15.2}
+                dx_table = {ECON2 + DX: diagnostic_msg}
+                table_key = create_table_key(self.analysis, cur_time)
+                dx_result.insert_table_row(table_key, dx_table)
+                self.clear_data()
+            return dx_result, False
+        else:
+            self.not_economizing = None
+        return dx_result, True
+
+    def energy_impact_calculation(self):
+        ei = 0.0
+        energy_calc = [1.08 * s * self.cfm * (m - o) / (1000.0 * self.eer)
+                       for m, o, s in zip(self.mat_values, self.oat_values, self.fan_spd_values)
+                       if (m - o) > 0]
+        if energy_calc:
+            avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds() / 60 if len(self.timestamp) > 1 else 1
+            dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0
+            ei = (sum(energy_calc) * 60.0) / (len(energy_calc) * dx_time)
+            ei = round(ei, 2)
+        return ei
+
+    def clear_data(self):
+        """
+        Reinitialize data arrays.
+        :return:
+        """
         self.oad_values = []
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
-        self.fan_speed_values = []
+        self.fan_spd_values = []
         self.timestamp = []
-        return dx_result
+        self.not_economizing = None
+        self.not_cooling = None
 
 
 class EconCorrectlyOff(object):
-    '''Air-side HVAC economizer diagnostic for AHU/RTU systems.
+    """
+    Air-side HVAC economizer diagnostic for AHU/RTU systems.
 
     EconCorrectlyOff uses metered data from a BAS or controller to diagnose
     if an AHU/RTU is economizing when it should not.
-    '''
-
+    """
     def __init__(self, data_window, no_required_data, min_damper_sp,
-                 excess_damper_threshold, cooling_enabled_threshold,
-                 desired_oaf, cfm, eer, analysis):
+                 excess_damper_threshold, desired_oaf, cfm, eer, analysis):
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.oad_values = []
-        self.cool_call_values = []
+        self.fan_spd_values = []
+        self.timestamp = []
+        self.economizing = None
         self.cfm = cfm
         self.eer = eer
-        self.fan_speed_values = []
-        self.timestamp = []
-
         # Application result messages
         self.alg_result_messages = \
-            ['The outdoor-air damper should be at the minimum position but is '
-             'significantly above that value.',
-             'No problems detected.',
-             'The diagnostic led to inconclusive results, could not '
-             'verify the status of the economizer. ']
-        self.max_dx_time = 60
-        self.data_window = float(data_window)
+            ["The OAD should be at the minimum position but is significantly above this value.",
+             "No problems detected.",
+             "Inconclusive results, could not verify the status of the economizer."]
+        self.max_dx_time = td(minutes=60)
+        self.data_window = data_window
         self.no_required_data = no_required_data
-        self.min_damper_sp = float(min_damper_sp)
-        self.excess_damper_threshold = float(excess_damper_threshold)
-        self.cooling_enabled_threshold = float(cooling_enabled_threshold)
-        self.desired_oaf = float(desired_oaf)
+        self.min_damper_sp = min_damper_sp
+        self.excess_damper_threshold = excess_damper_threshold
+        self.desired_oaf = desired_oaf
         self.analysis = analysis
+        self.cfm = cfm
+        self.eer = eer
 
-    def econ_alg3(self, dx_result, oatemp, ratemp, matemp,
-                  damper_signal, econ_condition, cur_time,
-                  fan_sp, cooling_call):
-        '''Check app. pre-quisites and assemble data set for analysis.'''
-        if econ_condition:
-            dx_result.log('{}: Conditions are favorable for economizing, '
-                          'data corresponding to {} will not be used.'
-                          .format(ECON3, cur_time), logging.DEBUG)
-            dx_status = 3
-            return dx_result, dx_status
+    def econ_alg3(self, dx_result, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
+        """
+        Check app. pre-quisites and assemble data set for analysis.
+        :param dx_result:
+        :param oat:
+        :param rat:
+        :param mat:
+        :param oad:
+        :param econ_condition:
+        :param cur_time:
+        :param fan_sp:
+        :return:
+        """
+        dx_result, economizing = self.economizer_conditions(dx_result, econ_condition, cur_time)
+        if economizing:
+            return dx_result
 
-        self.oad_values.append(damper_signal)
-        self.oat_values.append(oatemp)
-        self.mat_values.append(matemp)
-        self.rat_values.append(ratemp)
+        self.oad_values.append(oad)
+        self.oat_values.append(oat)
+        self.mat_values.append(mat)
+        self.rat_values.append(rat)
         self.timestamp.append(cur_time)
-        
-        dx_result.log('{}: Debugger - aggregating data'.format(ECON3))
-        fan_sp = fan_sp/100.0 if fan_sp is not None else 1.0
-        self.fan_speed_values.append(fan_sp)
-        elapsed_time = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60
-        elapsed_time = elapsed_time if elapsed_time > 0 else 1.0
+
+        fan_sp = fan_sp / 100.0 if fan_sp is not None else 1.0
+        self.fan_spd_values.append(fan_sp)
+
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            self.table_key = create_table_key(self.analysis, self.timestamp[-1])
+            table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                dx_result.insert_table_row(self.table_key, {ECON3 + DX: 23.2})
-                dx_result = self.clear_data(dx_result)
-                dx_status = 2
-                return dx_result, dx_status
-            dx_result.log('{}: Debugger - running algorithm'.format(ECON3))
-            dx_result = self.economizing_when_not_needed(dx_result, cur_time)
-            dx_status = 1
-            return dx_result, dx_status
-        dx_result.log('{}: Debugger - collecting data'.format(ECON3))
-        dx_status = 0
-        return dx_result, dx_status
+                result = {'low': 23.2, 'normal': 23.2, 'high': 23.2}
+                dx_result.insert_table_row(table_key, {ECON3 + DX: result})
+                self.clear_data()
+                return dx_result
 
-    def economizing_when_not_needed(self, dx_result, cur_time):
-        '''If the detected problems(s)
-        are consistent then generate a
-        fault message(s).
-        '''
-        def energy_impact_calculation(energy_impact):
-            energy_calc = [
-                (1.08 * spd * self.cfm * (ma - (oa * desired_oaf +
-                                                (ra * (1.0 - desired_oaf))))) /
-                (1000.0 * self.eer)
-                for ma, oa, ra, spd in zip(self.mat_values,
-                                           self.oat_values,
-                                           self.rat_values,
-                                           self.fan_speed_values)
-                if (ma - (oa * desired_oaf + (ra * (1.0 - desired_oaf)))) > 0]
-            if energy_calc:
-                dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0
-                energy_impact = (sum(energy_calc) * 60.0) / (len(energy_calc) * dx_time)
-                energy_impact = round(energy_impact, 2)
-            return energy_impact
-            
-        avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds()/60 if len(self.timestamp) > 1 else 1
-        desired_oaf = self.desired_oaf / 100.0
-        energy_impact = 0.0
-        avg_damper = sum(self.oad_values) / len(self.oad_values)
-
-        if (avg_damper - self.min_damper_sp) > self.excess_damper_threshold:
-            msg = msg = '{}: {}'.format(ECON3, self.alg_result_messages[0])
-            color_code = 'RED'
-            dx_msg = 21.1
-            energy_impact = energy_impact_calculation(energy_impact)
-        else:
-            msg = msg = '{}: {}'.format(ECON3, self.alg_result_messages[1])
-            color_code = 'GREEN'
-            dx_msg = 20.0
-
-        dx_table = {
-            ECON3 + DX: dx_msg,
-            ECON3 + EI: energy_impact
-        }
-        dx_result.insert_table_row(self.table_key, dx_table)
-        dx_result.log(msg, logging.INFO)
-        dx_result = self.clear_data(dx_result)
+            dx_result = self.economizing_when_not_needed(dx_result, table_key)
+            return dx_result
         return dx_result
 
-    def clear_data(self, dx_result):
-        '''
-        reinitialize class insufficient_oa data
-        '''
+    def economizing_when_not_needed(self, dx_result, table_key):
+        """
+        If the detected problems(s) are consistent then generate a
+        fault message(s).
+        :param dx_result:
+        :param table_key:
+        :return:
+        """
+        desired_oaf = self.desired_oaf / 100.0
+        avg_damper = mean(self.oad_values)
+        diagnostic_msg = {}
+        energy_impact = {}
+        for key, threshold in self.excess_damper_threshold.items():
+            if avg_damper - self.min_damper_sp > threshold:
+                msg = "{}: {} - sensitivity: {}".format(ECON3, self.alg_result_messages[0], key)
+                # color_code = "RED"
+                result = 21.1
+                energy = self.energy_impact_calculation(desired_oaf)
+            else:
+                msg = "{}: {} - sensitivity: {}".format(ECON3, self.alg_result_messages[1], key)
+                # color_code = "GREEN"
+                result = 20.0
+                energy = 0.0
+            diagnostic_msg.update({key: result})
+            energy_impact.update({key: energy})
+
+        dx_table = {
+            ECON3 + DX: diagnostic_msg,
+            ECON3 + EI: energy_impact
+        }
+        dx_result.insert_table_row(table_key, dx_table)
+        dx_result.log(msg)
+        self.clear_data()
+        return dx_result
+
+    def clear_data(self):
+        """
+        Reinitialize data arrays.
+        :return:
+        """
         self.oad_values = []
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
-        self.fan_speed_values = []
+        self.fan_spd_values = []
         self.timestamp = []
-        return dx_result
+        self.economizing = None
+
+    def energy_impact_calculation(self, desired_oaf):
+        ei = 0.0
+        energy_calc = [
+            (1.08 * spd * self.cfm * (m - (o * desired_oaf + (r * (1.0 - desired_oaf))))) / (1000.0 * self.eer)
+            for m, o, r, spd in zip(self.mat_values, self.oat_values, self.rat_values, self.fan_spd_values)
+            if (m - (o * desired_oaf + (r * (1.0 - desired_oaf)))) > 0
+        ]
+        if energy_calc:
+            avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds() / 60 if len(self.timestamp) > 1 else 1
+            dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0
+            ei = (sum(energy_calc) * 60.0) / (len(energy_calc) * dx_time)
+            ei = round(ei, 2)
+        return ei
+
+    def economizer_conditions(self, dx_result, econ_condition, cur_time):
+        if econ_condition:
+            dx_result.log("{}: economizing, for data {} --{}.".format(ECON3, econ_condition, cur_time))
+            if self.economizing is None:
+                self.economizing = cur_time
+            if cur_time - self.economizing >= self.data_window:
+                dx_result.log("{}: economizing - reinitialize!".format(ECON3))
+                diagnostic_msg = {'low': 25.2, 'normal': 25.2, 'high': 25.2}
+                dx_table = {ECON3 + DX: diagnostic_msg}
+                table_key = create_table_key(self.analysis, cur_time)
+                dx_result.insert_table_row(table_key, dx_table)
+                self.clear_data()
+            return dx_result, True
+        else:
+            self.economizing = None
+        return dx_result, False

@@ -112,7 +112,7 @@ def parse_sympy(data, condition=False):
                 return_data.append(clean_text(item))
     else:
         return_data = clean_text(data)
-    _log.debug("Parsing: {} to {}".format(data, return_data))
+    #_log.debug("Parsing: {} to {}".format(data, return_data))
     return return_data
 
 

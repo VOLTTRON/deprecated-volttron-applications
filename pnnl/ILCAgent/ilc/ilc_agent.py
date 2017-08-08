@@ -271,7 +271,30 @@ class ILCAgent(Agent):
         parsed_data = parse_sympy(data)
         self.criteria.get_device(device_name[0]).ingest_data(now, parsed_data)
         self.curtailment.get_device(device_name).ingest_data(parsed_data)
-        self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
+        # self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
+        self.create_curtailment_publish(current_time_str, device_name, meta)
+
+    def create_curtailment_publish(self, current_time_str, device_name, meta):
+        headers = {
+            "Date": current_time_str,
+            "min_compatible_version": "3.0",
+            "MessageType": "Control"
+        }
+        subdevices = self.curtailment.get_device(device_name).command_status.keys()
+
+        for subdevice in subdevices:
+            currently_curtailed = self.curtailment.get_device(device_name).currently_curtailed[subdevice]
+            curtailment_topic = "/".join([self.update_base_topic, device_name[0], subdevice])
+            curtailment_status = "Active" if currently_curtailed else "Inactive"
+            curtailment_message = [
+               {
+                   "DeviceState": curtailment_status
+                },
+                {
+                   "DeviceState": {"tz": "US/Pacific", "type": "string"}
+                }
+            ]
+            self.vip.pubsub.publish('pubsub', curtailment_topic, headers=headers, message=curtailment_message).get(timeout=15.0)
 
     def demand_limit_handler(self, peer, sender, bus, topic, headers, message):
         if isinstance(message, list):
@@ -494,7 +517,7 @@ class ILCAgent(Agent):
                         }
                     }
                 ]
-                self.vip.pubsub.publish("pubsub", load_topic, headers=headers, message=power_message).get(timeout=4.0)
+                self.vip.pubsub.publish("pubsub", load_topic, headers=headers, message=power_message).get(timeout=15.0)
             except:
                 _log.debug("Unable to publish average power information.  Input data may not contain metadata.")
             if self.simulation_running:
@@ -517,7 +540,7 @@ class ILCAgent(Agent):
             result = "Current load: ({load}) kW is below demand limit of {limit} kW.".format(load=bldg_power,
                                                                                              limit=self.demand_limit)
 
-        if bldg_power > self.demand_limit:
+        if self.demand_limit is not None and bldg_power > self.demand_limit:
             result = "Current load of {} kW exceeds demand limit of {} kW.".format(bldg_power, self.demand_limit)
             scored_devices = self.criteria.get_score_order()
             on_devices = self.curtailment.get_on_devices()

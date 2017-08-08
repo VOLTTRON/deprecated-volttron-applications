@@ -242,6 +242,8 @@ class CurtailmentSetting(object):
             self.equation_args = parse_sympy(equation['equation_args'])
             self.points = symbols(self.equation_args)
             self.curtail_value_formula = parse_expr(parse_sympy(equation['operation']))
+            self.maximum = equation['maximum']
+            self.minimum = equation['minimum']
 
         if isinstance(load, dict):
             load_args = parse_sympy(load['equation_args'])

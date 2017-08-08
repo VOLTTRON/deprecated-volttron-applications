@@ -92,13 +92,14 @@ class ILCAgent(Agent):
 
         # For dash board message publishes
         self.agent_id = config.get("agent_id", "Intelligent Load Control Agent")
-        self.update_base_topic = "MAALKA/{}/".format(self.agent_id)
+        self.dashboard_topic = "MAALKA/{}/".format(self.agent_id)
         self.application_category = config.get("application_category")
         self.application_name = config.get("application_name")
         if campus is not None and campus:
-            self.update_base_topic = self.update_base_topic + campus + "/"
+            self.dashboard_topic = self.dashboard_topic + campus + "/"
         if building is not None and building:
-            self.update_base_topic = self.update_base_topic + building + "/"
+            self.dashboard_topic = self.dashboard_topic + building
+        self.ilc_topic = self.dashboard_topic[:-1]
         # --------------------------------------------------------------------------------
 
         # For Target agent updates...
@@ -106,22 +107,13 @@ class ILCAgent(Agent):
         self.ilc_start_topic = "{campus}/{building}".format(**location) + "/ilc/start"
         # --------------------------------------------------------------------------------
         self.update_base_topic = "analysis/{}/".format(self.agent_id)
-        self.ilc_topic = self.update_base_topic[:-1]
 
         if campus is not None and campus:
             self.update_base_topic = self.update_base_topic + campus + "/"
         if building is not None and building:
             self.update_base_topic = self.update_base_topic + building
 
-        global mappers
-
-        try:
-            mappers = config["mappers"]
-        except KeyError:
-            mappers = {}
-
         cluster_configs = config["clusters"]
-
         self.criteria = CriteriaContainer()
         self.curtailment = CurtailmentContainer()
 
@@ -207,7 +199,6 @@ class ILCAgent(Agent):
         self.stagger_release = config.get("stagger_release", False)
 
         self.stagger_off_time = config.get("stagger_off_time", True)
-        ahp_release_reverse = config.get("reverse_release", False)
         need_actuator_schedule = config.get("need_actuator_schedule", False)
 
         self.running_ahp = False
@@ -296,7 +287,7 @@ class ILCAgent(Agent):
 
         demand_goal = float(target_info["target"])
         task_id = target_info["id"]
-        _log.debug("TARGET_DEBUG2: {} -- {}-- {}".format(target_info["id"], start_time, demand_goal))
+        _log.debug("TARGET - id: {} - start: {} - goal: {}".format(target_info["id"], start_time, demand_goal))
         for key, value in self.tasks.items():
             if start_time == value["end"]:
                 start_time += td(seconds=15)
@@ -306,10 +297,10 @@ class ILCAgent(Agent):
 
         current_task_exits = self.tasks.get(target_info["id"])
         if current_task_exits is not None:
-            _log.debug("TARGET_DEBUG5: duplicate task received - {}".format(target_info["id"]))
+            _log.debug("TARGET: duplicate task received - {}".format(target_info["id"]))
             for item in self.tasks.pop(target_info["id"])["schedule"]:
                 item.cancel()
-        _log.debug("TARGET_DEBUG6: create schedule for id: {}".format(target_info["id"]))
+        _log.debug("TARGET: create schedule for id: {}".format(target_info["id"]))
         self.tasks[target_info["id"]] = {
             "schedule": [self.core.schedule(start_time, self.demand_limit_update, demand_goal, task_id),
                          self.core.schedule(end_time, self.demand_limit_update, None, task_id)],
@@ -342,7 +333,7 @@ class ILCAgent(Agent):
         :param task_id:
         :return:
         """
-        _log.debug("Updating deman limit!")
+        _log.debug("Updating demand limit: {}".format(demand_goal))
         self.demand_limit = demand_goal
         if demand_goal is None:
             self.tasks.pop(task_id)
@@ -383,7 +374,7 @@ class ILCAgent(Agent):
             self.check_schedule(current_time)
 
         if self.bldg_power:
-            current_average_window = self.bldg_power[-1][0] - self.bldg_power[0][0]
+            current_average_window = self.bldg_power[-1][0] - self.bldg_power[0][0] + td(seconds=15)
         else:
             current_average_window = td(minutes=0)
 
@@ -456,10 +447,10 @@ class ILCAgent(Agent):
                 if current_time >= self.curtail_end:
                     _log.debug("Running end curtail method")
                     self.end_curtail(current_time)
-                return
 
                 if self.maximum_time_without_release is not None and current_time > self.maximum_time_without_release:
                     self.self.end_curtail(current_time)
+                return
 
             if self.break_end is not None and current_time < self.break_end:
                 return
@@ -505,7 +496,8 @@ class ILCAgent(Agent):
                 self.vip.pubsub.publish("pubsub", load_topic, headers=headers, message=power_message).get(timeout=4.0)
             except:
                 _log.debug("Unable to publish average power information.  Input data may not contain metadata.")
-            self.vip.pubsub.publish("pubsub", "applications/ilc/advance", headers={}, message={})
+            if self.simulation_running:
+                self.vip.pubsub.publish("pubsub", "applications/ilc/advance", headers={}, message={})
 
     def check_load(self, bldg_power, current_time):
         """
@@ -562,7 +554,7 @@ class ILCAgent(Agent):
 
             device, token, device_actuator = item
 
-            _log.debug("Reserving device: " + device)
+            _log.debug("Reserving device: {}".format(device))
 
             if device in already_handled:
                 if already_handled[device]:
@@ -767,8 +759,6 @@ class ILCAgent(Agent):
         curtailed = [device for scored in scored_devices for device in self.devices_curtailed if scored in [(device[0], device[1])]]
 
         _log.debug("Curtailed devices: {}".format(self.devices_curtailed))
-        _log.debug("Scored order for release: {}".format(scored_devices))
-        _log.debug("Curtailed devices for release: {}".format(curtailed))
 
         currently_curtailed = curtailed[::-1]
         curtailed_iterate = currently_curtailed[:]
@@ -874,10 +864,12 @@ class ILCAgent(Agent):
 
             application_message = [
                 {
-                    "Result": result
+                    "Result": result,
+                    "ApplicationState": application_state
                 },
                 {
-                    "Result": {"tz": self.power_meta["tz"], "type": "string", "units": "None"}
+                    "Result": {"tz": self.power_meta["tz"], "type": "string", "units": "None"},
+                    "ApplicationState": {"tz": self.power_meta["tz"], "type": "string", "units": "None"}
                 }
             ]
             self.vip.pubsub.publish("pubsub", self.ilc_topic, headers=headers, message=application_message).get(timeout=4.0)
@@ -898,7 +890,7 @@ class ILCAgent(Agent):
             device_token = self.curtailment.devices[device_name].command_status.keys()[0]
             curtail = self.curtailment.get_device(device_name).get_curtailment(device_token)
             curtail_pt = curtail["point"]
-            device_update_topic = "/".join([self.update_base_topic, device_name[0], curtail_pt])
+            device_update_topic = "/".join([self.dashboard_topic, device_name[0], curtail_pt])
             previous_value = data[curtail_pt]
             control_time = None
             device_state = "Inactive"
@@ -934,9 +926,19 @@ class ILCAgent(Agent):
             _log.debug("Unable to publish device status message.")
 
     def simulation_demand_limit_handler(self, peer, sender, bus, topic, headers, message):
+        """
+        Simulation handler for TargetAgent.
+        :param peer: 
+        :param sender: 
+        :param bus: 
+        :param topic: 
+        :param headers: 
+        :param message: 
+        :return: 
+        """
         if isinstance(message, list):
-            target_info = message[0]
-            tz_info = message[1]["start"]["tz"]
+            target_info = message[0]["value"]
+            tz_info = message[1]["value"]["tz"]
         else:
             target_info = message
             tz_info = "US/Pacific"
@@ -948,12 +950,12 @@ class ILCAgent(Agent):
         demand_goal = float(target_info["target"])
         task_id = target_info["id"]
 
-        _log.debug("TARGET_DEBUG: Simulation running.")
+        _log.debug("TARGET: Simulation running.")
         for key, value in self.tasks.items():
             if (start_time < value["end"] and end_time > value["start"]) or (value["start"] <= start_time <= value["end"]):
                 self.tasks.pop(key)
 
-        _log.debug("Target: received demand goal schedule - start: {} - end: {} - target: {}.".format(start_time,
+        _log.debug("TARGET: received demand goal schedule - start: {} - end: {} - target: {}.".format(start_time,
                                                                                                       end_time,
                                                                                                       demand_goal))
         self.tasks[target_info["id"]] = {"start": start_time, "end": end_time, "target": demand_goal}

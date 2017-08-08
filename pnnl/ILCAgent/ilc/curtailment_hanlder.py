@@ -69,6 +69,7 @@ _log = logging.getLogger(__name__)
 
 def parse_sympy(data, condition=False):
     """
+    :param condition:
     :param data:
     :return:
     """
@@ -193,7 +194,7 @@ class CurtailmentManager(object):
             conditional_value = False
             if conditional_points:
                 conditional_value = self.expr[device_id].subs(conditional_points)
-        _log.debug('{} evaluated to {}'.format(self.condition[device_id], conditional_value))
+        _log.debug('{} (device status) evaluated to {}'.format(self.condition[device_id], conditional_value))
         self.command_status[device_id] = bool(conditional_value)
 
     def get_curtailment(self, device_id):
@@ -292,14 +293,14 @@ class ConditionalCurtailment(object):
         self.conditional_args = parse_sympy(conditional_args)
         self.points = symbols(self.conditional_args)
         self.conditional_expr = parse_sympy(condition, condition=True)
-        self.expr = parse_expr(self.conditional_expr)
+        self.conditional_curtail = parse_expr(self.conditional_expr)
         self.curtailment = CurtailmentSetting(**kwargs)
         self.conditional_points = []
 
     def check_condition(self):
         if self.conditional_points:
-            value = self.expr.subs(self.conditional_points)
-            _log.debug('{} evaluated to {}'.format(self.conditional_expr, value))
+            value = self.conditional_curtail.subs(self.conditional_points)
+            _log.debug('{} (conditional_curtail) evaluated to {}'.format(self.conditional_expr, value))
         else:
             value = False
         return value
@@ -308,7 +309,7 @@ class ConditionalCurtailment(object):
         point_list = []
         for point in self.conditional_args:
             point_list.append((point, data[point]))
-        self.point_list = point_list
+        self.conditional_points = point_list
 
     def get_curtailment(self):
         return self.curtailment.get_curtailment_dict()

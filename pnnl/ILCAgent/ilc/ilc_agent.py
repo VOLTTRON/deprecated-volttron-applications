@@ -456,7 +456,7 @@ class ILCAgent(Agent):
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            if len(self.bldg_power) < 1:
+            if len(self.bldg_power) < 15:
                 return
 
             self.check_load(average_power, current_time)

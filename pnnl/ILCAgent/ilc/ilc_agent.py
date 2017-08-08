@@ -479,7 +479,7 @@ class ILCAgent(Agent):
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            if len(self.bldg_power) < 15:
+            if len(self.bldg_power) < 5:
                 return
 
             self.check_load(average_power, current_time)
@@ -737,11 +737,11 @@ class ILCAgent(Agent):
 
             if current_time >= self.break_end:
                 _log.debug("Release all in contingency.")
-                self.reset_all_devices()
+                self.reinitialize_stagger()
             return
 
         _log.debug("Current devices held curtailed: {}".format(self.devices_curtailed))
-        self.reset_all_devices()
+        self.reinitialize_stagger()
 
     def stagger_release_setup(self):
         _log.debug("Number or curtailed devices: {}".format(len(self.devices_curtailed)))
@@ -851,7 +851,7 @@ class ILCAgent(Agent):
         self.devices_curtailed = []
         self.running_ahp = False
         self.device_group_size = None
-        self.release_devices()
+        self.reset_all_devices()
 
     def reset_all_devices(self):
         for device in self.scheduled_devices:

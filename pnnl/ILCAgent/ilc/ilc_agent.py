@@ -207,7 +207,6 @@ class ILCAgent(Agent):
         self.break_end = None
         self.reset_curtail_count = None
         self.kill_signal_received = False
-        self.power_data_count = 0
         self.scheduled_devices = set()
         self.devices_curtailed = []
         self.bldg_power = []
@@ -406,9 +405,8 @@ class ILCAgent(Agent):
             self.bldg_power.pop(0)
         elif current_power > 0:
             self.bldg_power.append((current_time, current_power))
-            self.power_data_count += 1.0
 
-        smoothing_constant = 2.2756 * self.power_data_count ** (-0.718) if self.power_data_count > 0 else 1.0
+        smoothing_constant = 2.0/(len(self.bldg_power) + 1.0) if self.bldg_power else 1.0
 
         power_sort = list(self.bldg_power)
         power_sort.sort(reverse=True)
@@ -479,7 +477,7 @@ class ILCAgent(Agent):
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            if len(self.bldg_power) < 5:
+            if len(self.bldg_power) < 15:
                 return
 
             self.check_load(average_power, current_time)

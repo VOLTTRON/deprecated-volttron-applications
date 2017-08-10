@@ -54,11 +54,12 @@ import logging
 import sys
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.driven import Results, AbstractDrivenAgent
+from volttron.platform.agent.utils import (setup_logging)
 from diagnostics.temperature_sensor_dx import TempSensorDx
 from diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
 from diagnostics.ventilation_dx import ExcessOA, InsufficientOA
 
-__version__ = "3.2"
+__version__ = "4.0"
 
 ECON1 = "Temperature Sensor Dx"
 ECON2 = "Not Economizing When Unit Should Dx"
@@ -75,6 +76,11 @@ OAT_LIMIT = -79.0
 RAT_LIMIT = -69.0
 MAT_LIMIT = -59.0
 TEMP_SENSOR = -49.0
+
+setup_logging()
+_log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
 
 
 def create_table_key(table_name, timestamp):
@@ -105,9 +111,9 @@ class Application(AbstractDrivenAgent):
                  low_supply_fan_threshold=20.0, mat_low_threshold=50.0, mat_high_threshold=90.0,
                  oat_low_threshold=30.0, oat_high_threshold=100.0, rat_low_threshold=50.0,
                  rat_high_threshold=90.0, temp_difference_threshold=4.0, oat_mat_check=5.0,
-                 open_damper_threshold=90.0, oaf_economizing_threshold=25.0, oaf_temperature_threshold=4.0,
+                 open_damper_threshold=40.0, oaf_economizing_threshold=50.0, oaf_temperature_threshold=4.0,
                  cooling_enabled_threshold=5.0, minimum_damper_setpoint=20.0, excess_damper_threshold=20.0,
-                 excess_oaf_threshold=20.0, desired_oaf=15.0, ventilation_oaf_threshold=5.0,
+                 excess_oaf_threshold=20.0, desired_oaf=10.0, ventilation_oaf_threshold=5.0,
                  temp_damper_threshold=90.0, rated_cfm=6000.0, eer=10.0,
                  sensitivity="all", **kwargs):
 
@@ -125,7 +131,7 @@ class Application(AbstractDrivenAgent):
 
         if sensitivity not in ["all", 'high', 'normal', 'low']:
             sensitivity = None
-        print("SENS: {}".format(sensitivity))
+        _log.debug("Current Sensitivity: {}".format(sensitivity))
         # data point name mapping
         self.fan_status_name = get_or_none("supply_fan_status")
         self.fan_sp_name = get_or_none("supply_fan_speed")
@@ -162,11 +168,11 @@ class Application(AbstractDrivenAgent):
         cfm = float(rated_cfm)
         eer = float(eer)
 
-        if sensitivity is not None:
+        if sensitivity is not None and sensitivity != "custom":
             temp_difference_threshold = {
-                'low': 6.0,
-                'normal': 4.0,
-                'high': 2.0
+                'low': max(temp_difference_threshold + 2.0, 6.0),
+                'normal': max(temp_difference_threshold, 4.0),
+                'high': max(temp_difference_threshold - 2.0, 2.0)
             }
             oat_mat_check = {
                 'low': oat_mat_check * 1.5,
@@ -174,42 +180,42 @@ class Application(AbstractDrivenAgent):
                 'high': oat_mat_check * 0.5
             }
             oaf_economizing_threshold = {
-                'low': 70.0,
-                'normal': 50.0,
-                'high': 30.0
+                'low': 90.0 - 3.0*minimum_damper_setpoint,
+                'normal': 90.0 - 2.0*minimum_damper_setpoint,
+                'high': 90.0 - minimum_damper_setpoint
             }
             open_damper_threshold = {
-                'low': 40.0,
-                'normal': 20.0,
-                'high': 10.0
+                'low': max(minimum_damper_setpoint*0.5, 10.0),
+                'normal': max(minimum_damper_setpoint, 20.0),
+                'high': max(minimum_damper_setpoint*2.0, 40.0)
             }
             excess_damper_threshold = {
-                'low': 50.0,
-                'normal': 30.0,
-                'high': 10.0
+                'low': minimum_damper_setpoint*2.0,
+                'normal': minimum_damper_setpoint,
+                'high':  minimum_damper_setpoint*0.5
             }
             excess_oaf_threshold = {
-                'low': 50.0,
-                'normal': 30.0,
-                'high': 20.0
+                'low': minimum_damper_setpoint*2.0 + 10.0,
+                'normal': minimum_damper_setpoint + 10.0,
+                'high': minimum_damper_setpoint*0.5 + 10.0
             }
             ventilation_oaf_threshold = {
-                'low': 10.0,
-                'normal': 5.0,
-                'high': 0.0
+                'low': desired_oaf*0.25,
+                'normal': desired_oaf*0.5,
+                'high': desired_oaf*0.75
             }
             if sensitivity != "all":
                 remove_sensitivities = [item for item in ['high', 'normal', 'low'] if item != sensitivity]
                 if remove_sensitivities:
                     for remove in remove_sensitivities:
                         temp_difference_threshold.pop(remove)
-                        oatemp_matemp_check.pop(remove)
+                        oat_mat_check.pop(remove)
                         oaf_economizing_threshold.pop(remove)
                         open_damper_threshold.pop(remove)
                         excess_damper_threshold.pop(remove)
                         excess_oaf_threshold.pop(remove)
                         ventilation_oaf_threshold.pop(remove)
-        else:
+        elif sensitivity == "custom":
             temp_difference_threshold = {'normal': temp_difference_threshold}
             oat_mat_check = {'normal': oat_mat_check}
             oaf_economizing_threshold = {'normal': oaf_economizing_threshold}
@@ -217,22 +223,40 @@ class Application(AbstractDrivenAgent):
             excess_damper_threshold = {'normal': excess_damper_threshold}
             excess_oaf_threshold = {'normal': excess_oaf_threshold}
             ventilation_oaf_threshold = {'normal': ventilation_oaf_threshold}
+        else:
+            temp_difference_threshold = {'normal': temp_difference_threshold}
+            oat_mat_check = {'normal': oat_mat_check}
+            oaf_economizing_threshold = {'normal': 90.0 - 2.0*minimum_damper_setpoint}
+            open_damper_threshold = {'normal': max(minimum_damper_setpoint, 10.0)}
+            excess_damper_threshold = {'normal': minimum_damper_setpoint}
+            excess_oaf_threshold = {'normal': minimum_damper_setpoint + 10.0}
+            ventilation_oaf_threshold = {'normal': 5.0}
 
         self.econ1 = TempSensorDx(data_window, no_required_data,
                                   temp_difference_threshold, open_damper_time,
-                                  oat_mat_check, temp_damper_threshold, analysis)
+                                  oat_mat_check, temp_damper_threshold,
+                                  analysis)
 
-        self.econ2 = EconCorrectlyOn(oaf_economizing_threshold, open_damper_threshold,
-                                     data_window, no_required_data, cfm, eer, analysis)
+        self.econ2 = EconCorrectlyOn(oaf_economizing_threshold,
+                                     open_damper_threshold,
+                                     minimum_damper_setpoint,
+                                     data_window, no_required_data,
+                                     cfm, eer, analysis)
 
-        self.econ3 = EconCorrectlyOff(data_window, no_required_data, minimum_damper_setpoint,
-                                      excess_damper_threshold, desired_oaf, cfm, eer, analysis)
+        self.econ3 = EconCorrectlyOff(data_window, no_required_data,
+                                      minimum_damper_setpoint,
+                                      excess_damper_threshold,
+                                      desired_oaf, cfm, eer, analysis)
 
-        self.econ4 = ExcessOA(data_window, no_required_data, excess_oaf_threshold,
-                              minimum_damper_setpoint, excess_damper_threshold,
+        self.econ4 = ExcessOA(data_window, no_required_data,
+                              excess_oaf_threshold,
+                              minimum_damper_setpoint,
+                              excess_damper_threshold,
                               desired_oaf, cfm, eer, analysis)
 
-        self.econ5 = InsufficientOA(data_window, no_required_data, ventilation_oaf_threshold, desired_oaf, analysis)
+        self.econ5 = InsufficientOA(data_window, no_required_data,
+                                    ventilation_oaf_threshold, desired_oaf,
+                                    analysis)
 
     def run(self, cur_time, points):
         """

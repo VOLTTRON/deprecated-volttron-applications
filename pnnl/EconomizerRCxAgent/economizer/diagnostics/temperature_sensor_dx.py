@@ -116,7 +116,7 @@ class TempSensorDx(object):
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                dx_msg = {'low': 3.2, 'normal': 3.2, 'high': 3.2}
+                dx_msg = {"low": 3.2, "normal": 3.2, "high": 3.2}
                 dx_result.insert_table_row(table_key, {ECON1 + DX: dx_msg})
                 self.clear_data()
                 return dx_result, self.temp_sensor_problem
@@ -158,15 +158,14 @@ class TempSensorDx(object):
                 msg = "{}: No problems were detected - Sensitivity: {}".format(ECON1, key)
                 result = 0.0
                 self.temp_sensor_problem = False
-
+            dx_result.log(msg)
             diagnostic_msg.update({key: result})
 
-        if diagnostic_msg['normal'] > 0.0:
+        if diagnostic_msg["normal"] > 0.0:
             self.temp_sensor_problem = True
 
         dx_table = {ECON1 + DX: diagnostic_msg}
         dx_result.insert_table_row(table_key, dx_table)
-        dx_result.log(msg)
         self.clear_data()
         return dx_result
 
@@ -244,8 +243,7 @@ class DamperSensorInconsistencyDx(object):
 
                 dx_table = {ECON1 + DX: diagnostic_msg}
                 dx_result.insert_table_row(table_key, dx_table)
-                self.oat_values = []
-                self.mat_values = []
+            self.clear_data()
         return dx_result
 
     def clear_data(self):

@@ -1,4 +1,4 @@
-'''
+"""
 Copyright (c) 2016, Battelle Memorial Institute
 All rights reserved.
 
@@ -47,18 +47,17 @@ United States Government or any agency thereof.
 PACIFIC NORTHWEST NATIONAL LABORATORY
 operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
-'''
-
+"""
 import math
 from .common import check_date, create_table_key, pre_conditions, check_run_status, setpoint_control_check
 from volttron.platform.agent.math_utils import mean
 
 INCONSISTENT_DATE = -89.0
 INSUFFICIENT_DATA = -79.0
-DUCT_STC_RCX = 'Duct Static Pressure Set Point Control Loop Dx'
-DUCT_STC_RCX1 = 'Low Duct Static Pressure Dx'
-DUCT_STC_RCX2 = 'High Duct Static Pressure Dx'
-DX = '/diagnostic message'
+DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
+DUCT_STC_RCX1 = "Low Duct Static Pressure Dx"
+DUCT_STC_RCX2 = "High Duct Static Pressure Dx"
+DX = "/diagnostic message"
 DX_LIST = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2]
 
 
@@ -180,14 +179,14 @@ class DuctStaticAIRCx(object):
                     aircx_stcpr_stpt = avg_stcpr_stpt + self.stcpr_retuning
                     if aircx_stcpr_stpt <= self.max_stcpr_stpt:
                         dx_result.command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
-                        stcpr_stpt = '%s' % float("%.2g" % aircx_stcpr_stpt)
+                        stcpr_stpt = "%s" % float("%.2g" % aircx_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too low. Set point increased to: {}".format(key,
-                                                                                                    stcpr_stpt)
+                                                                                                     stcpr_stpt)
                         result = 11.1
                     else:
                         dx_result.command(self.stcpr_stpt_cname, self.max_stcpr_stpt)
-                        stcpr_stpt = '%s' % float("%.2g" % self.max_stcpr_stpt)
+                        stcpr_stpt = "%s" % float("%.2g" % self.max_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too low. Set point increased to max {}.".format(key,
                                                                                                          stcpr_stpt)
@@ -233,14 +232,14 @@ class DuctStaticAIRCx(object):
                     aircx_stcpr_stpt = avg_stcpr_stpt - self.stcpr_retuning
                     if aircx_stcpr_stpt >= self.min_stcpr_stpt:
                         dx_result.command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
-                        stcpr_stpt = '%s' % float("%.2g" % aircx_stcpr_stpt)
+                        stcpr_stpt = "%s" % float("%.2g" % aircx_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too high. Set point decreased to: {}".format(key,
                                                                                                       stcpr_stpt)
                         result = 21.1
                     else:
                         dx_result.command(self.stcpr_stpt_cname, self.min_stcpr_stpt)
-                        stcpr_stpt = '%s' % float("%.2g" % self.min_stcpr_stpt)
+                        stcpr_stpt = "%s" % float("%.2g" % self.min_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too high. Set point decreased to min {}.".format(key,
                                                                                                           stcpr_stpt)

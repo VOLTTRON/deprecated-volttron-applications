@@ -71,18 +71,18 @@ from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
 import dateutil.tz
 
-__version__ = "3.6.0"
+__version__ = "4.0.0"
 
-__author1__ = 'Craig Allwardt <craig.allwardt@pnnl.gov>'
-__author2__ = 'Robert Lutes <robert.lutes@pnnl.gov>'
-__author3__ = 'Poorva Sharma <poorva.sharma@pnnl.gov>'
-__copyright__ = 'Copyright (c) 2016, Battelle Memorial Institute'
-__license__ = 'FreeBSD'
-DATE_FORMAT = '%m-%d-%y %H:%M'
+__author1__ = "Craig Allwardt <craig.allwardt@pnnl.gov>"
+__author2__ = "Robert Lutes <robert.lutes@pnnl.gov>"
+__author3__ = "Poorva Sharma <poorva.sharma@pnnl.gov>"
+__copyright__ = "Copyright (c) 2016, Battelle Memorial Institute"
+__license__ = "FreeBSD"
+DATE_FORMAT = "%m-%d-%y %H:%M"
 
 utils.setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.info, format='%(asctime)s   %(levelname)-8s %(message)s', datefmt=DATE_FORMAT)
+logging.basicConfig(level=logging.info, format="%(asctime)s   %(levelname)-8s %(message)s", datefmt=DATE_FORMAT)
 
 
 def driven_agent(config_path, **kwargs):
@@ -93,62 +93,62 @@ def driven_agent(config_path, **kwargs):
     :return:
     """
     config = utils.load_config(config_path)
-    arguments = config.get('arguments')
+    arguments = config.get("arguments")
 
-    actuation_mode = True if config.get('actuation_mode', 'PASSIVE') == 'ACTIVE' else False
-    actuator_lock_required = config.get('require_actuator_lock', False)
+    actuation_mode = True if config.get("actuation_mode", "PASSIVE") == "ACTIVE" else False
+    actuator_lock_required = config.get("require_actuator_lock", False)
 
-    campus = config['device'].get("campus", '')
-    building = config['device'].get("building", '')
-    analysis_name = config.get('analysis_name', 'analysis_name')
+    campus = config["device"].get("campus", "")
+    building = config["device"].get("building", "")
+    analysis_name = config.get("analysis_name", "analysis_name")
     publish_base = "/".join([analysis_name, campus, building])
     application_name = config.get("pretty_name", analysis_name)
-    arguments.update({'analysis_name': analysis_name})
+    arguments.update({"analysis_name": analysis_name})
 
-    device_config = config['device']['unit']
+    device_config = config["device"]["unit"]
     multiple_devices = isinstance(device_config, dict)
     command_devices = device_config.keys()
     device_topic_dict = {}
     device_topic_list = []
     subdevices_list = []
 
-    interval = config.get('interval', 60)
-    vip_destination = config.get('vip_destination', None)
-    timezone = config.get('local_timezone', 'US/Pacific')
+    interval = config.get("interval", 60)
+    vip_destination = config.get("vip_destination", None)
+    timezone = config.get("local_timezone", "US/Pacific")
 
     for device_name in device_config:
-        device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name, path='', point='all')
+        device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name, path="", point="all")
 
         device_topic_dict.update({device_topic: device_name})
         device_topic_list.append(device_name)
         if multiple_devices:
-            for subdevice in device_config[device_name]['subdevices']:
+            for subdevice in device_config[device_name]["subdevices"]:
                 subdevices_list.append(subdevice)
                 subdevice_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name,
-                                                       path=subdevice, point='all')
+                                                       path=subdevice, point="all")
 
                 subdevice_name = device_name + "/" + subdevice
                 device_topic_dict.update({subdevice_topic: subdevice_name})
                 device_topic_list.append(subdevice_name)
 
-    base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus, building=building, unit=None, path='', point=None)
+    base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus, building=building, unit=None, path="", point=None)
 
-    device_lock_duration = config.get('device_lock_duration', 10.0)
-    conversion_map = config.get('conversion_map')
+    device_lock_duration = config.get("device_lock_duration", 10.0)
+    conversion_map = config.get("conversion_map")
     map_names = {}
     for key, value in conversion_map.items():
         map_names[key.lower() if isinstance(key, str) else key] = value
 
-    application = config.get('application')
-    validation_error = ''
+    application = config.get("application")
+    validation_error = ""
     if not application:
-        validation_error = 'Invalid application specified in config\n'
+        validation_error = "Invalid application specified in config\n"
     if validation_error:
         _log.error(validation_error)
         raise ValueError(validation_error)
 
     converter = ConversionMapper()
-    # output_file_prefix = config.get('output_file')
+    # output_file_prefix = config.get("output_file")
 
     klass = _get_class(application)
     # This instances is used to call the applications run method when
@@ -190,7 +190,7 @@ def driven_agent(config_path, **kwargs):
             self.needed_devices = self.master_devices[:]
             self.device_values = {}
 
-        @Core.receiver('onstart')
+        @Core.receiver("onstart")
         def startup(self, sender, **kwargs):
             """
             Starts up the agent and subscribes to device topics
@@ -200,8 +200,8 @@ def driven_agent(config_path, **kwargs):
             :type sender: str
             """
             for device in device_topic_dict:
-                _log.info('Subscribing to ' + device)
-                self.vip.pubsub.subscribe(peer='pubsub', prefix=device, callback=self.on_analysis_message)
+                _log.info("Subscribing to " + device)
+                self.vip.pubsub.subscribe(peer="pubsub", prefix=device, callback=self.on_analysis_message)
 
         def _should_run_now(self):
             """
@@ -226,7 +226,7 @@ def driven_agent(config_path, **kwargs):
             if device_tag not in self.needed_devices:
                 return False
             for key, value in device_data.items():
-                device_data_tag = '&'.join([key, device_tag])
+                device_data_tag = "&".join([key, device_tag])
                 tagged_device_data[device_data_tag] = value
             self.device_values.update(tagged_device_data)
             self.needed_devices.remove(device_tag)
@@ -250,7 +250,7 @@ def driven_agent(config_path, **kwargs):
             :type headers: dict
             :type message: dict
             """
-            timestamp = parse(headers.get('Date'))
+            timestamp = parse(headers.get("Date"))
             missing_but_running = False
             if self.initialize_time is None and len(self.master_devices) > 1:
                 self.initialize_time = find_reinitialize_time(timestamp)
@@ -262,7 +262,7 @@ def driven_agent(config_path, **kwargs):
             to_zone = dateutil.tz.gettz(timezone)
             timestamp = timestamp.astimezone(to_zone)
             self.received_input_datetime = timestamp
-            _log.debug('Current time of publish: {}'.format(timestamp))
+            _log.debug("Current time of publish: {}".format(timestamp))
 
             device_data = message[0]
             if isinstance(device_data, list):
@@ -272,21 +272,20 @@ def driven_agent(config_path, **kwargs):
             if not device_needed:
                 fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
                 if fraction_missing < 0.10:
-                    _log.error("Warning device values already present, reinitializing at publish: {}".format(timestamp))
+                    _log.error("Device values already present, reinitializing at publish: {}".format(timestamp))
                     self.initialize_devices()
                     device_needed = self.aggregate_subdevice(device_data, topic)
                     return
                 missing_but_running = True
-                _log.warning(
-                    "Warning device values already present. Using available data for diagnostic.: {}".format(timestamp))
-                _log.warning(
-                    "Warning device values already present: -- {} -- {} -- {} -- {}".format(topic, self.master_devices,
-                                                                                            self.needed_devices))
+                _log.warning("Device already present. Using available data for diagnostic.: {}".format(timestamp))
+                _log.warning("Device  already present - topic: {}".format(topic))
+                _log.warning("All devices: {}".format(self.master_devices))
+                _log.warning("Needed devices: {}".format(self.needed_devices))
 
             if self._should_run_now() or missing_but_running:
                 field_names = {}
-                for key, value in self.device_values.items():
-                    field_names[key.lower() if isinstance(key, str) else key] = value
+                for point, data in self.device_values.items():
+                    field_names[point.lower() if isinstance(point, str) else point] = data
                 if not converter.initialized and conversion_map is not None:
                     converter.setup_conversion_map(map_names, field_names)
 
@@ -309,7 +308,7 @@ def driven_agent(config_path, **kwargs):
             :returns: Same as results param.
             :rtype: Results object \\volttron.platform.agent.driven
             """
-            _log.info('Processing Results!')
+            _log.info("Processing Results!")
             actuator_error = False
             if actuation_mode:
                 if results.devices and actuator_lock_required:
@@ -342,7 +341,7 @@ def driven_agent(config_path, **kwargs):
             to_publish = defaultdict(dict)
             for app, analysis_table in results.table_output.items():
                 try:
-                    name_timestamp = app.split('&')
+                    name_timestamp = app.split("&")
                     timestamp = name_timestamp[1]
                 except:
                     timestamp = self.received_input_datetime
@@ -358,7 +357,7 @@ def driven_agent(config_path, **kwargs):
                             to_publish[analysis_topic] = result
 
                 for result_topic, result in to_publish.items():
-                    self.vip.pubsub.publish('pubsub', result_topic, headers, result)
+                    self.vip.pubsub.publish("pubsub", result_topic, headers, result)
                 to_publish.clear()
             return results
 
@@ -375,16 +374,16 @@ def driven_agent(config_path, **kwargs):
             tag = 0
             for key, value in results.table_output.items():
                 for row in value:
-                    name_timestamp = key.split('&')
+                    name_timestamp = key.split("&")
                     _name = name_timestamp[0]
                     timestamp = name_timestamp[1]
-                    file_name = output_file_prefix + "-" + _name + str(tag) + ".csv"
+                    file_name = _name + str(tag) + ".csv"
                     tag += 1
                     if file_name not in self.file_creation_set:
                         self._header_written = False
                     self.file_creation_set.update([file_name])
-                    with open(file_name, 'a+') as file_to_write:
-                        row.update({'Timestamp': timestamp})
+                    with open(file_name, "a+") as file_to_write:
+                        row.update({"Timestamp": timestamp})
                         _keys = row.keys()
                         file_output = csv.DictWriter(file_to_write, _keys)
                         if not self._header_written:
@@ -396,7 +395,7 @@ def driven_agent(config_path, **kwargs):
 
         def actuator_request(self, command_equip):
             """
-            Calls the actuator's request_new_schedule method to get
+            Calls the actuator"s request_new_schedule method to get
                     device schedule
             :param command_equip: contains the names of the devices
                 that will be scheduled with the ActuatorAgent.
@@ -416,21 +415,21 @@ def driven_agent(config_path, **kwargs):
             _end = _now + td(minutes=device_lock_duration)
             str_end = format_timestamp(_end)
             for device in command_equip:
-                actuation_device = base_actuator_path(unit=device, point='')
+                actuation_device = base_actuator_path(unit=device, point="")
                 schedule_request = [[actuation_device, str_now, str_end]]
                 try:
-                    _log.info('Make Request {} for start {} and end {}'.format(actuation_device, str_now, str_end))
-                    result = self.actuation_vip.call('platform.actuator', 'request_new_schedule', actuator_id,
-                                                     actuation_device, 'HIGH', schedule_request).get(timeout=15)
+                    _log.info("Make Request {} for start {} and end {}".format(actuation_device, str_now, str_end))
+                    result = self.actuation_vip.call("platform.actuator", "request_new_schedule", "rcx",
+                                                     actuation_device, "HIGH", schedule_request).get(timeout=15)
                 except RemoteError as ex:
                     _log.warning("Failed to schedule device {} (RemoteError): {}".format(device, str(ex)))
                     request_error = True
-                if result['result'] == 'FAILURE':
-                    if result['info'] == 'TASK_ID_ALREADY_EXISTS':
-                        _log.info('Task to schedule device already exists ' + device)
+                if result["result"] == "FAILURE":
+                    if result["info"] == "TASK_ID_ALREADY_EXISTS":
+                        _log.info("Task to schedule device already exists " + device)
                         request_error = False
                     else:
-                        _log.warning('Failed to schedule device (unavailable) ' + device)
+                        _log.warning("Failed to schedule device (unavailable) " + device)
                         request_error = True
                 else:
                     request_error = False
@@ -439,7 +438,7 @@ def driven_agent(config_path, **kwargs):
 
         def actuator_set(self, results):
             """
-            Calls the actuator's set_point method to set point on device
+            Calls the actuator"s set_point method to set point on device
 
             :param results: Results object containing commands for devices,
                     log messages and table data.
@@ -449,8 +448,8 @@ def driven_agent(config_path, **kwargs):
                 for point, new_value in point_value_dict.items():
                     point_path = base_actuator_path(unit=device, point=point)
                     try:
-                        _log.info('Set point {} to {}'.format(point_path, new_value))
-                        result = self.actuation_vip.call('platform.actuator', 'set_point', actuator_id, point_path,
+                        _log.info("Set point {} to {}".format(point_path, new_value))
+                        result = self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path,
                                                          new_value).get(timeout=15)
                     except RemoteError as ex:
                         _log.warning("Failed to set {} to {}: {}".format(point_path, new_value, str(ex)))
@@ -470,7 +469,7 @@ def driven_agent(config_path, **kwargs):
         previous_in_seconds = seconds_from_midnight - offset
         next_in_seconds = previous_in_seconds + interval
         from_midnight = td(seconds=next_in_seconds)
-        _log.debug('Start of next scrape interval: {}'.format(midnight + from_midnight))
+        _log.debug("Start of next scrape interval: {}".format(midnight + from_midnight))
         return midnight + from_midnight
 
     def setup_remote_actuation(vip_destination):
@@ -480,13 +479,13 @@ def driven_agent(config_path, **kwargs):
         event.wait(timeout=15)
         return agent
 
-    DrivenAgent.__name__ = 'DrivenLoggerAgent'
+    DrivenAgent.__name__ = "DrivenLoggerAgent"
     return DrivenAgent(**kwargs)
 
 
 def _get_class(kls):
     """Get driven application information."""
-    parts = kls.split('.')
+    parts = kls.split(".")
     module = ".".join(parts[:-1])
     main_mod = __import__(module)
     for comp in parts[1:]:
@@ -495,11 +494,11 @@ def _get_class(kls):
 
 
 def main(argv=sys.argv):
-    ''' Main method.'''
+    """ Main method."""
     utils.vip_main(driven_agent)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Entry point for script
     try:
         sys.exit(main())

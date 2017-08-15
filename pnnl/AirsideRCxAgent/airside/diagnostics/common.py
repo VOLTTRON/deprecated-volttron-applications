@@ -1,5 +1,5 @@
-'''
-Copyright (c) 2016, Battelle Memorial Institute
+"""
+Copyright (c) 2017, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,17 +48,23 @@ United States Government or any agency thereof.
 PACIFIC NORTHWEST NATIONAL LABORATORY
 operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
-'''
-import datetime
+"""
 from datetime import timedelta as td
-
+from volttron.platform.agent.math_utils import mean
+DX = '/diagnostic message'
 """Common functions used across multiple algorithms."""
 
 
-def check_date(current_time, timestamp_array):
-    """Check current timestamp with previous timestamp
+def create_table_key(table_name, timestamp):
+    return "&".join([table_name, timestamp.isoformat()])
 
-    to verify that there are no large missing data gaps.
+
+def check_date(current_time, timestamp_array):
+    """
+    Check current timestamp with previous timestamp to verify that there are no large missing data gaps.
+    :param current_time:
+    :param timestamp_array:
+    :return:
     """
     if not timestamp_array:
         return False
@@ -70,6 +76,13 @@ def check_date(current_time, timestamp_array):
 
 
 def validation_builder(validate, dx_name, data_tag):
+    """
+
+    :param validate:
+    :param dx_name:
+    :param data_tag:
+    :return:
+    """
     data = {}
     for key, value in validate.items():
         tag = dx_name + data_tag + key
@@ -77,62 +90,94 @@ def validation_builder(validate, dx_name, data_tag):
     return data
 
 
-def check_run_status(timestamp_array, current_time, no_required_data, minimum_diagnostic_time=None):
-    """The diagnostics run at a regular interval (some minimum elapsed amount of time) and have a
-       minimum data count requirement (each time series of data must contain some minimum number
-       of points).
-       ARGS:
-            timestamp_array(list(datetime)): ordered array of timestamps associated with building
-                data.
-            no_required_data(integer):  The minimum number of measurements for each time series used
-                in the analysis.
+def check_run_status(timestamp_array, current_time, no_required_data, minimum_diagnostic_time=None,
+                     run_schedule="hourly", minimum_point_array=None):
+    """
+    The diagnostics run at a regular interval (some minimum elapsed amount of time) and have a
+    minimum data count requirement (each time series of data must contain some minimum number of points).
+    :param timestamp_array:
+    :param current_time:
+    :param no_required_data:
+    :param minimum_diagnostic_time:
+    :param run_schedule:
+    :param minimum_point_array:
+    :return:
     """
     def minimum_data():
-        if len(timestamp_array) < no_required_data:
+        min_data_array = timestamp_array if minimum_point_array is None else minimum_point_array
+        if len(min_data_array) < no_required_data:
             return None
         return True
+
     if minimum_diagnostic_time is not None:
         sampling_interval = (timestamp_array[-1] - timestamp_array[0])/len(timestamp_array)
         required_time = (timestamp_array[-1] - timestamp_array[0]) + sampling_interval
         if required_time >= minimum_diagnostic_time:
-             return minimum_data()
+            return minimum_data()
         return False
-    if timestamp_array and timestamp_array[-1].hour != current_time.hour:
-        return minimum_data()
+
+    if run_schedule == "hourly":
+        if timestamp_array and timestamp_array[-1].hour != current_time.hour:
+            return minimum_data()
+    elif run_schedule == "daily":
+        if timestamp_array and timestamp_array[-1].date() != current_time.date():
+            return minimum_data()
     return False
 
 
-def setpoint_control_check(setpoint_array, point_array, allowable_deviation,
-                           dx_name, dx_tag, token, token_offset):
-    """Verify that point is tracking well with set point.
-        ARGS:
-            setpoint_array (list(floats):
+def setpoint_control_check(set_point_array, point_array, allowable_deviation, dx_name, dx_offset, dx_result):
     """
-    average_setpoint = None
-    setpoint_array = [float(pt) for pt in setpoint_array if pt !=0]
-    if setpoint_array:
-        average_setpoint = sum(setpoint_array)/len(setpoint_array)
-        zipper = (setpoint_array, point_array)
-        stpt_tracking = [abs(x - y) for x, y in zip(*zipper)]
-        stpt_tracking = (sum(stpt_tracking)/len(stpt_tracking))/average_setpoint*100
+    Verify that point if tracking with set point - identify potential control or sensor problems.
+    :param set_point_array:
+    :param point_array:
+    :param allowable_deviation:
+    :param dx_name:
+    :param dx_offset:
+    :param dx_result:
+    :return:
+    """
+    avg_set_point = None
+    set_point_array = [float(pt) for pt in set_point_array if pt != 0]
+    diagnostic_msg = {}
+    for key, deviation_threshold in allowable_deviation.items():
+        if set_point_array:
+            avg_set_point = sum(set_point_array)/len(set_point_array)
+            zipper = (set_point_array, point_array)
+            set_point_tracking = [abs(x - y) for x, y in zip(*zipper)]
+            set_point_tracking = mean(set_point_tracking)/avg_set_point*100
 
-        if stpt_tracking > allowable_deviation:
-            # color_code = 'red'
-            msg = ('{pt} is deviating significantly '
-                   'from the {pt} set point.'.format(pt=token))
-            dx_msg = 1.1 + token_offset
-            dx_table = {dx_name + dx_tag: dx_msg}
+            if set_point_tracking > deviation_threshold:
+                # color_code = 'red'
+                msg = '{} - {}: point deviating significantly from set point.'.format(key, dx_name)
+                result = 1.1 + dx_offset
+            else:
+                # color_code = 'green'
+                msg = " {} - No problem detected or {} set".format(key, dx_name)
+                result = 0.0 + dx_offset
         else:
-            # color_code = 'green'
-            msg = 'No problem detected.'
-            dx_msg = 0.0 + token_offset
-            dx_table = {dx_name + dx_tag: dx_msg}
-    else:
-        # color_code = 'grey'
-        msg = ('{} set point data is not available. '
-               'The Set Point Control Loop Diagnostic'
-               'requires set point '
-               'data.'.format(token))
-        dx_msg = 2.2 + token_offset
-        dx_table = {dx_name + dx_tag: dx_msg}
-    return average_setpoint, dx_table
+            # color_code = 'grey'
+            msg = "{} - {} set point data is not available.".format(key, dx_name)
+            result = 2.2 + dx_offset
+        dx_result.log(msg)
+        diagnostic_msg.update({key: result})
+        dx_table = {dx_name + DX: diagnostic_msg}
+
+    return avg_set_point, dx_table, dx_result
+
+
+def pre_conditions(message, dx_list, analysis, cur_time, dx_result):
+    """
+    Check for persistence of failure to meet pre-conditions for diagnostics.
+    :param message:
+    :param dx_list:
+    :param analysis:
+    :param cur_time:
+    :param dx_result:
+    :return:
+    """
+    dx_msg = {'low': message, 'normal': message, 'high': message}
+    for diagnostic in dx_list:
+        dx_table = {diagnostic + DX: dx_msg}
+        table_key = create_table_key(analysis, cur_time)
+        dx_result.insert_table_row(table_key, dx_table)
+    return dx_result

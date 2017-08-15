@@ -60,7 +60,6 @@ import sys
 import gevent
 from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
-from copy import deepcopy
 from dateutil.parser import parse
 
 from volttron.platform.agent import utils

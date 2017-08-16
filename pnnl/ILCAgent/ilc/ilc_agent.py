@@ -58,7 +58,7 @@ under Contract DE-AC05-76RL01830
 import os
 import sys
 import logging
-from datetime import timedelta as td
+from datetime import timedelta as td, datetime as dt
 from dateutil import parser
 import gevent
 import dateutil.tz
@@ -185,7 +185,12 @@ class ILCAgent(Agent):
            self.kill_device_topic = topics.DEVICES_VALUE(campus=campus, building=building,
                                                          unit=kill_device, path="", point="all")
         demand_limit = config["demand_limit"]
-        self.demand_limit = float(demand_limit) if demand_limit != "trigger" else None
+        if isinstance(demand_limit, (int, float)):
+            self.demand_limit = float(demand_limit)
+        else:
+            self.demand_limit = None
+        self.demand_schedule = config.get("demand_schedule")
+
         self.curtail_time = td(minutes=config.get("curtailment_time", 15))
         self.average_building_power_window = td(minutes=config.get("average_building_power_window", 15))
         self.curtail_confirm = td(minutes=config.get("curtailment_confirm", 5))
@@ -242,9 +247,30 @@ class ILCAgent(Agent):
 
         demand_limit_handler = self.demand_limit_handler if not self.simulation_running else self.simulation_demand_limit_handler
 
+        if self.demand_schedule is not None:
+            self.setup_demand_schedule()
+
         self.vip.pubsub.subscribe(peer="pubsub", prefix=self.target_agent_subscription, callback=demand_limit_handler)
         _log.debug("Target agent subscription: " + self.target_agent_subscription)
         self.vip.pubsub.publish("pubsub", self.ilc_start_topic, headers={}, message={})
+
+    def setup_demand_schedule(self):
+        self.tasks = {}
+        current_time = dt.now()
+        demand_goal = self.demand_schedule[0]
+
+        start = parser.parse(self.demand_schedule[1])
+        end = parser.parse(self.demand_schedule[2])
+
+        start = current_time.replace(hour=start.hour, minute=start.minute) + td(day=1)
+        end = current_time.replace(hour=end.hour, minute=end.minute) + td(day=1)
+        _log.debug("Setting demand goal target {] -  start: {} - end: {}".format(demand_goal, start, end))
+        self.tasks[start] = {
+            "schedule": [
+                self.core.schedule(start, self.demand_limit_update, demand_goal, start),
+                self.core.schedule(end, self.demand_limit_update, None, start)
+            ]
+        }
 
     def new_data(self, peer, sender, bus, topic, headers, message):
         """
@@ -357,8 +383,10 @@ class ILCAgent(Agent):
         """
         _log.debug("Updating demand limit: {}".format(demand_goal))
         self.demand_limit = demand_goal
-        if demand_goal is None:
+        if demand_goal is None and self.tasks and task_id in self.tasks:
             self.tasks.pop(task_id)
+            if self.demand_schedule is not None:
+                self.setup_demand_schedule()
 
     def handle_agent_kill(self, peer, sender, bus, topic, headers, message):
         """

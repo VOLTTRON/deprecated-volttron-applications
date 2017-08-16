@@ -264,7 +264,7 @@ class ILCAgent(Agent):
 
         start = current_time.replace(hour=start.hour, minute=start.minute) + td(days=1)
         end = current_time.replace(hour=end.hour, minute=end.minute) + td(days=1)
-        _log.debug("Setting demand goal target {] -  start: {} - end: {}".format(demand_goal, start, end))
+        _log.debug("Setting demand goal target {} -  start: {} - end: {}".format(demand_goal, start, end))
         self.tasks[start] = {
             "schedule": [
                 self.core.schedule(start, self.demand_limit_update, demand_goal, start),

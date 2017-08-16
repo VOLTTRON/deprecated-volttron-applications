@@ -180,10 +180,10 @@ class ILCAgent(Agent):
         self.kill_device_topic = None
         kill_token = config.get("kill_switch")
         if kill_token is not None:
-           kill_device = kill_token["device"]
-           self.kill_pt = kill_token["point"]
-           self.kill_device_topic = topics.DEVICES_VALUE(campus=campus, building=building,
-                                                         unit=kill_device, path="", point="all")
+            kill_device = kill_token["device"]
+            self.kill_pt = kill_token["point"]
+            self.kill_device_topic = topics.DEVICES_VALUE(campus=campus, building=building,
+                                                          unit=kill_device, path="", point="all")
         demand_limit = config["demand_limit"]
         if isinstance(demand_limit, (int, float)):
             self.demand_limit = float(demand_limit)
@@ -312,11 +312,11 @@ class ILCAgent(Agent):
             curtailment_topic = "/".join([self.update_base_topic, device_name[0], subdevice])
             curtailment_status = "Active" if currently_curtailed else "Inactive"
             curtailment_message = [
-               {
-                   "DeviceState": curtailment_status
+                {
+                    "DeviceState": curtailment_status
                 },
                 {
-                   "DeviceState": {"tz": "US/Pacific", "type": "string"}
+                    "DeviceState": {"tz": "US/Pacific", "type": "string"}
                 }
             ]
             self.vip.pubsub.publish('pubsub', curtailment_topic, headers=headers, message=curtailment_message).get(timeout=15.0)
@@ -984,13 +984,13 @@ class ILCAgent(Agent):
     def simulation_demand_limit_handler(self, peer, sender, bus, topic, headers, message):
         """
         Simulation handler for TargetAgent.
-        :param peer: 
-        :param sender: 
-        :param bus: 
-        :param topic: 
-        :param headers: 
-        :param message: 
-        :return: 
+        :param peer:
+        :param sender:
+        :param bus:
+        :param topic:
+        :param headers:
+        :param message:
+        :return:
         """
         if isinstance(message, list):
             target_info = message[0]["value"]

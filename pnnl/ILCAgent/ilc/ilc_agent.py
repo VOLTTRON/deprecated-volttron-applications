@@ -262,8 +262,8 @@ class ILCAgent(Agent):
         start = parser.parse(self.demand_schedule[1])
         end = parser.parse(self.demand_schedule[2])
 
-        start = current_time.replace(hour=start.hour, minute=start.minute) + td(day=1)
-        end = current_time.replace(hour=end.hour, minute=end.minute) + td(day=1)
+        start = current_time.replace(hour=start.hour, minute=start.minute) + td(days=1)
+        end = current_time.replace(hour=end.hour, minute=end.minute) + td(days=1)
         _log.debug("Setting demand goal target {] -  start: {} - end: {}".format(demand_goal, start, end))
         self.tasks[start] = {
             "schedule": [

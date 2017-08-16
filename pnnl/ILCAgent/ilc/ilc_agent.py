@@ -75,7 +75,7 @@ from ilc.curtailment_hanlder import CurtailmentCluster, CurtailmentContainer
 from ilc.criteria_handler import CriteriaContainer, CriteriaCluster, parse_sympy
 
 
-__version__ = "2.0.1"
+__version__ = "3.0.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -406,8 +406,8 @@ class ILCAgent(Agent):
         elif current_power > 0:
             self.bldg_power.append((current_time, current_power))
 
-        smoothing_constant = 2.0/(len(self.bldg_power) + 1.0) if self.bldg_power else 1.0
-
+        smoothing_constant = 2.0/(len(self.bldg_power) + 1.0)*2.0 if self.bldg_power else 1.0
+        smoothing_constant = smoothing_constant if smoothing_constant <= 1.0 else 1.0
         power_sort = list(self.bldg_power)
         power_sort.sort(reverse=True)
         average_power = 0
@@ -804,7 +804,7 @@ class ILCAgent(Agent):
             _log.debug("Returned revert value: {}".format(revert_value))
 
             try:
-                if revert_value:
+                if revert_value is not None:
                     result = self.vip.rpc.call(actuator, "set_point", "ilc", curtailed_point, revert_value).get(timeout=5)
                     _log.debug("Reverted point: {} to value: {}".format(curtailed_point, revert_value))
                 else:

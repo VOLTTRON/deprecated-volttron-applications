@@ -12,7 +12,6 @@
         }
     },
     "analysis_name": "Economizer_RCx",
-    "output_file": "./junk.csv",
 
     "mode": "PASSIVE",
 

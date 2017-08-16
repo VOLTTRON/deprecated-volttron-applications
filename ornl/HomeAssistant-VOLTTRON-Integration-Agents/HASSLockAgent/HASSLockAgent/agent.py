@@ -54,7 +54,7 @@ import requests
 utils.setup_logging()
 _log = logging.getLogger(__name__)
 __version__ = '3.0'
-
+record_topic = 'record/'
 
 class HASSLockAgent(Agent):
     
@@ -78,7 +78,7 @@ class HASSLockAgent(Agent):
         
         
         
-    @PubSub.subscribe('pubsub', 'hass/lock/')
+    @PubSub.subscribe('pubsub', record_topic + 'hass/lock/')
     def on_match(self, peer, sender, bus,  topic, headers, message):
         '''
         subscribes to the messages received from HASS Agent about the lock components loaded on HASS API
@@ -105,9 +105,9 @@ class HASSLockAgent(Agent):
                 
                 msg = "No data was received from HASS API, Please check the connection to the API and the Agent configuration file"
                 
-                self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/error',
-                                message= msg,
+                self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/error',
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)
             
             else: 
@@ -124,9 +124,9 @@ class HASSLockAgent(Agent):
                         '''
                         msg =  entry['attributes']
                         
-                        self.vip.pubsub.publish(peer='pubsub',
-                                topic='hass/lock/' + entityId,
-                                message= msg,
+                        self.vip.pubsub.publish(peer = 'pubsub',
+                                topic = record_topic + 'hass/lock/' + entityId,
+                                message = msg,
                                 headers = {'AgentId':self.agentId}).get(timeout=10)              
                                 
         except requests.exceptions.RequestException as e:

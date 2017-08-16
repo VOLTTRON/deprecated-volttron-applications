@@ -276,7 +276,9 @@ class CurtailmentSetting(object):
                 'load': self.load,
                 'offset': self.offset,
                 'revert_priority': self.revert_priority,
-                'curtailment_method': self.curtailment_method
+                'curtailment_method': self.curtailment_method,
+                'maximum': self.maximum,
+                'minimum': self.minimum
             }
         elif self.curtailment_method.lower() == 'value':
             return {
@@ -284,7 +286,9 @@ class CurtailmentSetting(object):
                 'load': self.load,
                 'value': self.value,
                 'revert_priority': self.revert_priority,
-                'curtailment_method': self.curtailment_method
+                'curtailment_method': self.curtailment_method,
+                'maximum': self.maximum,
+                'minimum': self.minimum
             }
 
 

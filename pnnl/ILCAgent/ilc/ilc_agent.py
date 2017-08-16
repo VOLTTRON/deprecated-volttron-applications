@@ -99,7 +99,7 @@ class ILCAgent(Agent):
             self.dashboard_topic = self.dashboard_topic + campus + "/"
         if building is not None and building:
             self.dashboard_topic = self.dashboard_topic + building
-        self.ilc_topic = self.dashboard_topic[:-1]
+        self.ilc_topic = self.dashboard_topic[:]
         # --------------------------------------------------------------------------------
 
         # For Target agent updates...
@@ -692,10 +692,17 @@ class ILCAgent(Agent):
                 value = self.vip.rpc.call(device_actuator, "get_point", point_get).get(timeout=5)
                 equation_point_values.append((point, value))
 
-            curtail_value = float(max(curtail["minimum"],
-                                      min(equation.subs(equation_point_values), curtail["maximum"])))
+            curtail_value = float(equation.subs(equation_point_values))
         else:
             curtail_value = curtail["value"]
+
+        if None not in [curtail["minimum"], curtail["maximum"]]:
+            curtail_value = max(curtail["minimum"], min(curtail_value, curtail["maximum"]))
+        elif curtail["minimum"] is not None and curtail["maximum"] is None:
+            curtail_value = max(curtail["minimum"], curtail_value)
+        elif curtail["maximum"] is not None and curtail["minimum"] is None:
+            curtail_value = min(curtail["maximum"], curtail_value)
+
         return curtail_point, curtail_value, curtail_load, revert_priority, revert_value
 
     def confirm_curtail(self, cur_pwr, now):
@@ -797,7 +804,7 @@ class ILCAgent(Agent):
             _log.debug("Returned revert value: {}".format(revert_value))
 
             try:
-                if revert_value is not None:
+                if revert_value:
                     result = self.vip.rpc.call(actuator, "set_point", "ilc", curtailed_point, revert_value).get(timeout=5)
                     _log.debug("Reverted point: {} to value: {}".format(curtailed_point, revert_value))
                 else:
@@ -831,9 +838,9 @@ class ILCAgent(Agent):
                 current_device_list.append(curtailed)
 
         if len(current_device_list) <= 1:
-            return revert_value
+            return None
 
-        index_value = min(current_device_list, key=lambda t: t[3])
+        index_value = max(current_device_list, key=lambda t: t[2])
         return_value = index_value[2]
         _log.debug("Stored revert value: {} for device: {}".format(return_value, device))
         curtail_set_index = self.devices_curtailed.index(index_value)
@@ -859,7 +866,6 @@ class ILCAgent(Agent):
                 _log.debug("Revert device: {} with return value {}".format(release_all_device, release_all))
             except RemoteError as ex:
                 _log.warning("Failed revert all on device {} (RemoteError): {}".format(release_all_device, str(ex)))
-                continue
             result = self.vip.rpc.call(device[1], "request_cancel_schedule", self.agent_id, device[0]).get(timeout=10)
         self.scheduled_devices = set()
 

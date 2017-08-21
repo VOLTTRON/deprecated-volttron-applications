@@ -1,0 +1,342 @@
+{
+    "HP1": {
+        "FirstStageCooling": { 
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1.0,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP2": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 4.4,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1.0,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP3": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.5,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1.0,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },    
+    "HP4": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1.0,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP5": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1.0,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP7": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP8": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP9": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP10": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 6.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "FirstStageCooling"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    },
+    "HP11": {
+        "FirstStageCooling": {
+            "zonetemperature-setpoint":{
+                "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
+                "operation_type": "formula",
+                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "minimum": 0,
+                "maximum": 10
+            },
+            "rated-power": {
+                "on_value": 4.0,
+                "off_value": 0.0,
+                "operation_type": "status",
+                "point_name": "CompressorCommand"
+            },
+            "room-type": {
+                "map_key": "Office",
+                "operation_type": "mapper",
+                "dict_name": "zone_type"
+            },
+            "stage": {
+                "value": 1,
+                "operation_type": "constant"
+            },
+            "history-zonetemperature": {
+                "comparison_type": "direct",
+                "operation_type": "history",
+                "point_name": "AverageZoneTemperature",
+                "previous_time": 15,
+                "minimum": 0,
+                "maximum": 10
+            }
+        }
+    }
+}

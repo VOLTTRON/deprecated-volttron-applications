@@ -139,7 +139,7 @@ class DuctStaticAIRCx(object):
                 dx_result = self.low_stcpr_aircx(dx_result, avg_stcpr_stpt, low_sf_cond)
                 dx_result = self.high_stcpr_aircx(dx_result, avg_stcpr_stpt, high_sf_cond)
                 self.reinitialize()
-                return dx_result
+            return dx_result
         finally:
             self.stcpr_stpt_array.append(mean(stcpr_data))
             self.stcpr_array.append(mean(stcpr_stpt_data))

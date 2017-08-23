@@ -150,9 +150,9 @@ class SchedResetAIRCx(object):
         schedule = self.schedule[current_time.weekday()]
         try:
             run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, run_schedule="daily")
-            schedule_name = create_table_key(self.analysis, self.timestamp_array[0])
 
             if run_status is None:
+                schedule_name = create_table_key(self.analysis, self.timestamp_array[0])
                 dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
                 dx_result = pre_conditions(INSUFFICIENT_DATA, [SCHED_RCX], schedule_name, current_time, dx_result)
                 self.reinitialize_sched()
@@ -184,8 +184,10 @@ class SchedResetAIRCx(object):
             stcpr_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
                                                 run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
 
-            self.reset_table_key = create_table_key(self.analysis, self.timestamp_array[0])
-            reset_name = create_table_key(self.analysis, self.timestamp_array[0])
+            if not self.timestamp_array:
+                return dx_result
+
+            self.reset_table_key = reset_name = create_table_key(self.analysis, self.timestamp_array[0])
             if stcpr_run_status is None:
                 dx_result.log("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
                 dx_result = pre_conditions(INSUFFICIENT_DATA, [DUCT_STC_RCX3], reset_name, current_time, dx_result)

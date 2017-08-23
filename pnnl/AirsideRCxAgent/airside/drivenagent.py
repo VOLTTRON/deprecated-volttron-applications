@@ -63,7 +63,7 @@ from datetime import datetime as dt, timedelta as td
 from dateutil.parser import parse
 
 from volttron.platform.agent import utils
-from volttron.platform.agent.utils import (setup_logging, jsonapi, get_aware_utc_now, format_timestamp)
+from volttron.platform.agent.utils import (setup_logging, get_aware_utc_now, format_timestamp)
 from volttron.platform.vip.agent import Agent, Core
 from volttron.platform.jsonrpc import RemoteError
 from volttron.platform.agent.driven import ConversionMapper
@@ -79,7 +79,7 @@ __copyright__ = "Copyright (c) 2016, Battelle Memorial Institute"
 __license__ = "FreeBSD"
 DATE_FORMAT = "%m-%d-%y %H:%M"
 
-utils.setup_logging()
+setup_logging()
 _log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.info, format="%(asctime)s   %(levelname)-8s %(message)s", datefmt=DATE_FORMAT)
 
@@ -409,7 +409,7 @@ def driven_agent(config_path, **kwargs):
             warning:: Calling without previously scheduling a device and not within
                          the time allotted will raise a LockError"""
 
-            _now = utils.get_aware_utc_now()
+            _now = get_aware_utc_now()
             str_now = format_timestamp(_now)
             _end = _now + td(minutes=device_lock_duration)
             str_end = format_timestamp(_end)

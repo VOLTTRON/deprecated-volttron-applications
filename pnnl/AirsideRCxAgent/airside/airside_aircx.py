@@ -51,7 +51,9 @@ under Contract DE-AC05-76RL01830
 
 from datetime import timedelta as td
 import sys
+import logging
 from volttron.platform.agent.math_utils import mean
+from volttron.platform.agent.utils import setup_logging
 from volttron.platform.agent.driven import Results, AbstractDrivenAgent
 from diagnostics.sat_aircx import SupplyTempAIRCx
 from diagnostics.stcpr_aircx import DuctStaticAIRCx
@@ -67,6 +69,10 @@ SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
 __version__ = "4.0.0"
+
+setup_logging()
+_log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.info, format="%(asctime)s   %(levelname)-8s %(message)s")
 
 
 def data_builder(value_tuple, point_name):
@@ -122,7 +128,7 @@ class Application(AbstractDrivenAgent):
 
     """
     def __init__(
-            self, no_required_data=10, warm_up_time=15,
+            self, no_required_data=10, warm_up_time=15, data_window=None,
             duct_stcpr_retuning=0.15, max_duct_stcpr_stpt=2.5,
             high_sf_thr=95.0, zn_high_damper_thr=90.0,
             zn_low_damper_thr=15.0, min_duct_stcpr_stpt=0.5,
@@ -152,20 +158,21 @@ class Application(AbstractDrivenAgent):
         self.warm_up_start = None
         self.warm_up_flag = True
         self.unit_status = None
+        self.data_window = data_window
 
         if sensitivity not in ["all", "high", "normal", "low"]:
             sensitivity = None
 
         analysis = analysis_name
         self.fan_status_name = get_or_none("fan_status")
-        self.fansp_name = get_or_none("fan_speedcmd")
+        self.fan_sp_name = get_or_none("fan_speedcmd")
 
-        if self.fansp_name is None and self.fan_status_name is None:
+        if self.fan_sp_name is None and self.fan_status_name is None:
             raise Exception("SupplyFanStatus or SupplyFanSpeed are required to verify AHU status.")
             sys.exit()
 
-        self.duct_stp_stpt_name = get_or_none("duct_stp_stpt")
-        self.duct_stp_name = get_or_none("duct_stp")
+        self.duct_stp_stpt_name = get_or_none("duct_stcpr_stpt")
+        self.duct_stp_name = get_or_none("duct_stcpr")
         self.sa_temp_name = get_or_none("sa_temp")
         self.sat_stpt_name = get_or_none("sat_stpt")
         sat_stpt_cname = self.sat_stpt_name
@@ -176,6 +183,7 @@ class Application(AbstractDrivenAgent):
         self.zn_reheat_name = get_or_none("zn_reheat")
 
         no_required_data = int(no_required_data)
+        _log.debug("required data: {}".format(no_required_data))
         self.low_sf_thr = float(low_sf_thr)
         self.high_sf_thr = float(high_sf_thr)
         self.warm_up_time = td(minutes=warm_up_time)
@@ -198,7 +206,7 @@ class Application(AbstractDrivenAgent):
                 "high": percent_damper_thr - 15.0
             }
             reheat_valve_thr = {
-                "low": reheat_valve_thr*0.75,
+                "low": reheat_valve_thr*1.5,
                 "normal": reheat_valve_thr,
                 "high": reheat_valve_thr*0.5
             }
@@ -362,7 +370,6 @@ class Application(AbstractDrivenAgent):
                                                                 current_fan_status, dx_result)
 
         dx_result = self.check_elapsed_time(dx_result, cur_time, self.unit_status, FAN_OFF)
-
         if not current_fan_status:
             dx_result.log("Supply fan is off: {}".format(cur_time))
             self.warm_up_flag = True
@@ -386,10 +393,8 @@ class Application(AbstractDrivenAgent):
                                                  stc_pr_data, zn_dmpr_data,
                                                  low_sf_cond, high_sf_cond,
                                                  dx_result)
-
         dx_result = self.sat_aircx.sat_aircx(cur_time, sat_data, sat_stpt_data,
                                              zn_rht_data, zn_dmpr_data, dx_result)
-
         return dx_result
 
     def check_fan_status(self, fan_status_data, fan_sp_data, cur_time):
@@ -422,8 +427,12 @@ class Application(AbstractDrivenAgent):
         :return:
         """
         elapsed_time = cur_time - condition if condition is not None else td(minutes=0)
-        if elapsed_time >= self.data_window:
+        if self.data_window is not None and elapsed_time >= self.data_window:
             dx_result = self.pre_conditions(dx_list, message, cur_time, dx_result)
+            self.clear_all()
+        elif condition is not None and condition.hour != cur_time.hour:
+            message_time = condition.replace(minute=0)
+            dx_result = self.pre_conditions(dx_list, message, message_time, dx_result)
             self.clear_all()
         return dx_result
 

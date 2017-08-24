@@ -408,7 +408,7 @@ class Application(AbstractDrivenAgent):
 
         fan_speed = mean(fan_sp_data) if fan_sp_data else None
         if supply_fan_status is None:
-            supply_fan_status = 1 if fan_speed > self.low_supply_fan_thr else 0
+            supply_fan_status = 1 if fan_speed > self.low_sf_thr else 0
 
         if not supply_fan_status:
             if self.unit_status is None:

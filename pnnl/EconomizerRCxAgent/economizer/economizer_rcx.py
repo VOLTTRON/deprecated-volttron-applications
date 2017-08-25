@@ -59,7 +59,7 @@ from diagnostics.temperature_sensor_dx import TempSensorDx
 from diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
 from diagnostics.ventilation_dx import ExcessOA, InsufficientOA
 
-__version__ = "4.0"
+__version__ = "4.0.1"
 
 ECON1 = "Temperature Sensor Dx"
 ECON2 = "Not Economizing When Unit Should Dx"

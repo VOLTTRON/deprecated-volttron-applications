@@ -114,7 +114,7 @@ class Application(AbstractDrivenAgent):
                  open_damper_threshold=40.0, oaf_economizing_threshold=50.0, oaf_temperature_threshold=4.0,
                  cooling_enabled_threshold=5.0, minimum_damper_setpoint=20.0, excess_damper_threshold=20.0,
                  excess_oaf_threshold=20.0, desired_oaf=10.0, ventilation_oaf_threshold=5.0,
-                 temp_damper_threshold=90.0, rated_cfm=6000.0, eer=10.0,
+                 temp_damper_threshold=90.0, rated_cfm=6000.0, eer=10.0, constant_volume=False,
                  sensitivity="all", **kwargs):
 
         def get_or_none(name):
@@ -156,7 +156,8 @@ class Application(AbstractDrivenAgent):
 
         # diagnostic threshold parameters
         self.economizer_type = economizer_type.lower()
-        self.econ_hl_temp = float(econ_hl_temp) if economizer_type == "hl" else None
+        self.econ_hl_temp = float(econ_hl_temp) if self.economizer_type == "hl" else None
+        self.constant_volume = constant_volume
 
         self.cooling_enabled_threshold = cooling_enabled_threshold
         self.low_supply_fan_threshold = low_supply_fan_threshold
@@ -326,12 +327,15 @@ class Application(AbstractDrivenAgent):
 
         current_fan_status, fan_sp = self.check_fan_status(fan_status_data, fan_sp_data, cur_time)
         dx_result = self.check_elapsed_time(dx_result, cur_time, self.unit_status, FAN_OFF)
-
+        
         if not current_fan_status:
             dx_result.log("Supply fan is off: {}".format(cur_time))
             return dx_result
         else:
             dx_result.log("Supply fan is on: {}".format(cur_time))
+
+        if fan_sp is None and self.constant_volume:
+            fan_sp = 100.0
 
         oat = mean(oat_data)
         rat = mean(rat_data)
@@ -353,6 +357,7 @@ class Application(AbstractDrivenAgent):
 
         dx_result, self.temp_sensor_problem = self.econ1.econ_alg1(dx_result, oat, rat, mat, oad, cur_time)
         econ_condition, cool_call = self.determine_cooling_condition(cooling_data, oat, rat)
+        _log.debug("Cool call: {} - Economizer status: {}".format(cool_call, econ_condition))
 
         if self.temp_sensor_problem is not None and not self.temp_sensor_problem:
             dx_result = self.econ2.econ_alg2(dx_result, cool_call, oat, rat, mat,

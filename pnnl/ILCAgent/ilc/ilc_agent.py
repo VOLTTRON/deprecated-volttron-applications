@@ -75,7 +75,7 @@ from ilc.curtailment_hanlder import CurtailmentCluster, CurtailmentContainer
 from ilc.criteria_handler import CriteriaContainer, CriteriaCluster, parse_sympy
 
 
-__version__ = "3.0.0"
+__version__ = "3.0.2"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -103,10 +103,11 @@ class ILCAgent(Agent):
         # --------------------------------------------------------------------------------
 
         # For Target agent updates...
-        self.target_agent_subscription = "analysis/target_agent"
+        analysis_prefix_topic = config.get("analysis_prefix_topic", "record")
+        self.target_agent_subscription = "{}/target_agent".format(analysis_prefix_topic)
         self.ilc_start_topic = "{campus}/{building}".format(**location) + "/ilc/start"
         # --------------------------------------------------------------------------------
-        self.update_base_topic = "analysis/{}/".format(self.agent_id)
+        self.update_base_topic = "{}/{}/".format(analysis_prefix_topic, self.agent_id)
 
         if campus is not None and campus:
             self.update_base_topic = self.update_base_topic + campus + "/"

@@ -69,7 +69,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
-__version__ = "4.0.1"
+__version__ = "4.0.2"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -429,11 +429,11 @@ class Application(AbstractDrivenAgent):
         """
         elapsed_time = cur_time - condition if condition is not None else td(minutes=0)
         if self.data_window is not None and elapsed_time >= self.data_window:
-            dx_result = pre_conditions(dx_list, message, cur_time, dx_result)
+            dx_result = pre_conditions(message, dx_list, self.analysis, cur_time, dx_result)
             self.clear_all()
         elif condition is not None and condition.hour != cur_time.hour:
             message_time = condition.replace(minute=0)
-            dx_result = pre_conditions(dx_list, message, message_time, dx_result)
+            dx_result = pre_conditions(message, dx_list, self.analysis, message_time, dx_result)
             self.clear_all()
         return dx_result
 

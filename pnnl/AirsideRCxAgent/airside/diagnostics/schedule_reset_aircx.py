@@ -211,8 +211,10 @@ class SchedResetAIRCx(object):
 
         finally:
             if current_fan_status:
-                self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
-                self.sat_stpt_array.append(mean(sat_stpt_data))
+                if stcpr_stpt_data:
+                    self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
+                if sat_stpt_data:
+                    self.sat_stpt_array.append(mean(sat_stpt_data))
 
     def unocc_fan_operation(self, dx_result):
         """

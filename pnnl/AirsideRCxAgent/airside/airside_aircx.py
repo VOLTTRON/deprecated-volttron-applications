@@ -69,7 +69,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
-__version__ = "4.0.2"
+__version__ = "4.0.3"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -160,6 +160,7 @@ class Application(AbstractDrivenAgent):
         self.warm_up_flag = True
         self.unit_status = None
         self.data_window = data_window
+        self.analysis = analysis_name
 
         if sensitivity not in ["all", "high", "normal", "low"]:
             sensitivity = None

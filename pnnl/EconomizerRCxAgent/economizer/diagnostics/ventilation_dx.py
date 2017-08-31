@@ -1,5 +1,5 @@
 """
-Copyright (c) 2016, Battelle Memorial Institute
+Copyright (c) 2017, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,27 @@ The views and conclusions contained in the software and documentation are those
 of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 
-This material was prepared as an account of work sponsored by an
-agency of the United States Government.  Neither the United States
-Government nor the United States Department of Energy, nor Battelle,
-nor any of their employees, nor any jurisdiction or organization
-that has cooperated in the development of these materials, makes
-any warranty, express or implied, or assumes any legal liability
-or responsibility for the accuracy, completeness, or usefulness or
-any information, apparatus, product, software, or process disclosed,
-or represents that its use would not infringe privately owned rights.
+This material was prepared as an account of work sponsored by an agency of the
+United States Government. Neither the United States Government nor the United
+States Department of Energy, nor Battelle, nor any of their employees, nor any
+jurisdiction or organization that has cooperated in the development of these
+materials, makes any warranty, express or implied, or assumes any legal
+liability or responsibility for the accuracy, completeness, or usefulness or
+any information, apparatus, product, software, or process disclosed, or
+represents that its use would not infringe privately owned rights.
 
-Reference herein to any specific commercial product, process, or
-service by trade name, trademark, manufacturer, or otherwise does
-not necessarily constitute or imply its endorsement, recommendation,
-r favoring by the United States Government or any agency thereof,
-or Battelle Memorial Institute. The views and opinions of authors
-expressed herein do not necessarily state or reflect those of the
-United States Government or any agency thereof.
+Reference herein to any specific commercial product, process, or service by
+trade name, trademark, manufacturer, or otherwise does not necessarily
+constitute or imply its endorsement, recommendation, or favoring by the
+United States Government or any agency thereof, or Battelle Memorial Institute.
+The views and opinions of authors expressed herein do not necessarily state or
+reflect those of the United States Government or any agency thereof.
 
 PACIFIC NORTHWEST NATIONAL LABORATORY
-operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
+operated by
+BATTELLE
+for the
+UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
 import logging
@@ -92,7 +93,7 @@ class ExcessOA(object):
         self.excess_damper_threshold = excess_damper_threshold
         self.analysis = analysis
 
-    def econ_alg4(self, dx_result, oat, rat, mat,oad, econ_condition, cur_time, fan_sp):
+    def econ_alg4(self, dx_result, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """
         Check app. prerequisites and assemble data set for analysis.
         :param dx_result:
@@ -105,7 +106,8 @@ class ExcessOA(object):
         :param fan_sp:
         :return:
         """
-        if self.economizer_conditions(dx_result, econ_condition, cur_time):
+        dx_result, economizing = self.economizer_conditions(dx_result, econ_condition, cur_time)
+        if economizing:
             return dx_result
 
         self.oad_values.append(oad)
@@ -235,10 +237,10 @@ class ExcessOA(object):
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
                 self.clear_data()
-            return dx_result, False
+            return dx_result, True
         else:
             self.economizing = None
-        return dx_result, True
+        return dx_result, False
 
 
 class InsufficientOA(object):

@@ -202,9 +202,9 @@ class Application(AbstractDrivenAgent):
                 'high': minimum_damper_setpoint*0.5 + 10.0
             }
             ventilation_oaf_threshold = {
-                'low': desired_oaf*0.25,
+                'low': desired_oaf*0.75,
                 'normal': desired_oaf*0.5,
-                'high': desired_oaf*0.75
+                'high': desired_oaf*0.25
             }
             if sensitivity != "all":
                 remove_sensitivities = [item for item in ['high', 'normal', 'low'] if item != sensitivity]

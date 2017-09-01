@@ -267,7 +267,7 @@ class SchedResetAIRCx(object):
         if 64.2 not in diagnostic_msg.values():
             for _hour in range(24):
                 diagnostic_msg = {}
-                utc_offset = self.timestamp[0].isoformat()[-6:]
+                utc_offset = self.timestamp_array[0].isoformat()[-6:]
                 push_time = self.timestamp_array[0].date()
                 push_time = datetime.combine(push_time, datetime.min.time())
                 push_time = push_time.replace(hour=_hour)

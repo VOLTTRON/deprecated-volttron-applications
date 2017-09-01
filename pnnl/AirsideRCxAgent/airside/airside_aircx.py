@@ -1,5 +1,5 @@
 """
-Copyright (c) 2016, Battelle Memorial Institute
+Copyright (c) 2017, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,27 @@ The views and conclusions contained in the software and documentation are those
 of the authors and should not be interpreted as representing official policies,
 either expressed or implied, of the FreeBSD Project.
 
-This material was prepared as an account of work sponsored by an
-agency of the United States Government.  Neither the United States
-Government nor the United States Department of Energy, nor Battelle,
-nor any of their employees, nor any jurisdiction or organization
-that has cooperated in the development of these materials, makes
-any warranty, express or implied, or assumes any legal liability
-or responsibility for the accuracy, completeness, or usefulness or
-any information, apparatus, product, software, or process disclosed,
-or represents that its use would not infringe privately owned rights.
+This material was prepared as an account of work sponsored by an agency of the
+United States Government. Neither the United States Government nor the United
+States Department of Energy, nor Battelle, nor any of their employees, nor any
+jurisdiction or organization that has cooperated in the development of these
+materials, makes any warranty, express or implied, or assumes any legal
+liability or responsibility for the accuracy, completeness, or usefulness or
+any information, apparatus, product, software, or process disclosed, or
+represents that its use would not infringe privately owned rights.
 
-Reference herein to any specific commercial product, process, or
-service by trade name, trademark, manufacturer, or otherwise does
-not necessarily constitute or imply its endorsement, recommendation,
-r favoring by the United States Government or any agency thereof,
-or Battelle Memorial Institute. The views and opinions of authors
-expressed herein do not necessarily state or reflect those of the
-United States Government or any agency thereof.
+Reference herein to any specific commercial product, process, or service by
+trade name, trademark, manufacturer, or otherwise does not necessarily
+constitute or imply its endorsement, recommendation, or favoring by the
+United States Government or any agency thereof, or Battelle Memorial Institute.
+The views and opinions of authors expressed herein do not necessarily state or
+reflect those of the United States Government or any agency thereof.
 
 PACIFIC NORTHWEST NATIONAL LABORATORY
-operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
+operated by
+BATTELLE
+for the
+UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
 
@@ -69,7 +70,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
-__version__ = "4.0.3"
+__version__ = "1.0.3"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -243,14 +244,14 @@ class Application(AbstractDrivenAgent):
                 "high": unocc_time_thr*0.5
             }
             sat_reset_thr = {
-                "low": sat_reset_thr + 2.0,
+                "low": max(sat_reset_thr - 2.0, 0.5),
                 "normal": sat_reset_thr,
-                "high": max(sat_reset_thr - 2.0, 0.5)
+                "high": sat_reset_thr + 2.0
             }
             stcpr_reset_thr = {
-                "low": stcpr_reset_thr*1.5,
+                "low": stcpr_reset_thr*0.5,
                 "normal": stcpr_reset_thr,
-                "high": stcpr_reset_thr*0.5
+                "high": stcpr_reset_thr*1.5
             }
 
             if sensitivity != "all":
@@ -439,5 +440,5 @@ class Application(AbstractDrivenAgent):
         return dx_result
 
     def clear_all(self):
-        self.static_dx.reinitialize()
-        self.self.stcpr_aircx.reinitialize()
+        self.sat_aircx.reinitialize()
+        self.stcpr_aircx.reinitialize()

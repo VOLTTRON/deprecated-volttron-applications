@@ -267,6 +267,7 @@ class SchedResetAIRCx(object):
         if 64.2 not in diagnostic_msg.values():
             for _hour in range(24):
                 diagnostic_msg = {}
+                utc_offset = self.timestamp_array[0].isoformat()[-6:]
                 push_time = self.timestamp_array[0].date()
                 push_time = datetime.combine(push_time, datetime.min.time())
                 push_time = push_time.replace(hour=_hour)
@@ -275,7 +276,7 @@ class SchedResetAIRCx(object):
                     if hourly_counter[_hour] > unocc_time_thr:
                         diagnostic_msg.update({key: result})
                 dx_table = {SCHED_RCX + DX:  diagnostic_msg}
-                table_key = create_table_key(self.analysis, push_time)
+                table_key = create_table_key(self.analysis, push_time) + utc_offset
                 dx_result.insert_table_row(table_key, dx_table)
         else:
             push_time = self.timestamp_array[0].date()
@@ -316,7 +317,7 @@ class SchedResetAIRCx(object):
         diagnostic_msg = {}
         sat_daily_range = max(self.sat_stpt_array) - min(self.sat_stpt_array)
         for key, reset_thr in self.sat_reset_thr.items():
-            if sat_daily_range <= reset_thr:
+            if sat_daily_range < reset_thr:
                 msg = "{} - SAT reset was not detected.  This can result in excess energy consumption.".format(key)
                 result = 81.1
             else:

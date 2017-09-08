@@ -61,7 +61,7 @@ from diagnostics.stcpr_aircx import DuctStaticAIRCx
 from diagnostics.schedule_reset_aircx import SchedResetAIRCx
 from diagnostics.common import pre_conditions
 
-FAN_OFF = -99.0
+FAN_OFF = -99.3
 DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
 DUCT_STC_RCX1 = "Low Duct Static Pressure Dx"
 DUCT_STC_RCX2 = "High Duct Static Pressure Dx"

@@ -232,7 +232,7 @@ class ExcessOA(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 dx_result.log("{}: economizing - reinitialize!".format(ECON4))
-                diagnostic_msg = {"low": 36.2, "normal": 36.2, "high": 36.2}
+                diagnostic_msg = {"low": 36.0, "normal": 36.0, "high": 36.0}
                 dx_table = {ECON4 + DX: diagnostic_msg}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)

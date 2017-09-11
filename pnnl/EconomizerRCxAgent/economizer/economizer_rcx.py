@@ -60,7 +60,7 @@ from diagnostics.temperature_sensor_dx import TempSensorDx
 from diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
 from diagnostics.ventilation_dx import ExcessOA, InsufficientOA
 
-__version__ = "1.0.2"
+__version__ = "1.0.4"
 
 ECON1 = "Temperature Sensor Dx"
 ECON2 = "Not Economizing When Unit Should Dx"
@@ -71,12 +71,12 @@ DX = "/diagnostic message"
 EI = "/energy impact"
 dx_list = [ECON1, ECON2, ECON3, ECON4, ECON5]
 
-FAN_OFF = -99.0
-OAF = -89.0
-OAT_LIMIT = -79.0
-RAT_LIMIT = -69.0
-MAT_LIMIT = -59.0
-TEMP_SENSOR = -49.0
+FAN_OFF = -99.3
+OAF = -89.2
+OAT_LIMIT = -79.2
+RAT_LIMIT = -69.2
+MAT_LIMIT = -59.2
+TEMP_SENSOR = -49.2
 
 setup_logging()
 _log = logging.getLogger(__name__)

@@ -60,8 +60,8 @@ SA_TEMP_RCX3 = "No Supply-air Temperature Reset Dx"
 SCHED_RCX = "Operational Schedule Dx"
 DX = "/diagnostic message"
 
-INCONSISTENT_DATE = -89.0
-INSUFFICIENT_DATA = -79.0
+INCONSISTENT_DATE = -89.2
+INSUFFICIENT_DATA = -79.2
 
 
 class SchedResetAIRCx(object):
@@ -203,9 +203,11 @@ class SchedResetAIRCx(object):
                 dx_result.log("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
                 dx_result = pre_conditions(INSUFFICIENT_DATA, [SA_TEMP_RCX3], reset_name, current_time, dx_result)
                 self.sat_stpt_array = []
+                self.timestamp_array = []
             elif sat_run_status:
                 dx_result = self.no_sat_stpt_reset(dx_result)
                 self.sat_stpt_array = []
+                self.timestamp_array = []
 
             return dx_result
 

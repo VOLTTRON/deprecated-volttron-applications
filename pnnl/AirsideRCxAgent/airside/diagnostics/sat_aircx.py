@@ -52,8 +52,8 @@ under Contract DE-AC05-76RL01830
 from .common import check_date, create_table_key, pre_conditions, check_run_status, setpoint_control_check
 from volttron.platform.agent.math_utils import mean
 
-INCONSISTENT_DATE = -89.0
-INSUFFICIENT_DATA = -79.0
+INCONSISTENT_DATE = -89.2
+INSUFFICIENT_DATA = -79.2
 SA_VALIDATE = "Supply-air Temperature ACCx"
 SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
@@ -198,7 +198,7 @@ class SupplyTempAIRCx(object):
                     # when supply-air temperature set point
                     # is not available.
                     msg = "{} - The SAT too low but SAT set point data is not available.".format(key)
-                    result = 43.1
+                    result = 44.1
                 elif self.auto_correct_flag:
                     aircx_sat_stpt = avg_sat_stpt + self.sat_retuning
                     if aircx_sat_stpt <= self.max_sat_stpt:
@@ -216,7 +216,7 @@ class SupplyTempAIRCx(object):
                         result = 42.1
                 else:
                     msg = "{} - SAT detected to be too low but auto-correction is not enabled.".format(key)
-                    result = 44.1
+                    result = 43.1
             else:
                 msg = "{} - No retuning opportunities detected for Low SAT diagnostic.".format(key)
                 result = 40.0

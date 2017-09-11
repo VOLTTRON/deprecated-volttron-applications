@@ -53,8 +53,8 @@ import math
 from .common import check_date, create_table_key, pre_conditions, check_run_status, setpoint_control_check
 from volttron.platform.agent.math_utils import mean
 
-INCONSISTENT_DATE = -89.0
-INSUFFICIENT_DATA = -79.0
+INCONSISTENT_DATE = -89.2
+INSUFFICIENT_DATA = -79.2
 DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
 DUCT_STC_RCX1 = "Low Duct Static Pressure Dx"
 DUCT_STC_RCX2 = "High Duct Static Pressure Dx"

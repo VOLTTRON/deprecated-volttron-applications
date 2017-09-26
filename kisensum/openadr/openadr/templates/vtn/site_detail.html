@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% load widget_tweaks %}
+{% load static %}
+
+ {% block heading %}
+        {{ form.site_name.value }}
+    {% endblock heading %}
+{% block content %}
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+
+   <link rel="stylesheet" type="text/css" href="{% static 'css/site_detail.css' %}">
+
+<div class="container">
+    {% if form.errors %}
+            <div class="row justify-content-center" style="text-align:center">
+                <div class="field-errors col-4">
+                {% for key, value in form.errors.items %}
+                    <b>{{ value.as_text }} </b> <br>
+                    {% endfor %}
+                </div>
+            </div>
+    {% endif %}
+    {% if form.non_field_errors %}
+        <div class="row justify-content-center" style="text-align:center">
+            <div class="non-field-errors">
+                {% for err in form.non_field_errors %}
+                    <p class="form-error">{{ form.utility_id.errors.as_text }}</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+<div class="row justify-content-center">
+                <div class="col-10"> <h6>Customer</h6>
+                    <input readonly name="customerShow" class="form-control" value="{{ customer }}">
+                </div>
+            </div>
+      <form method="POST">
+          {% csrf_token %}
+          <div class="row justify-content-center">
+        {{ form.customer| add_class:"form-control disabled hidden" }}
+    </div>
+              <div class="row justify-content-center">
+                <div class="col-10"> <h6>Name</h6>
+                    {{ form.site_name| add_class:"form-control" }}
+                </div>
+            </div>
+            <div class="row justify-content-between top-buffer">
+                <div class="col-3"> <h6>ID </h6>
+                    {{ form.site_id | add_class:"form-control" }}
+                </div>
+                <div class="col-6"> <h6>Address Line 1</h6>
+                    {{ form.site_address1 | add_class:"form-control" }}
+                </div>
+            </div>
+            <div class="row justify-content-between top-buffer">
+                <div class="col-3"> <h6>Location code</h6>
+                    {{ form.site_location_code| add_class:"form-control" }}
+                </div>
+                <div class="col-6"><h6>Address Line 2</h6>
+                    {{ form.site_address2| add_class:"form-control" }}
+                </div>
+            </div>
+            <div class="row justify-content-between top-buffer">
+                <div class="col-3"><h6>IP Address</h6>
+                    {{ form.ip_address | add_class:"form-control" }}
+                </div>
+                <div class="col-2"> <h6>City</h6>
+                    {{ form.city| add_class:"form-control float-right" }}
+                </div>
+                <div class="col-1" > <h6> State</h6>
+                    {{ form.state | add_class:"form-control" }}
+                </div>
+                <div class="col-1"> <h6>Zip</h6>
+                    {{ form.zip | add_class:"form-control" }}
+                </div>
+            </div>
+                <div class="row table-row justify-content-between top-buffer">
+                <div class="col-4" style="text-align: start"><h6>DR Programs</h6>
+                {{ form.dr_programs | add_class:"form-control" }}
+                    Hold down "Control", or "Command" <br> on a Mac, to select more than one.
+                </div>
+                <div class="col-2 vcenter"> <h6> VEN Name</h6>
+                    <input readonly name="ven_name_show" class="form-control" value="{{ ven_name }}">
+                    {{ form.ven_name | add_class:"form-control disabled hidden" }}
+                    <h6>VEN ID</h6>
+                    <input readonly name="ven_id_show" class="form-control" value="{{ ven_id }}">
+                    {{ form.ven_id | add_class:"form-control disabled hidden" }}
+                </div>
+                <div class="col-2 vcenter"> <h6> Contact Name</h6>
+                    {{ form.contact_name | add_class:"form-control float-right" }}
+                    <h6>Phone Number</h6>
+                    {{ form.phone_number | add_class:"form-control float-right" }}
+                </div>
+            </div>
+                          <div clas="col-2 vcenter">
+                {{ form.online | add_class:"form-check-input disabled hidden float-right" }}</div>
+                <div class="row justify-content-center top-buffer ">
+                    <div class="col-4 col-md-offset-2">
+                        <button  class="btn btn-primary btn-lg" value="save-changes"
+                                    name="save_changes" type="submit">Save</button>
+                    </div>
+                </div>
+      <input type="hidden" name="pk" value="{{ form.instance.pk}}">
+      </form>
+
+
+  </div>
+<!-- Modal -->
+<div class="modal fade" id="siteModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel" style="text-align:center">Are you sure you want to delete this site?</h5>
+      </div>
+      <div class="modal-body" style="text-align: center">
+          <form method="POST">
+              {% csrf_token %}
+                <button name='delete_site' type="submit" class="btn btn-lg btn-danger">Delete</button>
+              <input type="hidden" name="pk" value="{{ form.instance.pk}}">
+              {{ form.customer| add_class:"form-control disabled hidden" }}
+          </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{#    {% for field in form %}#}
+{#    {% if field.errors %}#}
+{#    <p> {{ field.errors }} </p>#}
+{#    {% endif %}#}
+{#    {% endfor %}#}
+
+{% endblock %}
+

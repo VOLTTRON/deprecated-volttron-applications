@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}
+    <center>
+<h1><b>Add New Site </b></h1></center>
+{% endblock %}
+
+
+{% load staticfiles %}
+{% load bootstrap_tags %}
+{% load widget_tweaks %}
+{% load admin_static %}
+{% load static %}
+ {% block heading %}
+        Add New Site
+    {% endblock heading %}
+{% block content %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/create_site.css' %}">
+
+
+    <div class="container">
+        {% if form.non_field_errors %}
+        <div class="row justify-content-center">
+            <div class="non-field-errors">
+                {% for err in form.non_field_errors %}
+                    <p class="form-error">{{ form.utility_id.errors.as_text }}</p>
+                {% endfor %}
+            </div>
+    {% endif %}
+        {% if form.errors %}
+            <div class="row justify-content-center">
+                <div class="field-errors col-sm-4">
+                {% for key, value in form.errors.items %}
+                    <b name="customer_error">{{ value.as_text }} </b> <br>
+                    {% endfor %}
+                </div>
+            </div>
+    {% endif %}
+        <div class="row justify-content-center">
+                <div class="col-10"> <h6>Customer</h6>
+                    <input name="customerShow" class="form-control" readonly value="{{ customer.name }}">
+                </div>
+        </div>
+
+<form method="POST">
+          {% csrf_token %}
+        <div class="row justify-content-center">
+              <div class="col-10">
+        {{ form.customer| add_class:"form-control disabled hidden" }}
+              </div>
+        </div>
+        <div class="row justify-content-center topBuffer">
+            <div class="col-10 top"> <h6>Name</h6>
+                {{ form.site_name| add_class:"form-control" }}
+            </div>
+        </div>
+        <div class="row justify-content-between top-buffer topBuffer">
+            <div class="col-3"> <h6>Site ID </h6>
+                {{ form.site_id | add_class:"form-control" }}
+            </div>
+            <div class="col-6"> <h6>Address Line 1</h6>
+                {{ form.site_address1 | add_class:"form-control" }}
+            </div>
+        </div>
+        <div class="row justify-content-between top-buffer topBuffer">
+            <div class="col-3"> <h6>Location code</h6>
+                {{ form.site_location_code| add_class:"form-control" }}
+            </div>
+            <div class="col-6"><h6>Address Line 2</h6>
+                {{ form.site_address2| add_class:"form-control" }}
+            </div>
+        </div>
+        <div class="row justify-content-between top-buffer topBuffer">
+            <div class="col-3"><h6>IP Address</h6>
+                {{ form.ip_address | add_class:"form-control" }}
+            </div>
+            <div class="col-2"> <h6>City</h6>
+                {{ form.city| add_class:"form-control float-right" }}
+            </div>
+            <div class="col-1" > <h6> State</h6>
+                {{ form.state | add_class:"form-control" }}
+            </div>
+            <div class="col-1"> <h6>Zip</h6>
+                {{ form.zip | add_class:"form-control" }}
+            </div>
+        </div>
+        <div class="row table-row justify-content-around topBuffer">
+            <div class="col-6" style="text-align: start"><h6>DR Programs</h6>
+            {{ form.dr_programs | add_class:"form-control" }}
+                <span class="tip">Hold down "Control", or "Command" <br> on a Mac, to select more than one. </span>
+            </div>
+            <div class="col-1 col-md-offset-1 vcenter" style="text-align: center; width: 150px"> <h6>VEN Name </h6>
+            {{ form.ven_name | add_class:"form-control" }}
+            </div>
+            <div class="col-md-2 vcenter" style="width: 200px"> <h6> Contact Name</h6>
+                {{ form.contact_name | add_class:"form-control" }}
+                <h6>Phone Number</h6>
+                {{ form.phone_number | add_class:"form-control" }}
+            </div>
+            <div clas="col-2 vcenter">
+            {{ form.online | add_class:"form-control disabled hidden float-right" }}</div>
+        </div>
+
+
+        <div class="row justify-content-center top-buffer ">
+            <div class="col-4 col-sm-offset-2">
+                <button  class="btn btn-primary btn-lg" value="save-changes"
+                    name="save_changes" type="submit">Save New Site</button>
+            </div>
+        </div>
+      <input type="hidden" name="pk" value="{{ siteForm.instance.pk}}">
+      </form>
+    </div>
+{% endblock %}

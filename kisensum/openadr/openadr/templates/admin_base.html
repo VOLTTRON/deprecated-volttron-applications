@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+{% load static %}
+{% load activeurl %}
+<script type="text/javascript" src="/admin/jsi18n/"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    {% load bootstrap4 %}
+    {% bootstrap_css %}
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'pics/kisensum.ico' %}"/>
+
+
+
+</head>
+
+
+<body>
+    <div id="container">
+    {% if user.is_authenticated %}
+    <center>
+    <h1 class="page-title">Utility OpenADR Application </h1>
+    </center>
+     <nav class="navbar navbar-expand-lg navbar-light">
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+    {% activeurl %}
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'vtn:home' %}">Overview</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="{% url 'vtn:report' %}">Report</a>
+      </li>
+        <li class="nav-item last">
+        <a class="nav-link" href="{% url 'admin:index' %}">Admin</a>
+      </li>
+    </ul>
+  <span class="nav-item dropdown">
+
+            <a name='welcome_menu' href="#" class="dropdown-toggle" data-toggle="dropdown">Welcome {{ user.username }} </a>
+            <ul class="dropdown-menu">
+                {% if user.has_usable_password %}
+                    <li><a href="{% url 'vtn:change_password' %}">Change password </a></li>
+                {% endif %}
+            <li> <a name='logoff' href="{% url 'vtn:logout' %}">Logoff</a></li>
+            </ul>
+        </span>
+  </div>
+        {% endactiveurl %}
+  </nav>
+    {% endif %}
+
+
+{% block admin %} {% endblock admin %}
+</div>
+
+</body>
+<footer>
+        <a href="http://www.kisensum.com"><center><small>Kisensum Utility OpenADR demo application</small></center></a>
+    </footer>
+
+
+
+</html>
+
+

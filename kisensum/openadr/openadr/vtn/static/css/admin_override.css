@@ -1,0 +1,180 @@
+/* overrides to default admin style */
+
+#container {
+    min-height: 100%;
+    background-color: lightgrey;
+}
+
+a:active,
+a:focus {
+    outline: none;
+}
+
+.sidebar-nav {
+    padding: 9px 0;
+}
+
+.form-group input[type=text] {
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box; /* Opera/IE 8+ */
+    /* height: 28px;    Note:  This was overriding default form height of 34px */
+}
+
+html, body {
+    height: 100%;
+}
+
+.form-group select {
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box; /* Opera/IE 8+ */
+}
+
+.controls > p {
+    padding-top: 5px;
+}
+
+.selector .selector-filter label {
+    display: none;
+}
+
+    .navbar {
+        background-color: #bec2c6;
+        border-bottom: 2px solid black;
+    }
+
+.selector h2 {
+    font-size: 100%;
+    margin: 0;
+}
+
+.checkbox {
+    padding-bottom: 5px;
+}
+
+.checkbox label {
+    margin-bottom: -20px;
+}
+
+
+fieldset.collapse {
+    height: inherit;
+}
+
+.add-row {
+    margin-bottom: 20px;
+}
+
+legend a:hover {
+    text-decoration: none;
+}
+
+.wide label {
+    width: auto !important;
+}
+
+/* change_list actions */
+.actions select {
+    margin-top: 5px;
+}
+
+/* change_list table display */
+th.action-checkbox-column {
+    width: 1.5em;
+    text-align: center;
+}
+
+td.action-checkbox {
+    text-align: center;
+}
+
+.tooltip.in {
+    opacity: 1
+}
+
+/* Hard to see against black text otherwise */
+
+#result_list {
+    clear: both;
+    width: 100%;
+}
+
+p.quandrantOKtext {
+    color: black;
+    background-color: lightgray;
+}
+
+p.quandrantACTIVEtext {
+    color: black;
+    background-color: green;
+}
+
+p.quandrantWARNtext {
+    color: black;
+    background-color: yellow;
+}
+
+p.quandrantALERTtext {
+    color: black;
+    background-color: red;
+}
+
+.dashboard-buttons{
+    margin-top: -10px;
+}
+
+    .navbar {
+        background-color: #bec2c6;
+        border-bottom: 2px solid black;
+    }
+    .nav-link, .dropdown-toggle {
+        font-size: 20px;
+    }
+
+    ul.dropdown-menu li {
+        font-size: 16px;
+    }
+    ul.dropdown-menu {
+        background-color: #bec2c6;
+    }
+    .nav-item>a  {
+        border-color: #d45500;
+        border-bottom-color: transparent;
+    }
+    .nav-item:first-child {
+        border-right: 1px solid #95979B;
+    }
+
+    .nav-item.last {
+        border-left: 1px solid #95979B;
+    }
+
+    .nav-item {
+        padding-right: 20px;
+        padding-left: 20px;
+    }
+    ul li {
+        list-style: none;
+    }
+
+    /*.colMS {*/
+        /*margin-right: 0;*/
+    /*}*/
+
+    .submit-row a.deletelink {
+        height: 35px;
+    }
+
+    .results {
+        width: 100%;
+    }
+    #result_list {
+        width: 100%;
+    }
+
+    h1 {
+        font-size: 2.5rem;
+        color: black;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }

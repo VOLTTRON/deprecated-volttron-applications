@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{{ form.media }}
+{% block title %}
+    <div class="col-2">
+        <h1 class="title">Add DR Event </h1>
+    </div>
+        {% endblock %}
+
+{% load staticfiles %}
+{% load bootstrap_tags %}
+{% load widget_tweaks %}
+{% load admin_static %}
+{% load static %}
+ {% block heading %}
+        Add DR Event
+    {% endblock heading %}
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/dr_event_create.css' %}">
+
+<div class="container" style="background-color: lightgrey">
+    {% if form.non_field_errors %}
+        <div class="row justify-content-center">
+            <div class="non-field-errors">
+                {% for err in form.non_field_errors %}
+                    <p class="form-error">{{ form.utility_id.errors.as_text }}</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+        {% if form.errors %}
+            <div class="row justify-content-center">
+                <div class="field-errors col-2">
+                {% for key, value in form.errors.items %}
+                    <b>{{ value.as_text }} </b> <br>
+                    {% endfor %}
+                </div>
+            </div>
+    {% endif %}
+<br>
+  <form method="POST">
+      {% csrf_token %}
+        <div class="row justify-content-around">
+            <div class="col-4 col-md-offset-1">
+                <label for="{{ form.dr_program.id_for_label }}">DR Program </label>
+                {{ form.dr_program }}
+                <br>
+                <span class="tip">First pick a program, and the 'Sites' will auto-populate </span><br> <br>
+                <label for="{{ form.sites.id_for_label }}"> {{ form.sites.label }}</label>
+            <div id="Sites">
+                {{ form.sites }}
+            </div>
+            </div>
+
+            <div class="col-4">
+                <label class="right-column-label" for="{{ form.notification.id_for_label }}">Notification</label>
+                {{ form.scheduled_notification_time }}
+                <br>
+                <label style="padding-left: 20%" for="{{form.start.id_for_label }}">Start </label>
+                {{ form.start }}
+                <br>
+                <label style="padding-left: 21%" class="right-column-label" for="{{form.end.id_for_label }}">End </label>
+                {{ form.end }}
+            </div>
+        </div>
+
+      <!-- Hidden fields -->
+      <div class="row justify-content-around">
+          {{ form.status  }}
+          {{ form.last_status_time }}
+          {{ form.modification_number }}
+
+      </div>
+
+        <div class="row justify-content-center last-row" style="text-align:center">
+            <div class="col-sm-4">
+                <button type="submit" class="btn btn-lg btn-primary" name="save">Save</button>
+                <button type="reset" class="btn btn-lg btn-primary" name="reset">Reset</button>
+
+            </div>
+        </div>
+    </form>
+<br>
+<br>
+</div>
+
+<script type="text/javascript">
+    $(document).on('change', '#id_dr_program', function() {
+        $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:get_dr_event_form' %}",
+            data: {'dr_program': $('#id_dr_program').val()}
+        })
+        .done(function(response) {
+            $('#Sites').html(response);
+        });
+    });
+
+</script>
+
+
+    <a href="#" id="clocklink1">
+        <span class="clock-icon"></span>
+    </a>
+{% endblock %}
+

@@ -1,0 +1,1 @@
+curl -X POST -d "@sample_oadr_distribute_event_nate.xml" --header "Content-Type:application/xml" -v http://127.0.0.1:8080/OpenADR2/Simple/2.0b/EiEvent

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}
+    <div class="col-2">
+        <h1 class="title">Add Customer </h1>
+    </div>
+        {% endblock %}
+    {% load bootstrap4 %}
+{% bootstrap_css %}
+{% load static %}
+{% load bootstrap_tags %}
+    {% load widget_tweaks %}
+
+ {% block heading %}
+        Add Customer
+    {% endblock heading %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/customer_create_form.css' %}">
+
+{% block content %}
+
+
+    <div class="container">
+    {% if form.non_field_errors %}
+        <div class="row justify-content-center">
+            <div class="non-field-errors">
+                {% for err in form.non_field_errors %}
+                    <p class="form-error">{{ form.utility_id.errors.as_text }}</p>
+                {% endfor %}
+            </div>
+    {% endif %}
+        {% if form.errors %}
+            <div class="row justify-content-center">
+                <div class="field-errors col-sm-4">
+                {% for key, value in form.errors.items %}
+                    <b name="customer_error">{{ value.as_text }} </b> <br>
+                    {% endfor %}
+                </div>
+            </div>
+    {% endif %}
+
+
+        <form method="POST">
+        {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group row justify-content-center" style="text-align:center">
+                <div class="col-sm-4">
+                    <center>
+                    <label for="{{ field.id_for_label }}"> {{ field.label}}</label>
+                        {{ field|add_class:"form-control" }}
+                        </center>
+                    </div>
+                </div>
+            {% endfor %}
+            <div class="form-group row justify-content-center" style="text-align:center">
+                <div class="col-sm-4"><button name="save" type="submit" class="btn btn-lg btn-primary">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    </div>
+
+{% endblock %}

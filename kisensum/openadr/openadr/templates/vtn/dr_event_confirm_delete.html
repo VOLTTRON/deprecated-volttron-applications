@@ -1,0 +1,30 @@
+
+<link rel="stylesheet" type="text/css" href="/static/admin/css/base.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+{% load bootstrap4 %}
+{% bootstrap_css %}
+<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css">
+
+<style>
+    h1.title, p {
+        color: white;
+    }
+    input {
+        font-weight: normal;
+    }
+    ul li {
+        list-style-type: none;
+    }
+
+</style>
+<center>
+<h1 class="title">Confirm Cancel? </h1>
+        <form action="" method="post">
+            {% csrf_token %}
+            <p>Are you sure you want to cancel this event?</p>
+            <button type="submit" name="confirm-delete" class="btn btn-danger btn-lg" value="Confirm"> Confirm</button>
+            <a href="">
+                <button id="cancel-button" class="btn btn-lg btn-primary" type="submit">Cancel </button></a>
+        </form>
+
+    </center>

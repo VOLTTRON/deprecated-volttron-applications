@@ -1,0 +1,119 @@
+    .row {
+        background-color: lightgrey;
+    }
+
+    .title {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        font-weight: 500;
+        line-height: 1.1;
+        color: inherit;
+        font-size: 2.5rem;
+}
+
+    .second_row {
+        margin-top: 3%;
+    }
+
+    .end-label {
+        padding-right: 5%;
+        margin-right: 5%;
+    }
+    .notification-label {
+        text-align: center;
+        padding-left: 10%;
+    }
+
+    .last-row {
+        margin-top : 3%;
+    }
+
+    .non-field-errors, .field-errors {
+        color: red;
+    }
+
+    ul li {
+        list-style-type: none;
+    }
+
+    .clockbox ul {
+        max-height: 100px;
+        overflow-y: scroll;
+    }
+
+    .h1, h1 {
+        font-size: 2.5rem;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+
+    }
+
+    .h1, h1 {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        line-height: 1.1;
+        color: black;
+        margin-top: 0;
+        font-weight: normal;
+    }
+
+    #popupElement {
+        width: 400px;
+        height: 200px;
+    }
+
+    label {
+        display: block;
+    }
+
+    select[multiple] {
+        width: 300px;
+        height: 200px;
+    }
+
+    p.datetime {
+        width: 200px;
+        margin-right: 0;
+    }
+
+    div.info-row {
+        margin-top: 1%;
+    }
+
+    div {
+        font-size: 12px;
+        font-weight: normal;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+
+    #popupElement {
+        display: none;
+    }
+    input {
+        width: 95px;
+    }
+
+   div.row > div:first-child {
+        text-align: center;
+    }
+
+   div.row.titleDiv > div:first-child {
+       text-align: left;
+   }
+
+   .col-2 {
+        text-align: left;
+    }
+
+   div.modal-footer {
+       text-align: center;
+       justify-content: center;
+   }
+
+   .modal-body {
+       text-align: center;
+   }
+
+   .modal-header {
+       text-align: right;
+       justify-content: center;
+   }

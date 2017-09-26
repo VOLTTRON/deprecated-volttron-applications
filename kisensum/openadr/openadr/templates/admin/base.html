@@ -1,0 +1,103 @@
+{% extends 'admin_base.html' %}
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/admin_override.css' %}"/>
+{% block admin %}
+{% load i18n static %}<!DOCTYPE html>
+{% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as LANGUAGE_BIDI %}
+<html lang="{{ LANGUAGE_CODE|default:"en-us" }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
+<head>
+<title>{% block title %}{% endblock %}</title>
+<link rel="stylesheet" type="text/css" href="{% block stylesheet %}{% static "admin/css/base.css" %}{% endblock %}" />
+{% block extrastyle %}{% endblock %}
+{% if LANGUAGE_BIDI %}<link rel="stylesheet" type="text/css" href="{% block stylesheet_rtl %}{% static "admin/css/rtl.css" %}{% endblock %}" />{% endif %}
+{% block extrahead %}{% endblock %}
+{% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE" />{% endblock %}
+</head>
+{% load i18n %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/admin_override.css' %}" />
+
+<body class="{% if is_popup %}popup {% endif %}{% block bodyclass %}{% endblock %}"
+  data-admin-utc-offset="{% now "Z" %}">
+
+<style>
+    .colMS {
+        margin-right: 0;
+    }
+
+    #content.flex, #content.colM {
+        width: 100%;
+    }
+
+    .submit-row a.deletelink {
+        height: 35px;
+    }
+
+    li, p {
+        text-align: start;
+    }
+
+    form .aligned ul {
+        margin-left: 0;
+    }
+
+    form .wide p {
+        margin-left: 0;
+    }
+
+    .submit-row {
+        text-align: center;
+
+    }
+
+    .submit-row input {
+        float: none;
+    }
+
+    td {
+        text-align: start;
+    }
+
+    .page-title {
+        color: black;
+        font-weight: normal;
+        font-family : inherit;
+        margin-bottom: .5rem;
+        line-height: 1.1;
+    }
+</style>
+<!-- Container -->
+<div id="container">
+
+    {% if not is_popup %}
+    <!-- Header -->
+    <!-- END Header -->
+    {% block breadcrumbs %}
+    <div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    {% if title %} &rsaquo; {{ title }}{% endif %}
+    </div>
+    {% endblock %}
+    {% endif %}
+
+    <!-- Content -->
+    <div class="row justify-content-center" style="text-align: center">
+    <div id="content" class="{% block coltype %}colM{% endblock %}">
+        {% block pretitle %}{% endblock %}
+        {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+        {% block content %}
+{#        {% block object-tools %}{% endblock %}#}
+        {{ content }}
+        {% endblock %}
+        {% block sidebar %}{% endblock %}
+        <br class="clear" />
+    </div>
+        <!-- END Content -->
+
+    </div>
+
+    {% block footer %}<div id="footer"></div>{% endblock %}
+</div>
+<!-- END Container -->
+
+</body>
+</html>{% endblock admin %}

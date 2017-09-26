@@ -1,0 +1,94 @@
+  .row, .col {
+        background-color: lightgrey;
+    }
+
+    .col-2 {
+        text-align: center;
+    }
+    .title {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        font-weight: 500;
+        line-height: 1.1;
+        color: inherit;
+        font-size: 2.5rem;
+}
+
+    .second_row {
+        margin-top: 3%;
+    }
+
+    .end-label {
+        padding-right: 5%;
+        margin-right: 5%;
+    }
+    .notification-label {
+        text-align: center;
+        padding-left: 10%;
+    }
+
+    .last-row {
+        margin-top : 3%;
+    }
+
+    .non-field-errors, .field-errors {
+        color: red;
+    }
+
+    ul li {
+        list-style-type: none;
+    }
+
+    .clockbox ul {
+        max-height: 100px;
+        overflow-y: scroll;
+    }
+
+    .h1, h1 {
+        font-size: 2.5rem;
+    }
+
+    .h1, h1 {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        line-height: 1.1;
+        color: black;
+        margin-top: 0;
+    }
+
+    label {
+        display: block;
+    }
+
+    select[multiple] {
+        width: 250px;
+        height: 200px;
+    }
+
+    p.datetime {
+        width: 200px;
+        margin-right: 0;
+    }
+
+    input {
+        width: 95px;
+    }
+
+    div.info-row {
+        margin-top: 1%;
+    }
+
+    div {
+        font-size: 12px;
+        font-weight: normal;
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+
+
+    .right-column-label {
+        padding-left: 14%;
+    }
+
+    h1.title {
+        text-align: left;
+    }

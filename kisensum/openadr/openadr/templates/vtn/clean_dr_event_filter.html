@@ -1,0 +1,11 @@
+{% for event in data %}
+    <tr>
+         <td>{{ event.dr_program }}</td>
+         <td>{{ event.scheduled_notification_time }}</td>
+         <td>{{ event.start }}</td>
+         <td>{{ event.end }}</td>
+         <td>{{ event.numSites }}</td>
+        <td> {{ event.status | capfirst }}</td>
+         <td> <a href="{% url 'vtn:export_dr_events_csv' event.pk %}">Export </a> </td>
+    </tr>
+{% endfor %}

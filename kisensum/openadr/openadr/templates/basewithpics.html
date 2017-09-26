@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+{% load static %}
+<link rel="stylesheet" type="text/css" href="/static/admin/css/base.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/errors.css' %}" />
+    <script type="text/javascript" src="/admin/jsi18n/"></script>
+<script type="text/javascript" src="/static/admin/js/core.js"></script>
+<script type="text/javascript" src="/static/admin/js/vendor/jquery/jquery.js"></script>
+<script type="text/javascript" src="/static/admin/js/jquery.init.js"></script>
+<script type="text/javascript" src="/static/admin/js/admin/RelatedObjectLookups.js"></script>
+<script type="text/javascript" src="/static/admin/js/actions.js"></script>
+<script type="text/javascript" src="/static/admin/js/urlify.js"></script>
+<script type="text/javascript" src="/static/admin/js/prepopulate.js"></script>
+<script type="text/javascript" src="/static/admin/js/vendor/xregexp/xregexp.js"></script>
+<script type="text/javascript" src="/static/admin/js/calendar.js"></script>
+<script type="text/javascript" src="/static/js/DateTimeShortcuts2.js"></script>
+<script type="text/javascript" src="/static/admin/js/calendar.js"></script>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/scrollbar.css' %}" />
+
+{% load bootstrap4 %}
+{% bootstrap_css %}
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="{% static 'js/jquery.tablesorter.js' %}"></script>
+
+
+</head>
+{% load bootstrap4 %}
+{% bootstrap_css %}
+{% load bootstrap_tags %}
+{% load widget_tweaks %}
+
+<style>
+
+    #container {
+        height: 100%;
+        background-color: lightgray;
+    }
+
+    .row {
+        max-height: 50%;
+    }
+
+    #backgroundImageOne {
+        display: inline;
+        float: left;
+        margin: 4% 8%;
+    }
+
+    img.bg {
+        width: 150px;
+        height: 150px;
+    }
+
+    #backgroundImageTwo {
+        float: right;
+        margin: 4% 8%;
+    }
+
+    .title {
+        postion: relative;
+        top: 50%;
+        transform:translateY(-50%);
+        -webkit-transform: translateY(-50%);
+    }
+
+    #first-row {
+        height: 7%;
+    }
+    html, body {
+        height: 100%;
+    }
+
+
+    footer {
+        background-color : lightgrey;
+    }
+
+    h1{
+        font-weight: normal;
+        font-size: 2.5rem;
+    }
+
+    h2 {
+        font-weight: normal;
+    }
+
+    * {
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+
+</style>
+<body>
+    <div id="container">
+    <div class="row justify-content-center" id="first-row">
+        {% if user.is_authenticated %}
+            <div class="col-2">
+                <a href="{% url 'vtn:home' %}"><button type="submit" class="btn btn-primary btn-lg">Home</button></a>
+            </div>
+            <div class="col-2">
+                <a href="{% url 'vtn:logout' %}"><button type="submit" class="btn btn-danger btn-lg">Logoff</button></a>
+            </div>
+
+        {% else %}
+            <a href="{% url 'vtn:login' %}"></a>
+        {% endif %}
+
+    </div>
+    <div class="row justify-content-between align-items-center">
+            <div class="col-3">
+                <img id="backgroundImageOne" class="bg" src="{% static 'pics/utility.jpg' %}">
+            </div>
+                <h1> Utility OpenADR Application </h1>
+            <div class="col-3">
+                <img id="backgroundImageTwo" class="bg" src="{% static 'pics/pnnl.jpg' %}">
+            </div>
+
+        </div>
+    {% block content %}
+    {% endblock content %}
+    </div>
+</body>
+<footer>
+        <a href="http://www.kisensum.com"><center><small>Kisensum Utility OpenADR demo application</small></center></a>
+    </footer>
+</html>

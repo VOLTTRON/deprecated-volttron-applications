@@ -70,7 +70,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
-__version__ = "1.0.5"
+__version__ = "1.0.6"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -224,14 +224,14 @@ class Application(AbstractDrivenAgent):
                 "high": zn_high_damper_thr - 5.0
             }
             zn_low_damper_thr = {
-                "low": zn_low_damper_thr - 5.0,
+                "low": zn_low_damper_thr + 5.0,
                 "normal": zn_low_damper_thr,
-                "high": zn_low_damper_thr + 5.0
+                "high": zn_low_damper_thr - 5.0
             }
             hdzn_damper_thr = {
-                "low": hdzn_damper_thr + 5.0,
+                "low": hdzn_damper_thr - 5.0,
                 "normal": hdzn_damper_thr,
-                "high": hdzn_damper_thr - 5.0
+                "high": hdzn_damper_thr + 5.0
             }
             unocc_stp_thr = {
                 "low": unocc_stp_thr*1.5,

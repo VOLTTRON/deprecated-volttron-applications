@@ -4,6 +4,10 @@
     "power_meter": {
         "device": "METERS",
         "point": "WholeBuildingPower"
+         "demand_forumla": {
+            "operation": "Abs(WholeBuildingPower)",
+            "operation_args": ["WholeBuildingPower"]
+         }
     },
     "agent_id": "ILC",
     "demand_limit": 30.0,

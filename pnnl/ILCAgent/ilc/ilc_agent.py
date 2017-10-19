@@ -70,6 +70,8 @@ from dateutil import parser
 import gevent
 import dateutil.tz
 import math
+from sympy.parsing.sympy_parser import parse_expr
+from sympy import symbols
 from volttron.platform.agent import utils
 from volttron.platform.messaging import topics
 from volttron.platform.agent.math_utils import mean
@@ -82,7 +84,7 @@ from ilc.curtailment_hanlder import CurtailmentCluster, CurtailmentContainer
 from ilc.criteria_handler import CriteriaContainer, CriteriaCluster, parse_sympy
 
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -182,6 +184,17 @@ class ILCAgent(Agent):
         power_token = config["power_meter"]
         power_meter = power_token["device"]
         self.power_point = power_token["point"]
+        demand_formula = power_token.get("demand_formula")
+        self.calculate_demand = False
+
+        if demand_formula is not None:
+            self.calculate_demand = True
+            demand_operation = parse_sympy(demand_formula["operation"])
+            _log.debug("Demand calculation - expression: {}".format(demand_operation))
+            self.demand_expr = parse_expr(parse_sympy(demand_operation))
+            self.demand_args = parse_sympy(demand_formula["operation_args"])
+            self.demand_points = symbols(self.demand_args)
+
         self.power_meter_topic = topics.DEVICES_VALUE(campus=config.get("campus", ""),
                                                       building=config.get("building", ""),
                                                       unit=power_meter, path="", point="all")
@@ -305,7 +318,7 @@ class ILCAgent(Agent):
         self.criteria.get_device(device_name[0]).ingest_data(now, parsed_data)
         self.curtailment.get_device(device_name).ingest_data(parsed_data)
         # self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
-        self.create_curtailment_publish(current_time_str, device_name, meta)
+        # self.create_curtailment_publish(current_time_str, device_name, meta)
 
     def create_curtailment_publish(self, current_time_str, device_name, meta):
         headers = {
@@ -476,21 +489,35 @@ class ILCAgent(Agent):
         try:
             if self.kill_signal_received:
                 return
+            data = message[0]
+            meta = message[1]
 
             _log.debug("Reading building power data.")
-            current_power = float(message[0][self.power_point])
+            if self.calculate_demand:
+                try:
+                    demand_point_list = []
+                    for point in self.demand_args:
+                        _log.debug("Demand calculation - point: {} - value: {}".format(point, data[point]))
+                        demand_point_list.append((point, data[point]))
+                    current_power = self.demand_expr.subs(demand_point_list)
+                    _log.debug("Demand calculation - calculated power: {}".format(current_power))
+                except:
+                    current_power = float(data[self.power_point])
+                    _log.debug("Demand calculation - exception using meter value: {}".format(current_power))
+            else:
+                current_power = float(data[self.power_point])
             current_time = parser.parse(headers["Date"])
             average_power, normal_average_power, current_average_window = self.calculate_average_power(current_power,
                                                                                                        current_time)
 
             if self.power_meta is None:
                 try:
-                    self.power_meta = message[1][self.power_point]
+                    self.power_meta = meta[self.power_point]
                 except:
                     self.power_meta = {
                         "tz": "UTC", "units": "kiloWatts", "type": "float"
                     }
-
+            _log.debug("Power meta: {}". format(self.power_meta))
             if self.reset_curtail_count is not None:
                 if self.reset_curtail_count <= current_time:
                     _log.debug("Resetting curtail count")

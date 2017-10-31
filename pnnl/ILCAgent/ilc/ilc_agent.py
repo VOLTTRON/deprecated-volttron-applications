@@ -112,15 +112,15 @@ class ILCAgent(Agent):
         analysis_prefix_topic = config.get("analysis_prefix_topic", "record")
         self.target_agent_subscription = "{}/target_agent".format(analysis_prefix_topic)
         # --------------------------------------------------------------------------------
-        self.update_base_topic = "{}/{}/".format(analysis_prefix_topic, self.agent_id)
 
+        self.update_base_topic = "/".join([analysis_prefix_topic, self.agent_id])
         if campus:
-            self.update_base_topic = self.update_base_topic + campus + "/"
+            self.update_base_topic = "/".join([self.update_base_topic, campus])
             ilc_start_topic = "/".join([self.agent_id, campus])
             if dashboard_topic is not None:
                 dashboard_topic = "/".join([dashboard_topic, self.agent_id, campus])
         if building:
-            self.update_base_topic = self.update_base_topic + building
+            self.update_base_topic = "/".join([self.update_base_topic, building])
             ilc_start_topic = "/".join([ilc_start_topic, building])
             if dashboard_topic is not None:
                 dashboard_topic = "/".join([dashboard_topic, building])
@@ -182,7 +182,8 @@ class ILCAgent(Agent):
             device_topic = topics.DEVICES_VALUE(campus=campus,
                                                 building=building,
                                                 unit=device_name[0],
-                                                path="", point="all")
+                                                path="",
+                                                point="all")
 
             self.device_topic_list.append(device_topic)
             self.device_topic_map[device_topic] = device_name
@@ -195,16 +196,24 @@ class ILCAgent(Agent):
 
         if demand_formula is not None:
             self.calculate_demand = True
-            demand_operation = parse_sympy(demand_formula["operation"])
-            _log.debug("Demand calculation - expression: {}".format(demand_operation))
-            self.demand_expr = parse_expr(parse_sympy(demand_operation))
-            self.demand_args = parse_sympy(demand_formula["operation_args"])
-            self.demand_points = symbols(self.demand_args)
+            try:
+                demand_operation = parse_sympy(demand_formula["operation"])
+                _log.debug("Demand calculation - expression: {}".format(demand_operation))
+                self.demand_expr = parse_expr(parse_sympy(demand_operation))
+                self.demand_args = parse_sympy(demand_formula["operation_args"])
+                self.demand_points = symbols(self.demand_args)
+            except (KeyError, ValueError):
+                _log.debug("Missing 'operation_args' or 'operation' for setting demand formula!")
+                self.calculate_demand = False
+            except:
+                _log.debug("Unexpected error when reading demand formula parameters!")
+                self.calculate_demand = False
 
         self.power_meter_topic = topics.DEVICES_VALUE(campus=campus,
                                                       building=building,
                                                       unit=power_meter,
-                                                      path="", point="all")
+                                                      path="",
+                                                      point="all")
         self.kill_device_topic = None
         kill_token = config.get("kill_switch")
 
@@ -214,7 +223,8 @@ class ILCAgent(Agent):
             self.kill_device_topic = topics.DEVICES_VALUE(campus=campus,
                                                           building=building,
                                                           unit=kill_device,
-                                                          path="", point="all")
+                                                          path="",
+                                                          point="all")
         demand_limit = config["demand_limit"]
         if isinstance(demand_limit, (int, float)):
             self.demand_limit = float(demand_limit)
@@ -1073,8 +1083,8 @@ def main(argv=sys.argv):
     try:
         utils.vip_main(ILCAgent)
     except Exception as exception:
-        print exception
         _log.exception("unhandled exception")
+        _log.error(repr(exception))
 
 
 if __name__ == "__main__":

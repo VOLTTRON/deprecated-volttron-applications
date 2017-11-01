@@ -442,3 +442,6 @@ class Application(AbstractDrivenAgent):
     def clear_all(self):
         self.sat_aircx.reinitialize()
         self.stcpr_aircx.reinitialize()
+        self.warm_up_start = None
+        self.warm_up_flag = True
+        self.unit_status = None

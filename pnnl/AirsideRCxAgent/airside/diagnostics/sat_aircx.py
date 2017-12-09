@@ -50,6 +50,7 @@ UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
 from .common import check_date, create_table_key, pre_conditions, check_run_status, setpoint_control_check
+from collections import defaultdict
 from volttron.platform.agent.math_utils import mean
 
 INCONSISTENT_DATE = -89.2
@@ -75,7 +76,7 @@ class SupplyTempAIRCx(object):
         rht_arr (List[float]): terminal box reheat command for analysis period.
 
     """
-    def __init__(self, no_req_data, auto_correct_flag, stpt_deviation_thr,
+    def __init__(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr,
                  rht_on_thr, high_dmpr_thr, percent_dmpr_thr, percent_rht_thr,
                  min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt,
                  analysis, sat_stpt_cname):
@@ -84,7 +85,7 @@ class SupplyTempAIRCx(object):
         self.sat_array = []
         self.rht_array = []
         self.percent_rht = []
-        self.percent_dmpr = []
+        self.percent_dmpr = defaultdict(list)
         self.table_key = None
 
         # Common RCx parameters
@@ -96,6 +97,7 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
         self.dgr_sym = u"\N{DEGREE SIGN}"
+        self.data_window = data_window
 
         # Low SAT RCx thresholds
         self.rht_valve_thr = rht_valve_thr
@@ -119,7 +121,7 @@ class SupplyTempAIRCx(object):
         self.sat_array = []
         self.rht_array = []
         self.percent_rht = []
-        self.percent_dmpr = []
+        self.percent_dmpr = defaultdict(list)
 
     def sat_aircx(self, current_time, sat_data, sat_stpt_data,
                   zone_rht_data, zone_dmpr_data, dx_result):
@@ -144,15 +146,18 @@ class SupplyTempAIRCx(object):
         """
         tot_rht = sum(1 if val > self.rht_on_thr else 0 for val in zone_rht_data)
         count_rht = len(zone_rht_data)
-        tot_dmpr = sum(1 if val > self.high_dmpr_thr else 0 for val in zone_dmpr_data)
+        tot_dmpr = {}l
+        for key, thr in self.high_dmpr_thr.items():
+            tot_dmpr[key] = sum(1 if val > thr else 0 for val in zone_dmpr_data)
         count_damper = len(zone_dmpr_data)
+
         try:
             if check_date(current_time, self.timestamp_array):
                 dx_result = pre_conditions(INCONSISTENT_DATE, DX_LIST, self.analysis, current_time, dx_result)
                 self.reinitialize()
                 return dx_result
 
-            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data)
+            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
             if run_status is None:
                 dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
@@ -175,8 +180,9 @@ class SupplyTempAIRCx(object):
             self.rht_array.append(mean(zone_rht_data))
             self.sat_stpt_array.append(mean(sat_stpt_data))
             self.percent_rht.append(tot_rht/count_rht)
-            self.percent_dmpr.append(tot_dmpr/count_damper)
             self.timestamp_array.append(current_time)
+            for key in self.high_dmpr_thr:
+                self.percent_dmpr[key].append(tot_dmpr[key] / count_damper)
 
     def low_sat(self, dx_result, avg_sat_stpt):
         """
@@ -188,7 +194,7 @@ class SupplyTempAIRCx(object):
         """
         avg_zones_rht = mean(self.percent_rht)*100.0
         rht_avg = mean(self.rht_array)
-        thresholds = zip(self.rht_valve_thr .items(), self.percent_rht_thr.items())
+        thresholds = zip(self.rht_valve_thr.items(), self.percent_rht_thr.items())
         diagnostic_msg = {}
 
         for (key, rht_valve_thr), (key2, percent_rht_thr) in thresholds:
@@ -235,17 +241,17 @@ class SupplyTempAIRCx(object):
         :return:
         """
         avg_zones_rht = mean(self.percent_rht)*100.0
-        avg_zone_dmpr_data = mean(self.percent_dmpr)*100.0
         thresholds = zip(self.percent_dmpr_thr.items(), self.percent_rht_thr.items())
         diagnostic_msg = {}
 
         for (key, percent_dmpr_thr), (key2, percent_rht_thr) in thresholds:
+            avg_zone_dmpr_data = mean(self.percent_dmpr[key]) * 100.0
             if avg_zone_dmpr_data > percent_dmpr_thr and avg_zones_rht < percent_rht_thr:
                 if avg_sat_stpt is None:
                     # Create diagnostic message for fault
                     # when supply-air temperature set point
                     # is not available.
-                    msg = "{} - The SAT too low but SAT set point data is not available.".format(key)
+                    msg = "{} - The SAT too high but SAT set point data is not available.".format(key)
                     result = 54.1
                 elif self.auto_correct_flag:
                     aircx_sat_stpt = avg_sat_stpt - self.sat_retuning

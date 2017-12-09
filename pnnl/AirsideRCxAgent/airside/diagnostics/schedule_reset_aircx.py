@@ -276,7 +276,7 @@ class SchedResetAIRCx(object):
                 for key, unocc_time_thr in self.unocc_time_thr.items():
                     diagnostic_msg.update({key: 60.0})
                     if hourly_counter[_hour] > unocc_time_thr:
-                        diagnostic_msg.update({key: result})
+                        diagnostic_msg.update({key: 63.1})
                 dx_table = {SCHED_RCX + DX:  diagnostic_msg}
                 table_key = create_table_key(self.analysis, push_time) + utc_offset
                 dx_result.insert_table_row(table_key, dx_table)

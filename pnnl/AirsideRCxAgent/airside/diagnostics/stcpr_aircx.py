@@ -66,7 +66,7 @@ class DuctStaticAIRCx(object):
     """Air-side HVAC Self-Correcting Diagnostic: Detect and correct
     duct static pressure problems.
     """
-    def __init__(self, no_req_data, auto_correct_flag, stpt_deviation_thr,
+    def __init__(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr,
                  max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
                  zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt,
                  analysis, stcpr_stpt_cname):
@@ -86,6 +86,7 @@ class DuctStaticAIRCx(object):
         self.stcpr_retuning = stcpr_retuning
         self.zn_high_dmpr_thr = zn_high_dmpr_thr
         self.zn_low_dmpr_thr = zn_low_dmpr_thr
+        self.data_window = data_window
 
         self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)
@@ -122,7 +123,7 @@ class DuctStaticAIRCx(object):
                 self.reinitialize()
                 return dx_result
 
-            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data)
+            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
             if run_status is None:
                 dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))

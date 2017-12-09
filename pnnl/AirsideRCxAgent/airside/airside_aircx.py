@@ -70,7 +70,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -160,7 +160,7 @@ class Application(AbstractDrivenAgent):
         self.warm_up_start = None
         self.warm_up_flag = True
         self.unit_status = None
-        self.data_window = data_window
+        self.data_window = td(minutes=data_window) if data_window is not None else None
         self.analysis = analysis_name
 
         if sensitivity not in ["all", "high", "normal", "low"]:
@@ -287,13 +287,13 @@ class Application(AbstractDrivenAgent):
             unocc_time_thr = {"normal": unocc_time_thr}
             unocc_stp_thr = {"normal": unocc_stp_thr}
 
-        self.stcpr_aircx = DuctStaticAIRCx(no_required_data, auto_correct_flag,
+        self.stcpr_aircx = DuctStaticAIRCx(no_required_data, data_window, auto_correct_flag,
                                            stpt_deviation_thr, max_duct_stcpr_stpt,
                                            duct_stcpr_retuning, zn_high_damper_thr,
                                            zn_low_damper_thr, hdzn_damper_thr,
                                            min_duct_stcpr_stpt, analysis, duct_stp_stpt_cname)
 
-        self.sat_aircx = SupplyTempAIRCx(no_required_data, auto_correct_flag,
+        self.sat_aircx = SupplyTempAIRCx(no_required_data, data_window, auto_correct_flag,
                                          stpt_deviation_thr, rht_on_thr,
                                          sat_high_damper_thr, percent_damper_thr,
                                          percent_reheat_thr, min_sat_stpt, sat_retuning,
@@ -430,9 +430,10 @@ class Application(AbstractDrivenAgent):
         :return:
         """
         elapsed_time = cur_time - condition if condition is not None else td(minutes=0)
-        if self.data_window is not None and elapsed_time >= self.data_window:
-            dx_result = pre_conditions(message, dx_list, self.analysis, cur_time, dx_result)
-            self.clear_all()
+        if self.data_window is not None:
+            if elapsed_time >= self.data_window:
+                dx_result = pre_conditions(message, dx_list, self.analysis, cur_time, dx_result)
+                self.clear_all()
         elif condition is not None and condition.hour != cur_time.hour:
             message_time = condition.replace(minute=0)
             dx_result = pre_conditions(message, dx_list, self.analysis, message_time, dx_result)

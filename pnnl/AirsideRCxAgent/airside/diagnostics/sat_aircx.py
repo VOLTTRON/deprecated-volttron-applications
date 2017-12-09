@@ -146,7 +146,7 @@ class SupplyTempAIRCx(object):
         """
         tot_rht = sum(1 if val > self.rht_on_thr else 0 for val in zone_rht_data)
         count_rht = len(zone_rht_data)
-        tot_dmpr = {}l
+        tot_dmpr = {}
         for key, thr in self.high_dmpr_thr.items():
             tot_dmpr[key] = sum(1 if val > thr else 0 for val in zone_dmpr_data)
         count_damper = len(zone_dmpr_data)

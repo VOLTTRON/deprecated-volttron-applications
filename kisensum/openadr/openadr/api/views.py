@@ -216,7 +216,6 @@ class OADRPoll(APIView):
                                                    BOGUS_REQUEST_ID,
                                                    'No events to send',
                                                    ven_id)
-            # payload_xml = payload_response.wrap_and_get_xml()
             payload_xml = payload_response.wrap()
             update_last_status_time(ven_id)
             return Response({'result' : payload_xml}, content_type='application/xml', status=status.HTTP_200_OK)
@@ -228,6 +227,7 @@ class EIReport(APIView):
         - oadrRegisterReport
         - oadrCreatedReport (in response to oadrRegisterReport)
         - oadrUpdateReport
+        - oadrCanceledReport
     """
 
     parser_classes = (OADRParser,)
@@ -256,12 +256,14 @@ class EIReport(APIView):
                         payload_xml = payload_response.wrap()
                         update_last_status_time(ven_id)
                         logging.warning("No report specifier ID found in RegisterReport")
-                        return Response({'result' : payload_xml}, status=status.HTTP_400_BAD_REQUEST)
+                        return Response({'result' : payload_xml}, content_type='application/xml',
+                                        status=status.HTTP_400_BAD_REQUEST)
 
                     payload_registered_report = OADRRegisteredReportBuilder(ven_id, report_specifier_id)
                     payload_registered_xml = payload_registered_report.wrap()
                     update_last_status_time(ven_id)
-                    return Response({'result' : payload_registered_xml}, status=status.HTTP_200_OK)
+                    return Response({'result' : payload_registered_xml}, content_type='application/xml',
+                                    status=status.HTTP_200_OK)
 
             except (AttributeError, Exception) as err:
                 payload_response = OADRResponseBuilder(SCHEMA_VERSION,
@@ -371,6 +373,44 @@ class EIReport(APIView):
             payload_xml = payload_response.wrap()
             return Response({'result' : payload_xml}, content_type='application/xml', status=status.HTTP_200_OK)
 
+        # CHECK IF CANCELED REPORT WAS SENT
+        elif request.data.oadrSignedObject.oadrCanceledReport is not None:
+            try:
+                request_id = request.data.oadrSignedObject.oadrCanceledReport.eiResponse.requestID
+                oadr_report_ids = request.data.oadrSignedObject.oadrCanceledReport.oadrPendingReports.reportRequestID
+                ven_id = request.data.oadrSignedObject.oadrCanceledReport.venID
+
+            except AttributeError:
+                payload_response = OADRResponseBuilder(SCHEMA_VERSION,
+                                                       400,
+                                                       BOGUS_REQUEST_ID,
+                                                       'Canceled report missing elements')
+                payload_xml = payload_response.wrap()
+                logger.warning("CanceledReport XML from VEN is missing elements")
+                return Response({'result': payload_xml}, content_type='application/xml',
+                                status=status.HTTP_400_BAD_REQUEST)
+
+            for oadr_report_id in oadr_report_ids:
+                try:
+                    report_to_cancel = Report.objects.get(report_request_id=oadr_report_id, ven_id=ven_id)
+                except (ObjectDoesNotExist, MultipleObjectsReturned):
+                    response_description = 'No report with given ID'
+                    payload_response = OADRResponseBuilder(SCHEMA_VERSION,
+                                                           200,
+                                                           BOGUS_REQUEST_ID,
+                                                           response_description)
+                    payload_xml = payload_response.wrap()
+                    logger.warning("No report with given ID in CanceledReport")
+                    return Response({'result': payload_xml}, content_type='application/xml',
+                                    status=status.HTTP_204_NO_CONTENT)
+                report_to_cancel.report_status = 'cancelled'
+                report_to_cancel.save()
+            payload_response = OADRResponseBuilder(SCHEMA_VERSION,
+                                                   200,
+                                                   request_id)
+            payload_xml = payload_response.wrap()
+            return Response({'result' : payload_xml}, content_type='application/xml', status=status.HTTP_200_OK)
+
         else:
             response_description = "VEN sent an error code"
             try:
@@ -395,6 +435,7 @@ class EIReport(APIView):
 
 class EIEvent(APIView):
     parser_classes = (OADRParser,)
+    renderer_classes = (OADRRenderer,)
 
     @csrf_exempt
     def post(self, request, format=None):
@@ -404,7 +445,6 @@ class EIEvent(APIView):
             try:
                 ven_id = request.data.oadrSignedObject.oadrRequestEvent.venID
 
-                # @todo: double-check if this is the right query
                 site_events = SiteEvent.objects.filter(site__ven_id=ven_id,
                                                        dr_event__scheduled_notification_time__lt=timezone.now()) \
                                                .filter(~Q(ven_status='acknowledged'))

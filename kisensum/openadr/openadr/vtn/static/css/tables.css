@@ -12,20 +12,12 @@
 }
 
     th.eventTable {
-        align : center;
-        text-align: center;
+        text-align : center;
         background-color: #95979B;
     }
 
         .table, .table td {
-        border-color: black;
         border: 1px solid black;
-    }
-
-
-
-            th {
-        align : center;
     }
 
                 .table-condensed {

@@ -57,12 +57,13 @@
 
 from celery import Celery, absolute_import, unicode_literals, shared_task
 from vtn.models import DREvent, Site
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.db.models import Q
 from django.utils import timezone
 from django.conf import settings
 
 celery = Celery('tasks', broker='amqp://localhost')
+
 
 @shared_task
 def update_event_statuses():

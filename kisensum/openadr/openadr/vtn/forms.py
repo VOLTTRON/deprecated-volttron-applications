@@ -57,35 +57,16 @@
 
 from django import forms
 from .models import *
-from django.forms.models import inlineformset_factory, fields_for_model
-from django.db.models.fields import NOT_PROVIDED
-from django.forms.widgets import SelectMultiple
-from django.forms.extras.widgets import SelectDateWidget
-from datetimewidget.widgets import DateTimeWidget
-from datetimepicker.helpers import js_loader_url
-from datetimepicker.widgets import DateTimePicker
-from django.contrib.admin import widgets
-from datetime import datetime
 from django.core.exceptions import ValidationError
-from django.forms.widgets import CheckboxSelectMultiple
 from django.contrib.admin.widgets import FilteredSelectMultiple
-from django.contrib.admin.widgets import AdminDateWidget, AdminSplitDateTime
-from django.conf import settings
+from django.contrib.admin.widgets import AdminSplitDateTime
 from django.utils import timezone
-
 
 
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
         exclude = []
-        # fields = ('name', 'utility_id')
-#
-#
-# class DREventForm(forms.ModelForm):
-#     class Meta:
-#         model = DREvent
-#         fields = ('dr_program', 'notification', 'start', 'end')
 
 
 class SiteForm(forms.ModelForm):
@@ -102,9 +83,9 @@ class SiteForm(forms.ModelForm):
 
 
 class DREventForm(forms.ModelForm):
-    scheduled_notification_time = forms.SplitDateTimeField(widget=AdminSplitDateTime(), initial=timezone.now())
-    start = forms.SplitDateTimeField(widget=AdminSplitDateTime(), initial=timezone.now())
-    end = forms.SplitDateTimeField(widget=AdminSplitDateTime(), initial=timezone.now())
+    scheduled_notification_time = forms.SplitDateTimeField(widget=AdminSplitDateTime())
+    start = forms.SplitDateTimeField(widget=AdminSplitDateTime())
+    end = forms.SplitDateTimeField(widget=AdminSplitDateTime())
 
     class Meta:
         model = DREvent
@@ -121,12 +102,16 @@ class DREventForm(forms.ModelForm):
         self.fields['last_status_time'].required = False
         self.fields['event_id'].required = False
 
-
     def clean(self):
+        if self._errors:
+            return self._errors
         cleaned_data = super().clean()
-        start = cleaned_data['start']
-        end = cleaned_data['end']
-        scheduled_notification_time = cleaned_data['scheduled_notification_time']
+        try:
+            scheduled_notification_time = cleaned_data['scheduled_notification_time']
+            start = cleaned_data['start']
+            end = cleaned_data['end']
+        except KeyError:
+            raise ValidationError('Please enter valid date and time')
         if start > end:
             raise ValidationError('Start time must precede end time')
         if scheduled_notification_time > start:
@@ -157,20 +142,24 @@ class DREventUpdateForm(forms.ModelForm):
         self.fields['last_status_time'].required = False
         self.fields['event_id'].required = False
 
-    # # This clean method doesn't check the scheduled notification time, because
-    # # we should be able to change an event after said time has passed.
-    # def clean(self):
-    #     cleaned_data = super().clean()
-    #     start = cleaned_data['start']
-    #     end = cleaned_data['end']
-    #     scheduled_notification_time = cleaned_data['scheduled_notification_time']
-    #     print(start)
-    #     if start > end:
-    #         raise ValidationError('Start time must precede end time')
-    #     if scheduled_notification_time > start:
-    #         raise ValidationError('Notification time must precede start time')
-    #     if start < timezone.now() or end < timezone.now():
-    #         raise ValidationError('All times must be in the future')
+    # This clean method doesn't check the scheduled notification time, because
+    # we should be able to change an event after said time has passed.
+    def clean(self):
+        if self._errors:
+            return self._errors
+        cleaned_data = super().clean()
+        try:
+            scheduled_notification_time = cleaned_data['scheduled_notification_time']
+            start = cleaned_data['start']
+            end = cleaned_data['end']
+        except KeyError:
+            raise ValidationError('Please enter valid date and time')
+        if start > end:
+            raise ValidationError('Start time must precede end time')
+        if scheduled_notification_time > start:
+            raise ValidationError('Notification time must precede start time')
+        if start < timezone.now() or end < timezone.now():
+            raise ValidationError('All times must be in the future')
 
 
 # For the export page

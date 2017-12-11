@@ -55,12 +55,11 @@
 # under Contract DE-AC05-76RL01830
 # }}}
 
-from django.conf.urls import url, include
+from django.conf.urls import url
 from django.views.generic import RedirectView
 from vtn import views
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.conf import settings
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -73,14 +72,11 @@ urlpatterns = [
     url(r'^home/$',views.overview, name='home'),
     url(r'^login/$', auth_views.login, {'template_name': 'login.html'}, name='login'),
     url(r'^logout/$', auth_views.logout, {'template_name': 'logged_out.html'}, name='logout'),
-
     url(r'^customer-detail/(?P<pk>\w+)$', views.CustomerDetailView.as_view(), name='customer_detail'),
     url(r'^site-detail/(?P<pk>\w+)$', views.SiteDetailView.as_view(), name='site_detail'),
     url(r'^dr_event/$', login_required(views.DREventAdd.as_view()), name='dr_event'),
     url(r'^customer-edit/(?P<pk>[0-9]+)$', views.CustomerUpdate.as_view(), name='customer_update'),
     url(r'customer/add/$', views.CustomerCreate.as_view(), name='customer_add'),
-    # url(r'dr_event/(?P<pk>[0-9]+)/delete/$', login_required(views.DREventDelete.as_view()), name='dr_event_delete'),
-
     url(r'^export/(?P<pk>[0-9]+)/$', login_required(views.dr_event_export), name='export_dr_events_csv'),
     url(r'^report/$', login_required(views.report), name='report'),
     url(r'^export/filter/$', login_required(views.get_more_tables), name='get_more_tables'),
@@ -91,6 +87,7 @@ urlpatterns = [
     url(r'dr_event/view/(?P<pk>[0-9]+)/$', login_required(views.DREventCreate.as_view()), name='dr_event_update'),
     url(r'dr_event/detail/(?P<pk>[0-9]+)/$', login_required(views.DREventDetail.as_view()), name='dr_event_detail'),
     url(r'dr_event/detail/(?P<pk>[0-9]+)/customer/$', login_required(views.get_dr_event_details), name='dr_event_get_details'),
+    url(r'^home/(?P<pk>[0-9]+)/$', login_required(views.cancel_dr_event), name='dr_event_cancel'),
 
     url(r'password_change/$', login_required(views.change_password), name='change_password'),
 ]

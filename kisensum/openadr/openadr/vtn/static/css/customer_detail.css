@@ -24,7 +24,6 @@
     }
 
     .col-sm-6.box {
-        border: 1px solid #95979b;
         padding-top: 2%;
         padding-bottom: 2%;
         border-left: 1px solid #95979b;
@@ -50,3 +49,4 @@
     a {
         color: white;
     }
+

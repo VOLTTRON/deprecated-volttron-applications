@@ -129,7 +129,6 @@ class OADRDistributeEventBuilder(PayloadXML):
         self.site_events = site_events
 
     def build(self):
-        # @todo: what is my VTN ID? - this should be configurable
         return oadr_20b.oadrDistributeEventType(schemaVersion=SCHEMA_VERSION,
                                                 eiResponse=build_ei_response(status=STATUS_OK,
                                                                              response_description='OK',
@@ -217,7 +216,6 @@ class OADRDistributeEventBuilder(PayloadXML):
         event_duration = event_end - event_start
 
         seconds = event_duration.seconds
-        # End calculate duration
 
         # datetime.timedelta only has a seconds property, so pass in seconds to duration
         duration = isoduration.Duration(seconds=seconds)
@@ -262,14 +260,11 @@ class OADRRegisteredReportBuilder(PayloadXML):
         report = Report(report_request_id=report_request_id, ven_id=self.ven_id, report_status='active')
         report.save()
 
-        # @todo: am I minting a report_request_id without an event here?
         return [oadr_20b.oadrReportRequestType(reportRequestID=report_request_id,
                                                reportSpecifier=self.build_report_specifier())]
 
     def build_report_specifier(self):
 
-        # Look up what reports are supported the site, and choose one
-        # this might be taxing the database, but...
         report_specifier_id = self.report_specifier_id
         time = pytz.UTC.localize(datetime.utcnow())
         dtstart = oadr_20b.dtstart(date_time=time)

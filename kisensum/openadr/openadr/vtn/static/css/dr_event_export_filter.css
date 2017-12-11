@@ -22,7 +22,6 @@ display: inline-block;
 .tableInDiv{
     overflow-y : scroll;
     max-height: 300px;
-    width: 100%;
     margin-top: 2%;
     border-bottom: 1px solid black;
 }
@@ -31,6 +30,7 @@ display: inline-block;
     height: 50%;
     width: 100%;
 }
+
 
 footer {
     text-align: center
@@ -48,7 +48,6 @@ form {
 #filterTable {
     margin-bottom: 0;
     margin-right: 0;
-    width: 100%;
 }
 
 #filterTable>tbody>tr:last-child {
@@ -62,4 +61,18 @@ form {
 table.floatThead-table {
     border-bottom: none;
 }
+
+/*.table-bordered>tbody>tr>td.col-sm-2 {*/
+    /*max-width: 10px;*/
+    /*overflow-x: hidden;*/
+/*}*/
+
+/*.table-bordered>tbody>tr>th.col-sm-2 {*/
+    /*max-width: 10px;*/
+    /*overflow-x: hidden;*/
+/*}*/
+
+/*.table>colgroup+thead>tr:first-child>th {*/
+    /*max-width: 10px;*/
+/*}*/
 

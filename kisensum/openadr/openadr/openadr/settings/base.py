@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.11/howto/deployment/checklist/
 
@@ -83,8 +82,6 @@ ROOT_URLCONF = 'openadr.urls'
 # SITE_NAME = os.environ.get('KISENSUM_SITE_NAME', 'local')
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__name__))
 templateDir = os.path.join(PROJECT_ROOT,'openadr/openadr/templates')
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 TEMPLATES = [
     {
@@ -166,13 +163,10 @@ USE_TZ = True
 LOGIN_URL = 'vtn:login'
 
 STATIC_URL = '/static/'
-#STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
-# STATIC_ROOT = /home/ubuntu/repos/kisensum/volttron-applications/openadr/static
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, "vtn/static"),
+    os.path.join(BASE_DIR, 'vtn/static'),
 ]
 
-STATIC_URL = '/static/'
 # Set the static directory outside of the django project, same level as openadr
 STATIC_ROOT = os.path.join(os.path.dirname(BASE_DIR), "static/")
 
@@ -181,6 +175,25 @@ DATETIME_FORMAT = "n/j/Y g:i A"
 VTN_ID = 'vtn01'
 
 ONLINE_INTERVAL_MINUTES = 15
+
+GRAPH_TIMECHUNK_SECONDS = 60
+
+
+DATETIME_INPUT_FORMATS = [
+    '%Y-%m-%d %H:%M:%S',
+    '%Y-%m-%d %H:%M:%S.%f',
+    '%Y-%m-%d %H:%M',
+    '%Y-%m-%d',
+    '%m-%d-%Y %H:%M:%S',
+    '%m/%d/%Y %H:%M:%S',
+    '%m/%d/%Y %H:%M:%S.%f',
+    '%m/%d/%Y %H:%M',
+    '%m/%d/%Y',
+    '%m/%d/%y %H:%M:%S',
+    '%m/%d/%y %H:%M:%S.%f',
+    '%m/%d/%y %H:%M',
+    '%m/%d/%y',
+]
 
 
 # Static files (CSS, JavaScript, Images)

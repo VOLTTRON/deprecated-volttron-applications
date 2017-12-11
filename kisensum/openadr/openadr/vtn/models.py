@@ -99,7 +99,7 @@ class Site(models.Model):
     ven_id = models.CharField('VEN ID', max_length=100, unique=True, blank=True)
     ven_name = models.CharField('VEN Name', max_length=100, unique=True)
     site_location_code = models.CharField('Site Location Code', max_length=100)
-    ip_address = models.CharField('IPV6 address', max_length=100)
+    ip_address = models.CharField('IP address', max_length=100, blank=True)
     site_address1 = models.CharField('Address Line 1', max_length=100)
     site_address2 = models.CharField('Address Line 2', max_length=100, blank=True, null=True)
     city = models.CharField('City', max_length=100)
@@ -209,9 +209,9 @@ class Report(models.Model):
     REPORT_STATUS_CHOICES = (
         ('active', 'active'),
         ('cancelled', 'cancelled'),
-        ('cancelled_by_user', 'cancelled_by_user')
+        ('cancelled_requested', 'cancelled_requested'),
     )
 
-    report_status = models.CharField(max_length=100, choices=REPORT_STATUS_CHOICES, default='active')
-    report_request_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    report_status = models.CharField('Report Status', max_length=100, choices=REPORT_STATUS_CHOICES, default='active')
+    report_request_id = models.CharField('Report Request ID', max_length=100, blank=True, null=True, unique=True)
     ven_id = models.CharField('VEN ID', max_length=100, blank=True)

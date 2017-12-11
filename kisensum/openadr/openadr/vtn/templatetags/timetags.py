@@ -80,6 +80,14 @@ def toUnixSlice(time):
         pass
 
 
+@register.filter(name='changeStatus')
+def change_event_status(event_status):
+    if event_status == 'far':
+        return 'Scheduled'
+    else:
+        return event_status
+
+
 
 
 

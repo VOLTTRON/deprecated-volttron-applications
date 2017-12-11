@@ -4,29 +4,40 @@
 
  {% block heading %}
 
-     Event Detail: {{ event.dr_program }}
+     Event Detail: {{ event.dr_program }} <br>
+
     {% endblock heading %}
 
+
 {% block content %}
+
+
 <link href="/static/graph/nv.d3.css" rel="stylesheet" type="text/css">
 <script src="/static/graph/d3.min.js" charset="utf-8"></script>
 <script src="/static/graph/nv.d3.js"></script>
 {% load bootstrap4 %}
 <script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
+        integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
+        integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
+        crossorigin="anonymous"></script>
 <link rel="stylesheet" type="text/css" href="{% static 'css/event_detail.css' %}">
 <script src="{% static 'js/jquery.floatThead.min.js' %}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment.js"></script>
-<script data-require="moment-timezone-with-data@0.4.0" data-semver="0.4.0" src="http://momentjs.com/downloads/moment-timezone-with-data.js"></script>
+<script data-require="moment-timezone-with-data@0.4.0" data-semver="0.4.0"
+        src="http://momentjs.com/downloads/moment-timezone-with-data.js"></script>
 {% load admin_static %}
 <link rel="stylesheet" type="text/css" href="{% static 'css/dr_event_detail.css' %}">
 
 <div class="row justify-content-around">
     <div class="col-sm-4">
         <nav class="nav nav-tabs nav-stacked" id="myTab" role="tablist">
-            <a class="nav-item nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab" aria-controls="nav-home" aria-expanded="true">Graph</a>
-            <a class="nav-item nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-sites_details" role="tab" aria-controls="nav-profile">Site Details</a>
+            <a class="nav-item nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab"
+               aria-controls="nav-home" aria-expanded="true">Graph</a>
+            <a class="nav-item nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-sites_details" role="tab"
+               aria-controls="nav-profile">Site Details</a>
         </nav>
     </div>
 <div class="col-4" style="text-align: center">
@@ -49,21 +60,24 @@
                 </div>
 
             </div>
+    <br> <br>
+                <button type="button" id="cancel_event" class="btn btn-lg btn-danger" data-toggle="modal"
+                    data-target="#cancelModal">Cancel Event</button>
+                    <br>
+    <br>
+
     </div>
 </div>
 
     {% if no_data != True %}
-        <br> <br>
 <div class="tab-content" id="nav-tabContent">
     <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
          <div class="row justify-content-center">
              <div class="col-md-2">
-                 <br> <br>
                 <h3>Customer</h3>
                         {{ customerForm.customer }}
              </div>
              <div class="col-md-2">
-                 <br> <br>
                  <h3>Site</h3>
                         {{ siteForm.site }}
              </div>
@@ -85,10 +99,11 @@
         {% else %}
             <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
 <center>
-    <br> <br>
+
     <h2> No data for event </h2>
 </center>
   </div>
+
     {% endif %}
 
 <div class="tab-pane fade" id="nav-sites_details" role="tabpanel" aria-labelledby="nav-sites_details-tab">
@@ -98,7 +113,7 @@
          <table id="siteTable" class="table table-bordered table-striped table-hover table-condensed">
                 <thead>
                 <tr>
-                    <th class="col-sm-4">Site </th>
+                    <th class="col-sm-2">Site </th>
                     <th class="col-sm-2"> Notification Sent Time</th>
                     <th class="col-sm-2">Opt-in</th>
                     <th class="col-sm-2">Last opt-in</th>
@@ -134,6 +149,33 @@
     </div>
   </div>
 </div>
+
+<div id="cancelModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalLiveLabel"
+     aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLiveLabel">Confirm</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body" style="font-size: 14px">
+          <center>
+        <p>Are you sure you want to cancel this event? <br>
+        It is already in progress.</p>
+              </center>
+      </div>
+      <div class="modal-footer" style="text-align: center">
+        <button type="button" style="margin: 0 auto" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <a style="margin: 0 auto" href="{% url 'vtn:dr_event_cancel' pk %}" class="btn btn-danger">Cancel</a>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 
     <!-- End second tab pane -->
 
@@ -237,6 +279,8 @@
         chart.focusHeight(70 + 20);
 
         chart.focusMargin({ "bottom": 20 + 20 });
+
+        chart.noData("There is no data to display");
 
 
         chart.x2Axis

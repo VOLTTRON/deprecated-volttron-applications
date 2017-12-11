@@ -3,6 +3,7 @@
 {% load static %}
 {% load table_tags %}
 {% load staticfiles %}
+{% load timetags %}
 {% block title %}
     <div class="col-2">
         <h1 class="title">Export DR Event Data </h1>
@@ -19,10 +20,6 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/dr_event_export_filter.css' %}">
 
 
-<script>
-    var django = django || {};
-    django.jQuery = $;
-</script>
 <div class="container">
 <!-- Container whose html is updated to reflect latest filtered DR events -->
 <br>
@@ -53,18 +50,18 @@
 
     <!-- Actual table to hold DR events -->
     <div id="_drprograms" class="row tableRow align-items-start justify-content-between">
-        <div class="col-9">
+        <div class="col-10">
             <div class="tableInDiv jquery-thead">
                 <table id="filterTable" class="table table-sm table-bordered table-striped table-hover tableSorter" width="100%">
                     <thead>
                          <tr>
-                            <th class="eventTable"> DR Program </th>
-                            <th class="eventTable"> Notification </th>
-                            <th class="eventTable"> Start </th>
-                            <th class="eventTable"> End </th>
-                            <th class="eventTable"> Sites </th>
-                            <th class="eventTable"> Event Status </th>
-                             <th class="eventTable"> Action </th>
+                            <th class="col-xs-3"> DR Program </th>
+                            <th class="col-xs-3"> Notification </th>
+                            <th class="col-xs-3"> Start </th>
+                            <th class="col-sm-2"> End </th>
+                            <th class="col-xs-3"> Sites </th>
+                            <th class="col-xs-3"> Event Status </th>
+                             <th class="col-xs-3"> Action </th>
                          </tr>
                     </thead>
                     <tbody>
@@ -75,7 +72,7 @@
                              <td>{{ event.start }}</td>
                              <td>{{ event.end }}</td>
                             <td>{{ event.numSites }}</td>
-                             <td> {{ event.status | capfirst}}</td>
+                             <td> {{ event.status | changeStatus | capfirst}}</td>
                             <td> <a id="export_event" href="{% url 'vtn:export_dr_events_csv' event.pk %}">Export </a> </td>
                         </tr>
                     {% endfor %}

@@ -76,6 +76,7 @@ from django.utils import timezone
 from api.static_methods import *
 from vtn.tasks import update_event_statuses
 from collections import OrderedDict
+from django.conf import settings
 
 
 class CustomerCreate(CreateView):
@@ -200,17 +201,16 @@ class CreateSiteView(CreateView):
 
 
 def get_new_ven_ID():
-    sites = Site.objects.all().order_by('-ven_id')
-    try:
-        ven_id = str(int(sites[0].ven_id) + 1)
-    except (TypeError, IndexError):
-        ven_id = '0'
+    all_sites = [int(s.ven_id) for s in Site.objects.all()]
+    all_sites.sort()
+    ven_id = str(all_sites[-1] + 1) if len(all_sites) > 0 else '0'
     return ven_id
 
 
 def delete_dr_event(request, pk):
     """
     :param pk: the pk of the event that is being cancelled
+    :param request: request object
     :return: redirects user to homepage
     """
     old_dr_event = DREvent.objects.get(pk=pk)
@@ -218,7 +218,33 @@ def delete_dr_event(request, pk):
     new_dr_event.pk = None
     new_dr_event.deleted = True
     new_dr_event.modification_number = old_dr_event.modification_number + 1
-    # new_dr_event.status = 'cancelled'  # @todo: do I need this?
+    new_dr_event.status = 'cancelled'
+    new_dr_event.save()
+    old_dr_event = DREvent.objects.get(pk=pk)
+    old_dr_event.superseded = True
+    old_dr_event.save()
+    site_events = SiteEvent.objects.filter(dr_event=old_dr_event)
+    for site_event in site_events:
+        site_event.dr_event = new_dr_event
+        site_event.ven_status = 'not_told'
+        site_event.status = 'cancelled'
+        site_event.save()
+
+    return HttpResponseRedirect(reverse_lazy('vtn:home'))
+
+
+def cancel_dr_event(request, pk):
+    """
+    :param pk: the pk of the event that is being cancelled
+    :param request: request object
+    :return: redirects user to homepage
+    """
+    old_dr_event = DREvent.objects.get(pk=pk)
+    new_dr_event = old_dr_event
+    new_dr_event.pk = None
+    new_dr_event.deleted = True
+    new_dr_event.modification_number = old_dr_event.modification_number + 1
+    new_dr_event.status = 'cancelled'
     new_dr_event.save()
     old_dr_event = DREvent.objects.get(pk=pk)
     old_dr_event.superseded = True
@@ -259,7 +285,7 @@ def dr_event_export(request, pk):
 
     event = DREvent.objects.get(pk=pk)
     sites = Site.objects.filter(siteevent__dr_event=event)
-    # @todo: only get opted-in sites
+
     t_data = Telemetry.objects.filter(site__in=sites) \
                               .filter(reported_on__range=(event.start, event.end)) \
                               .order_by('-reported_on')
@@ -325,8 +351,9 @@ def get_more_tables(request):
 
         # If there is a date-range filter
         if date_range != '':
-            date_list = [datetime.strptime(x.strip(),'%m/%d/%Y')for x in date_range.split('-')]
+            date_list = [datetime.strptime(x.strip(), '%m/%d/%Y')for x in date_range.split('-')]
             start, end = date_list[0], date_list[1]
+            end = end + timedelta(hours=23, minutes=59, seconds=59)
             final_events = final_events.filter(Q(start__gte=start, start__lte=end))
         return render(request, 'vtn/get_more_tables.html', {'data': final_events})
 
@@ -342,6 +369,9 @@ class DREventAdd(CreateView):
         form.fields["sites"].queryset = Site.objects.all() \
                                                     .select_related('customer') \
                                                     .order_by('customer__name')
+        form.fields['scheduled_notification_time'].initial = (timezone.now() + timedelta(hours=1))
+        form.fields['start'].initial = (timezone.now() + timedelta(hours=2))
+        form.fields['end'].initial = (timezone.now() + timedelta(hours=3))
         return form
 
     def form_valid(self, form):
@@ -481,7 +511,7 @@ def overview(request):
         customers = Customer.objects.annotate(sites=Count('site'),
                                               online=Count(Case(When(site__online=True, then=1))),
                                               offline=Count(Case(When(site__online=False, then=1)))) \
-                                              .order_by('name')
+                                    .order_by('name')
 
         # DR Event Table
         dr_event_data = DREvent.objects.filter(end__gt=timezone.now()) \
@@ -539,9 +569,11 @@ def get_dr_event_details(request, pk):
     start = event.start
     end = event.end
 
+    date_slice = "trunc(extract(epoch from created_on) / '{}' ) * {}".format(str(settings.GRAPH_TIMECHUNK_SECONDS),
+                                                                             str(settings.GRAPH_TIMECHUNK_SECONDS))
     t_data = Telemetry.objects.filter(site__in=sites) \
         .filter(created_on__range=(start, end)) \
-        .extra(select={'date_slice': "trunc(extract(epoch from created_on) / '60' ) * 60"}) \
+        .extra(select={'date_slice': date_slice}) \
         .values('date_slice', 'site') \
         .annotate(avg_baseline_power_kw=Avg('baseline_power_kw'),
                   avg_measured_power_kw=Avg('measured_power_kw'),
@@ -628,8 +660,6 @@ class DREventDetail(TemplateView):
         # Only get those sites that have a corresponding Site Event
         sites = Site.objects.filter(siteevent__dr_event=event)
 
-        window = timedelta(seconds=15)
-
         # If there is no telemetry, tell template there is none so 'No data' is displayed
         if Telemetry.objects.filter(site__in=sites).filter(created_on__range=(event.start, event.end)).count() == 0:
             context['no_data'] = True
@@ -639,9 +669,12 @@ class DREventDetail(TemplateView):
             start = event.start
             end = event.end
 
+            date_slice = "trunc(extract(epoch from created_on) / '{}' ) * {}".format(
+                str(settings.GRAPH_TIMECHUNK_SECONDS),
+                str(settings.GRAPH_TIMECHUNK_SECONDS))
             t_data = Telemetry.objects.filter(site__in=sites) \
                                       .filter(created_on__range=(start, end)) \
-                                      .extra(select={'date_slice': "trunc(extract(epoch from created_on) / '60' ) * 60"}) \
+                                      .extra(select={'date_slice': date_slice}) \
                                       .values('date_slice', 'site') \
                                       .annotate(avg_baseline_power_kw=Avg('baseline_power_kw'),
                                                 avg_measured_power_kw=Avg('measured_power_kw'),
@@ -679,6 +712,7 @@ class DREventDetail(TemplateView):
 def get_most_recent_stat(dr_event, site):
     """
     :param site: The site to get the most recent measured power stat for.
+    :param dr_event: Used to get start and end times for telemetry.
     :return: Ideally, returns the difference between the site's baseline power
              and its actual power. If there is no baseline, it returns 'N.A.
     """

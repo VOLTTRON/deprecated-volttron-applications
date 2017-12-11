@@ -82,7 +82,14 @@ class SiteAdmin(admin.ModelAdmin):
     list_per_page = 10
 
     def get_readonly_fields(self, request, obj=None):
-        return ['ven_id', 'online', 'last_status_time',]
+        return ['ven_id', 'online', 'last_status_time', ]
+
+    def save_model(self, request, obj, form, change):
+        all_sites = [int(s.ven_id) for s in Site.objects.all()]
+        all_sites.sort()
+        ven_id = str(all_sites[-1] + 1) if len(all_sites) > 0 else '0'
+        obj.ven_id = ven_id
+        return super(SiteAdmin, self).save_model(request, obj, form, change)
 
 
 @admin.register(DRProgram)
@@ -90,9 +97,3 @@ class DRProgramAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_display = ('name',)
     filter_horizontal = ('sites',)
-
-
-@admin.register(Report)
-class ReportAdmin(admin.ModelAdmin):
-    list_per_page = 20
-    list_display = ('report_request_id', 'report_status', 'ven_id',)

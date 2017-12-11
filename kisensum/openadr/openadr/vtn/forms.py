@@ -102,9 +102,9 @@ class SiteForm(forms.ModelForm):
 
 
 class DREventForm(forms.ModelForm):
-    scheduled_notification_time = forms.SplitDateTimeField(widget=AdminSplitDateTime())
-    start = forms.SplitDateTimeField(widget=AdminSplitDateTime())
-    end = forms.SplitDateTimeField(widget=AdminSplitDateTime())
+    scheduled_notification_time = forms.SplitDateTimeField(widget=AdminSplitDateTime(), initial=timezone.now())
+    start = forms.SplitDateTimeField(widget=AdminSplitDateTime(), initial=timezone.now())
+    end = forms.SplitDateTimeField(widget=AdminSplitDateTime(), initial=timezone.now())
 
     class Meta:
         model = DREvent

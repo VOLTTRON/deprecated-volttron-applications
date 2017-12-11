@@ -259,7 +259,7 @@ class OADRRegisteredReportBuilder(PayloadXML):
         all_report_request_ids.sort()
         report_request_id = str(all_report_request_ids[-1] + 1) if len(all_report_request_ids) > 0 else '0'
 
-        report = Report(report_request_id=report_request_id)
+        report = Report(report_request_id=report_request_id, ven_id=self.ven_id, report_status='active')
         report.save()
 
         # @todo: am I minting a report_request_id without an event here?

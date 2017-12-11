@@ -90,3 +90,9 @@ class DRProgramAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_display = ('name',)
     filter_horizontal = ('sites',)
+
+
+@admin.register(Report)
+class ReportAdmin(admin.ModelAdmin):
+    list_per_page = 20
+    list_display = ('report_request_id',)

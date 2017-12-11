@@ -206,4 +206,11 @@ class Telemetry(models.Model):
 
 class Report(models.Model):
 
+    REPORT_STATUS_CHOICES = (
+        ('active', 'active'),
+        ('cancelled', 'cancelled'),
+        ('cancelled_by_user', 'cancelled_by_user')
+    )
+
+    report_status = models.CharField(max_length=100, choices=REPORT_STATUS_CHOICES, default='active')
     report_request_id = models.CharField(max_length=100, blank=True, null=True, unique=True)

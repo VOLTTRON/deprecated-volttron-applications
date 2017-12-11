@@ -95,4 +95,4 @@ class DRProgramAdmin(admin.ModelAdmin):
 @admin.register(Report)
 class ReportAdmin(admin.ModelAdmin):
     list_per_page = 20
-    list_display = ('report_request_id',)
+    list_display = ('report_request_id', 'report_status', 'ven_id',)

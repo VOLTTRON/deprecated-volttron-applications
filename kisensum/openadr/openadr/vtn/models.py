@@ -214,3 +214,4 @@ class Report(models.Model):
 
     report_status = models.CharField(max_length=100, choices=REPORT_STATUS_CHOICES, default='active')
     report_request_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    ven_id = models.CharField('VEN ID', max_length=100, blank=True)

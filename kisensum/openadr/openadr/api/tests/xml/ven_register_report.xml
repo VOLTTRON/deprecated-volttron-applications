@@ -1,0 +1,46 @@
+<oadr:oadrPayload xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07">
+  <oadr:oadrSignedObject>
+        <oadr:oadrRegisterReport xmlns:pyld="http://docs.oasis-open.org/ns/energyinterop/201110/payloads" xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110" schemaVersion="2.0b">
+            <pyld:requestID>c1f2530a-e1c3-11e7-bd19-6c96cfdb28b5</pyld:requestID>
+            <oadr:oadrReport>
+                <xcal:duration xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                    <oadr:duration>PT20S</oadr:duration>
+                </xcal:duration>
+                <oadr:oadrReportDescription xmlns:emix="http://docs.oasis-open.org/ns/emix/2011/06">
+                    <ei:rID>baseline_power</ei:rID>
+                    <ei:reportType>baseline</ei:reportType>
+                    <ei:readingType>Mean</ei:readingType>
+                    <oadr:oadrSamplingRate xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                        <oadr:oadrMinPeriod>PT30S</oadr:oadrMinPeriod>
+                        <oadr:oadrMaxPeriod>PT30S</oadr:oadrMaxPeriod>
+                        <oadr:oadrOnChange>false</oadr:oadrOnChange>
+                    </oadr:oadrSamplingRate>
+                </oadr:oadrReportDescription>
+                <oadr:oadrReportDescription xmlns:emix="http://docs.oasis-open.org/ns/emix/2011/06">
+                    <ei:rID>actual_power</ei:rID>
+                    <ei:reportType>reading</ei:reportType>
+                    <ei:readingType>Mean</ei:readingType>
+                    <oadr:oadrSamplingRate xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                        <oadr:oadrMinPeriod>PT30S</oadr:oadrMinPeriod>
+                        <oadr:oadrMaxPeriod>PT30S</oadr:oadrMaxPeriod>
+                        <oadr:oadrOnChange>false</oadr:oadrOnChange>
+                    </oadr:oadrSamplingRate>
+                </oadr:oadrReportDescription>
+                <oadr:oadrReportDescription xmlns:emix="http://docs.oasis-open.org/ns/emix/2011/06">
+                    <ei:rID>Status</ei:rID>
+                    <ei:reportType>x-resourceStatus</ei:reportType>
+                    <ei:readingType>x-notApplicable</ei:readingType>
+                    <oadr:oadrSamplingRate xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                        <oadr:oadrMinPeriod>PT1M</oadr:oadrMinPeriod>
+                        <oadr:oadrMaxPeriod>PT1M</oadr:oadrMaxPeriod>
+                        <oadr:oadrOnChange>false</oadr:oadrOnChange>
+                    </oadr:oadrSamplingRate>
+                </oadr:oadrReportDescription>
+                <ei:reportSpecifierID>telemetry</ei:reportSpecifierID>
+                <ei:reportName>METADATA_TELEMETRY_USAGE</ei:reportName>
+                <ei:createdDateTime>2017-12-15T18:14:14.684468Z</ei:createdDateTime>
+            </oadr:oadrReport>
+            <ei:venID>0</ei:venID>
+        </oadr:oadrRegisterReport>
+    </oadr:oadrSignedObject>
+</oadr:oadrPayload>

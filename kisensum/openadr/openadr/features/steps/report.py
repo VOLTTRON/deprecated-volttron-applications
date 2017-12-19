@@ -103,6 +103,7 @@ def step_impl(context, dr_program_name):
     dr_events = []
     for i in range(0, int(len(lst) / 6)):
         dr_events += [lst[i * 6].text]
+        print(lst[i * 6].text)
     assert dr_program_name in dr_events
 
 

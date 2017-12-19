@@ -59,6 +59,7 @@ from behave import given, when, then
 from vtn.tests.factories import *
 import time
 from selenium.webdriver.support.ui import Select
+from vtn.models import *
 
 
 #TODO: Add test cases for editting DR event in OVERVIEW page
@@ -76,6 +77,14 @@ def step_impl(context,  dr_program_name, name, site_name, noti_date, noti_time, 
     br.find_element_by_name("dr_program").send_keys(dr_program_name)
     time.sleep(5);
     br.find_element_by_name("sites").send_keys(site_name)
+
+    # Clear existing values
+    br.find_element_by_name("scheduled_notification_time_0").clear()
+    br.find_element_by_name("scheduled_notification_time_1").clear()
+    br.find_element_by_name("start_0").clear()
+    br.find_element_by_name("start_1").clear()
+    br.find_element_by_name("end_0").clear()
+    br.find_element_by_name("end_1").clear()
 
     br.find_element_by_name("scheduled_notification_time_0").send_keys(noti_date)
     br.find_element_by_name("scheduled_notification_time_1").send_keys(noti_time)
@@ -101,6 +110,14 @@ def step_impl(context,  dr_program_name, name, noti_date, noti_time, start_date,
     br.find_element_by_name("dr_program").send_keys(dr_program_name)
     time.sleep(5);
 
+    # Clear existing values
+    br.find_element_by_name("scheduled_notification_time_0").clear()
+    br.find_element_by_name("scheduled_notification_time_1").clear()
+    br.find_element_by_name("start_0").clear()
+    br.find_element_by_name("start_1").clear()
+    br.find_element_by_name("end_0").clear()
+    br.find_element_by_name("end_1").clear()
+
     br.find_element_by_name("scheduled_notification_time_0").send_keys(noti_date)
     br.find_element_by_name("scheduled_notification_time_1").send_keys(noti_time)
     br.find_element_by_name("start_0").send_keys(start_date)
@@ -109,6 +126,10 @@ def step_impl(context,  dr_program_name, name, noti_date, noti_time, start_date,
     br.find_element_by_name("end_1").send_keys(end_time)
 
     br.find_element_by_name("save").click()
+
+    # how to figure out which DR Event was just created?
+
+    print("There are {} DR Events".format(str(DREvent.objects.filter(dr_program__name="dr_program_test").count())))
 
     context.execute_steps('''then I am redirected to the home page''')
 
@@ -135,6 +156,7 @@ def step_impl(context, dr_program_name, site_name):
     br.find_element_by_link_text(dr_program_name).click()
     select = Select(br.find_element_by_name('sites'))
     select.deselect_by_visible_text(site_name)
+    print(site_name)
     # all_selected_options = select.all_selected_options
     # selected_texts = [option.text for option in all_selected_options]
     # select.deselect_all()

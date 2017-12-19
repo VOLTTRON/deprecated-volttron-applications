@@ -1,0 +1,11 @@
+    <oadr:oadrPayload xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" >
+        <oadr:oadrSignedObject xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07">
+            <oadr:oadrResponse xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07" xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110"  schemaVersion="2.0b">
+                <ei:eiResponse xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07" xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110"  xmlns:pyld="http://docs.oasis-open.org/ns/energyinterop/201110/payloads" >
+                    <ei:responseCode>400</ei:responseCode>
+                    <oadr:responseDescription>No site with given VEN ID found</oadr:responseDescription>
+                    <pyld:requestID>300</pyld:requestID>
+                </ei:eiResponse>
+            </oadr:oadrResponse>
+        </oadr:oadrSignedObject>
+    </oadr:oadrPayload>

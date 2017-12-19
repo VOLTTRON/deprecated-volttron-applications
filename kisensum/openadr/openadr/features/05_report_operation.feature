@@ -1,5 +1,6 @@
 Feature: Test some operation with Report Page
 
+  @skip
   Scenario: Filter the DR Event by Date Range
     Given Login with admin
     When I add Customer name "foobar", utility id "123", contact name "test" and phone number "123456789"

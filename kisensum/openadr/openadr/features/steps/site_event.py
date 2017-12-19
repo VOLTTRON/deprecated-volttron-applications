@@ -59,36 +59,56 @@ from behave import given, when, then
 from vtn.tests.factories import *
 import time
 from selenium.webdriver.support.ui import Select
+from vtn.models import *
+import django
+from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
 
 
 @then('I should see an active "{site_name}" in Site Events')
 def step_impl(context, site_name):
-    br = context.browser
+    dr_events = DREvent.objects.all()
+    try:
+        dr_event = dr_events.get(modification_number=1)
+    except ObjectDoesNotExist:
+        dr_event = dr_events.get(modification_number=0)
 
-    br.find_element_by_link_text('Admin').click()
-    assert br.current_url.endswith('/admin/') != -1
-
-    br.find_element_by_link_text('Site Events').click()
-    assert br.current_url.endswith('/siteevent/') != -1
-    time.sleep(5)
-    br.find_element_by_link_text(site_name).click()
-    assert br.current_url.endswith("admin/vtn/siteevent/.*/change/") != -1
-    select = Select(br.find_element_by_name("status"))
-    assert select.first_selected_option.text in ["far", "scheduled"]
+    # Have to edit site name because it includes the customer name in parentheses
+    new_site_name = site_name[-5:]
+    site_event = SiteEvent.objects.get(site__site_name=new_site_name)
+    assert site_event.status in ['far', 'scheduled']
+    assert site_event.ven_status == 'not_told'
+    assert site_event.dr_event.event_id == dr_event.event_id
 
 
 @then('I should see a cancelled "{site_name}" in Site Events')
 def step_impl(context, site_name):
-    br = context.browser
 
-    br.find_element_by_link_text('Admin').click()
-    assert br.current_url.endswith('/admin/') != -1
+    # This assert statement should change if the corresponding behave test changes
+    assert SiteEvent.objects.filter(~Q(status='cancelled')).count() == 3
 
-    br.find_element_by_link_text('Site Events').click()
-    assert br.current_url.endswith('/siteevent/') != -1
-    time.sleep(5)
-    br.find_element_by_link_text(site_name).click()
-    assert br.current_url.endswith("admin/vtn/siteevent/.*/change/") != -1
-    select = Select(br.find_element_by_name("status"))
-    print(select.all_selected_options)
-    assert select.first_selected_option.text == "cancelled"
+
+@then('I should see a cancelled DR Event and cancelled Site Events')
+def step_impl(context):
+
+    dr_events = DREvent.objects.all()
+    assert dr_events.count() == 2
+
+    old_dr_event = dr_events.get(superseded=True)
+    new_cancelled_dr_event = dr_events.get(status='cancelled')
+
+    # asserts about old_dr_event
+    assert old_dr_event.superseded is True
+
+    # asserts about new_cancelled_dr_event
+    assert new_cancelled_dr_event.modification_number == 1
+    assert new_cancelled_dr_event.status == 'cancelled'
+    assert new_cancelled_dr_event.superseded is False
+
+    site_events = SiteEvent.objects.all()
+
+    for site_event in site_events:
+        assert site_event.dr_event == new_cancelled_dr_event
+        assert site_event.status == 'cancelled'
+        assert site_event.ven_status == 'not_told'
+

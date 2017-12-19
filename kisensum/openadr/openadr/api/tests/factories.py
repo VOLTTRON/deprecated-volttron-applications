@@ -6,6 +6,10 @@ from datetime import datetime, timedelta
 from vtn.models import *
 import string
 from django.utils import timezone
+import logging
+
+# This is necessary or else DEBUG statements for FactoryBoy will be sent to output
+logging.getLogger("factory").setLevel(logging.WARN)
 
 fake = Faker()
 
@@ -65,8 +69,6 @@ class SiteFactory(factory.django.DjangoModelFactory):
     contact_name = factory.LazyAttribute(lambda o: names.get_full_name())
     phone_number = factory.LazyAttribute(lambda o: random.randint(100000000, 999999999))
     online = factory.LazyAttribute(lambda o: fake.boolean())
-    reporting_status = factory.LazyAttribute(lambda o: fake.boolean())
-    ven_id = factory.Sequence(lambda n: n)
 
     @factory.lazy_attribute
     def customer(self):
@@ -76,6 +78,13 @@ class SiteFactory(factory.django.DjangoModelFactory):
     @factory.lazy_attribute
     def last_status_time(self):
         return timezone.now()
+
+    @factory.lazy_attribute
+    def ven_id(self):
+        all_sites = [int(s.ven_id) for s in Site.objects.all()]
+        all_sites.sort()
+        ven_id = str(all_sites[-1] + 1) if len(all_sites) > 0 else '0'
+        return ven_id
 
 
 '''
@@ -90,7 +99,6 @@ class DRProgramFactory(factory.django.DjangoModelFactory):
         model = 'vtn.DRProgram'
 
     name = factory.Sequence(lambda n: "DR_Program_{}".format(n))
-
 
 '''
 #### DR EVENT MODEL #### 
@@ -123,10 +131,7 @@ class DREventFactory(factory.django.DjangoModelFactory):
         model = 'vtn.DREvent'
 
     dr_program = factory.SubFactory(DRProgramFactory)
-    # scheduled_notification_time = factory.LazyAttribute(lambda o: fake.date_time_between((datetime.now() -
-    #                                                     timedelta(hours=2)), (datetime.now() + timedelta(hours=2))))
     scheduled_notification_time = factory.LazyAttribute(lambda o: timezone.now())
-    # start = factory.LazyAttribute(lambda o: o.scheduled_notification_time + timedelta(hours=(random.randint(1, 3))))
     start = factory.LazyAttribute(lambda o: o.scheduled_notification_time + timedelta(seconds=10))
     end = factory.LazyAttribute(lambda obj: obj.start + timedelta(hours=random.randint(2, 5)))
     modification_number = 0
@@ -148,58 +153,3 @@ class DREventFactory(factory.django.DjangoModelFactory):
         return programs[random.randint(0, len(programs) - 1)]
 
 
-# CREATE SITE EVENTS
-choices = ['SCHEDULED', 'NOTIFICATION_SENT', 'ACTIVE',
-           'COMPLETED', 'REPORTED', 'CANCELED',
-           'ERROR']
-
-dr_events = DREvent.objects.all()
-sites = Site.objects.all()
-opt_ins = [random.choice(['optIn', 'optOut', 'none']) for x in range(0, 50)]
-
-
-# CREATE SITE EVENTS
-for x in range(0, 50):  # Change range end for number of site events
-    event = dr_events[random.randint(0, len(dr_events) - 1)]
-
-    # Get the sites in the DR Program - don't make it random
-    program = event.dr_program
-    sites = program.sites.all()
-    site = sites[random.randint(0, len(sites) - 1)]
-    status = random.choice(choices)
-    opt_in = fake.boolean()
-    notification_time = event.scheduled_notification_time
-
-    site_event = SiteEvent(dr_event=event,
-                           status=status,
-                           notification_sent_time=notification_time,
-                           opt_in=opt_in,
-                           site=site)
-    site_event.save()
-
-# CREATE TELEMETRY DATA FOR SITE EVENTS
-site_events = SiteEvent.objects.all()
-
-for site_event in site_events:
-    dr_event = site_event.dr_event
-    site = site_event.site
-
-    start = dr_event.start
-    end = dr_event.end
-
-    fifteen_minute_increments = int(((end - start).seconds / 60) / 15)
-
-    for x in range(0, fifteen_minute_increments):
-
-        t = Telemetry()
-        t.site = site
-
-        t.created_on = start + timedelta(minutes=((x + 1) * 15))
-        t.reported_on = start + timedelta(minutes=((x + 1) * 15))
-        t.baseline_power_kw = random.randint(5, 20)
-        t.measured_power_kw = random.randint(5, 20)
-        t.baseline_energy_kwh = random.randint(5, 20)
-        t.measured_energy_kwh = random.randint(5, 20)
-        t.energy_kwh = random.randint(5, 20)
-
-        t.save()

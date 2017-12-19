@@ -75,6 +75,7 @@ from django.utils import timezone
 import pytz
 from rest_framework_xml.renderers import XMLRenderer
 from django.conf import settings
+from django.db import connection
 
 SCHEMA_VERSION = '2.0b'
 VEN_STATUS_ACK = 'acknowledged'
@@ -154,7 +155,7 @@ class OADRParser(XMLParser):
 class OADRPoll(APIView):
     """
     Called when the VEN issues an oadrPoll. Responds back, right now, with
-    a Distribute Event or Create Report.
+    a Distribute Event if there are any un-acknowledged site events.
     """
 
     parser_classes = (OADRParser,)
@@ -284,13 +285,7 @@ class EIReport(APIView):
                     try:
                         report = Report.objects.get(report_request_id=report_request_id)
                     except ObjectDoesNotExist as err:
-                        payload_response = OADRResponseBuilder(SCHEMA_VERSION,
-                                                               400,
-                                                               request_id,
-                                                               'Report with given report request ID not found')
-                        payload_xml = payload_response.wrap()
-                        logger.warning("Report with VEN's given report request ID not found")
-                        return Response({'result' : payload_xml}, content_type='application/xml', status=status.HTTP_400_BAD_REQUEST)
+                        logger.warning("Report with report request ID {} not found".format(report_request_id))
 
                 payload_response = OADRResponseBuilder(SCHEMA_VERSION,
                                                        200,
@@ -359,8 +354,7 @@ class EIReport(APIView):
                                 baseline_power = report_payload.payloadBase.value
                             elif rID == 'actual_power':
                                 actual_power = report_payload.payloadBase.value
-                        reported_on = pytz.timezone("America/Los_Angeles").localize(datetime.now())
-                        # @todo: should this be a configurable option as well?
+                        reported_on = pytz.timezone(settings.TIME_ZONE).localize(datetime.now())
                         if baseline_power != 'n.a.' and actual_power != 'n.a.':
                             t = Telemetry(site=site, created_on=start,
                                           reported_on=reported_on,
@@ -390,21 +384,17 @@ class EIReport(APIView):
                 return Response({'result': payload_xml}, content_type='application/xml',
                                 status=status.HTTP_400_BAD_REQUEST)
 
-            for oadr_report_id in oadr_report_ids:
-                try:
-                    report_to_cancel = Report.objects.get(report_request_id=oadr_report_id, ven_id=ven_id)
-                except (ObjectDoesNotExist, MultipleObjectsReturned):
-                    response_description = 'No report with given ID'
-                    payload_response = OADRResponseBuilder(SCHEMA_VERSION,
-                                                           200,
-                                                           BOGUS_REQUEST_ID,
-                                                           response_description)
-                    payload_xml = payload_response.wrap()
-                    logger.warning("No report with given ID in CanceledReport")
-                    return Response({'result': payload_xml}, content_type='application/xml',
-                                    status=status.HTTP_204_NO_CONTENT)
-                report_to_cancel.report_status = 'cancelled'
-                report_to_cancel.save()
+            ven_report_request_ids = Report.objects.filter(ven_id=ven_id).filter(~Q(report_status='cancelled')) \
+                                                   .values_list('report_request_id', flat=True)
+
+            ven_report_request_ids = list(ven_report_request_ids)
+
+            for report_request_id in ven_report_request_ids:
+                if report_request_id not in oadr_report_ids:
+                    report_to_cancel = Report.objects.get(report_request_id=report_request_id)
+                    report_to_cancel.report_status = 'cancelled'
+                    report_to_cancel.save()
+
             payload_response = OADRResponseBuilder(SCHEMA_VERSION,
                                                    200,
                                                    request_id)

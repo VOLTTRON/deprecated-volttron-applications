@@ -60,7 +60,7 @@ from diagnostics.temperature_sensor_dx import TempSensorDx
 from diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
 from diagnostics.ventilation_dx import ExcessOA, InsufficientOA
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 ECON1 = "Temperature Sensor Dx"
 ECON2 = "Not Economizing When Unit Should Dx"
@@ -206,6 +206,7 @@ class Application(AbstractDrivenAgent):
                 'normal': desired_oaf*0.5,
                 'high': desired_oaf*0.25
             }
+            self.sensitivity = ['low', 'normal', 'high']
             if sensitivity != "all":
                 remove_sensitivities = [item for item in ['high', 'normal', 'low'] if item != sensitivity]
                 if remove_sensitivities:
@@ -217,6 +218,7 @@ class Application(AbstractDrivenAgent):
                         excess_damper_threshold.pop(remove)
                         excess_oaf_threshold.pop(remove)
                         ventilation_oaf_threshold.pop(remove)
+                        self.sensitivity.remove(remove)
         elif sensitivity == "custom":
             temp_difference_threshold = {'normal': temp_difference_threshold}
             oat_mat_check = {'normal': oat_mat_check}
@@ -225,6 +227,7 @@ class Application(AbstractDrivenAgent):
             excess_damper_threshold = {'normal': excess_damper_threshold}
             excess_oaf_threshold = {'normal': excess_oaf_threshold}
             ventilation_oaf_threshold = {'normal': ventilation_oaf_threshold}
+            self.sensitivity = ['normal']
         else:
             temp_difference_threshold = {'normal': temp_difference_threshold}
             oat_mat_check = {'normal': oat_mat_check}
@@ -233,6 +236,7 @@ class Application(AbstractDrivenAgent):
             excess_damper_threshold = {'normal': minimum_damper_setpoint}
             excess_oaf_threshold = {'normal': minimum_damper_setpoint + 10.0}
             ventilation_oaf_threshold = {'normal': 5.0}
+            self.sensitivity = ['normal']
 
         self.econ1 = TempSensorDx(data_window, no_required_data,
                                   temp_difference_threshold, open_damper_time,
@@ -479,7 +483,10 @@ class Application(AbstractDrivenAgent):
         :param dx_result:
         :return:
         """
-        dx_msg = {'low': message, 'normal': message, 'high': message}
+        dx_msg = {}
+        for sensitivity in self.sensitivity:
+            dx_msg[sensitivity] = message
+
         for diagnostic in diagnostics:
             dx_table = {diagnostic + DX: dx_msg}
             table_key = create_table_key(self.analysis, cur_time)

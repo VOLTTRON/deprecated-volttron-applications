@@ -88,6 +88,7 @@ class TempSensorDx(object):
         self.no_required_data = no_required_data
         self.oat_mat_check = oat_mat_check
         self.temp_diff_thr = temp_diff_thr
+        self.inconsistent_date = {key: 3.2 for key in self.temp_diff_thr}
         self.sensor_damper_dx = DamperSensorInconsistencyDx(data_window,
                                                             no_required_data,
                                                             open_damper_time,
@@ -117,8 +118,7 @@ class TempSensorDx(object):
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                dx_msg = {"low": 3.2, "normal": 3.2, "high": 3.2}
-                dx_result.insert_table_row(table_key, {ECON1 + DX: dx_msg})
+                dx_result.insert_table_row(table_key, {ECON1 + DX: self.inconsistent_date})
                 self.clear_data()
                 return dx_result, self.temp_sensor_problem
 

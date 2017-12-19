@@ -244,9 +244,9 @@ class Application(AbstractDrivenAgent):
                 "high": unocc_time_thr*0.5
             }
             sat_reset_thr = {
-                "low": sat_reset_thr + 2.0,
+                "low": max(sat_reset_thr - 2.0, 0.5),
                 "normal": sat_reset_thr,
-                "high": max(sat_reset_thr - 2.0, 0.5)
+                "high": sat_reset_thr + 2.0
             }
             stcpr_reset_thr = {
                 "low": stcpr_reset_thr*1.5,

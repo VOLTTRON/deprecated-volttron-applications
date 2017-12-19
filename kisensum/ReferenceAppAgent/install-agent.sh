@@ -1,4 +1,4 @@
-# Shell script to install SimulationAgent as a VOLTTRON agent.
+# Shell script to install ReferenceAppAgent as a VOLTTRON agent.
 #
 # This script should be run in a VOLTTRON virtualenv, in which $VOLTTRON_HOME
 # and $VOLTTRON_ROOT have been defined as, respectively, the VOLTTRON execution
@@ -9,13 +9,13 @@
 # project installation directory.
 #
 #
-AGENT_ROOT=$VOLTTRON_ROOT/applications/kisensum/Simulation/SimulationAgent
+AGENT_ROOT=$VOLTTRON_ROOT/applications/kisensum/ReferenceAppAgent
 
 cd $VOLTTRON_ROOT
 export VIP_SOCKET="ipc://$VOLTTRON_HOME/run/vip.socket"
 python scripts/install-agent.py \
     -s $AGENT_ROOT \
-    -i simulationagent \
-    -c $AGENT_ROOT/simulationagent.config \
-    -t simulationagent \
+    -i referenceappagent \
+    -c $AGENT_ROOT/referenceappagent.config \
+    -t referenceappagent \
     -f

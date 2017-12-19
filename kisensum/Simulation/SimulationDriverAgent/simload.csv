@@ -1,4 +1,5 @@
 Volttron Point Name,Type,Units,Starting Value,Writable,Notes
+Heartbeat,boolean,On/Off,0,TRUE,Point for heartbeat toggle
 power_kw,float,Float,0.0,TRUE,
 last_timestamp,time,Timestamp,,TRUE,
 csv_file_path,string,String,,TRUE,

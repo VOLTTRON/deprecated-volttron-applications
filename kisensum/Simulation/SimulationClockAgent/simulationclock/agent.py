@@ -179,7 +179,7 @@ class SimulationClockAgent(Agent):
             _log.debug('Asked to initialize with out-of-order start/stop times')
             return 'simulated_stop_time is earlier than simulated_start_time'
 
-        self.actual_start_time = datetime.now()
+        self.actual_start_time = utils.get_aware_utc_now()
         self.simulated_start_time = parsed_start_time
         self.simulated_stop_time = parsed_stop_time
         self.speed = parsed_speed
@@ -197,7 +197,7 @@ class SimulationClockAgent(Agent):
         """
         if not (self.actual_start_time and self.simulated_start_time and self.speed):
             return 'No simulation is in progress'
-        elapsed_seconds = (datetime.now() - self.actual_start_time).seconds
+        elapsed_seconds = (utils.get_aware_utc_now() - self.actual_start_time).seconds
         elapsed_simulated_seconds = elapsed_seconds * self.speed
         simulation_timestamp = self.simulated_start_time + timedelta(seconds=elapsed_simulated_seconds)
         if self.simulated_stop_time and simulation_timestamp > self.simulated_stop_time:

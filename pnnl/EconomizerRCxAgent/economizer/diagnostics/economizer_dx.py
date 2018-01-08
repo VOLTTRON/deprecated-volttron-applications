@@ -92,6 +92,9 @@ class EconCorrectlyOn(object):
 
         self.analysis = analysis
         self.max_dx_time = td(minutes=60)
+        self.not_economizing_dict = {key: 15.0 for key in self.oaf_economizing_threshold}
+        self.not_cooling_dict = {key: 14.0 for key in self.oaf_economizing_threshold}
+        self.inconsistent_date = {key: 13.2 for key in self.oaf_economizing_threshold}
 
         # Application result messages
         self.alg_result_messages = [
@@ -133,8 +136,7 @@ class EconCorrectlyOn(object):
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                result = {"low": 13.2, "normal": 13.2, "high": 13.2}
-                dx_result.insert_table_row(table_key, {ECON2 + DX: result})
+                dx_result.insert_table_row(table_key, {ECON2 + DX: self.inconsistent_date})
                 self.clear_data()
                 return dx_result
             dx_result = self.not_economizing_when_needed(dx_result, table_key)
@@ -151,7 +153,7 @@ class EconCorrectlyOn(object):
         :return:
         """
         oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
-        avg_oaf = mean(oaf)*100.0
+        avg_oaf = max(0.0, min(100.0, mean(oaf)*100.0))
         avg_damper_signal = mean(self.oad_values)
         diagnostic_msg = {}
         energy_impact = {}
@@ -200,8 +202,7 @@ class EconCorrectlyOn(object):
                 self.not_cooling = cur_time
             if cur_time - self.not_cooling >= self.data_window:
                 dx_result.log("{}: unit is not cooling - reinitialize!".format(ECON2))
-                diagnostic_msg = {"low": 14.0, "normal": 14.0, "high": 14.0}
-                dx_table = {ECON2 + DX: diagnostic_msg}
+                dx_table = {ECON2 + DX: self.not_cooling_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
                 self.clear_data()
@@ -215,8 +216,7 @@ class EconCorrectlyOn(object):
                 self.not_economizing = cur_time
             if cur_time - self.not_economizing >= self.data_window:
                 dx_result.log("{}: unit is not economizing - reinitialize!".format(ECON2))
-                diagnostic_msg = {"low": 15.0, "normal": 15.0, "high": 15.0}
-                dx_table = {ECON2 + DX: diagnostic_msg}
+                dx_table = {ECON2 + DX: self.not_economizing_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
                 self.clear_data()
@@ -280,6 +280,8 @@ class EconCorrectlyOff(object):
         self.no_required_data = no_required_data
         self.min_damper_sp = min_damper_sp
         self.excess_damper_threshold = excess_damper_threshold
+        self.economizing_dict = {key: 25.0 for key in self.excess_damper_threshold}
+        self.inconsistent_date = {key: 23.2 for key in self.excess_damper_threshold}
         self.desired_oaf = desired_oaf
         self.analysis = analysis
         self.cfm = cfm
@@ -317,8 +319,7 @@ class EconCorrectlyOff(object):
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
-                result = {"low": 23.2, "normal": 23.2, "high": 23.2}
-                dx_result.insert_table_row(table_key, {ECON3 + DX: result})
+                dx_result.insert_table_row(table_key, {ECON3 + DX: self.inconsistent_date})
                 self.clear_data()
                 return dx_result
 
@@ -395,8 +396,7 @@ class EconCorrectlyOff(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 dx_result.log("{}: economizing - reinitialize!".format(ECON3))
-                diagnostic_msg = {"low": 25.0, "normal": 25.0, "high": 25.0}
-                dx_table = {ECON3 + DX: diagnostic_msg}
+                dx_table = {ECON3 + DX: self.economizing_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
                 self.clear_data()

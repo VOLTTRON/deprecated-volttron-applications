@@ -55,7 +55,6 @@ import sys
 import gevent
 from collections import defaultdict
 from datetime import datetime as dt, timedelta as td
-from copy import deepcopy
 from dateutil.parser import parse
 
 from volttron.platform.agent import utils
@@ -66,7 +65,7 @@ from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
 import dateutil.tz
 
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 
 __author1__ = "Craig Allwardt <craig.allwardt@pnnl.gov>"
 __author2__ = "Robert Lutes <robert.lutes@pnnl.gov>"

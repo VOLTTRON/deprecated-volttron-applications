@@ -91,6 +91,9 @@ class ExcessOA(object):
         self.min_damper_sp = min_damper_sp
         self.desired_oaf = desired_oaf
         self.excess_damper_threshold = excess_damper_threshold
+        self.economizing_dict = {key: 36.0 for key in self.excess_damper_threshold}
+        self.invalid_oaf_dict = {key: 31.2 for key in self.excess_damper_threshold}
+        self.inconsistent_date = {key: 35.2 for key in self.excess_damper_threshold}
         self.analysis = analysis
 
     def econ_alg4(self, dx_result, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
@@ -123,8 +126,7 @@ class ExcessOA(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             table_key = create_table_key(self.analysis, self.timestamp[-1])
             if elapsed_time > self.max_dx_time:
-                result = {"low": 35.2, "normal": 35.2, "high": 35.2}
-                dx_result.insert_table_row(table_key, {ECON4 + DX: result})
+                dx_result.insert_table_row(table_key, {ECON4 + DX: self.inconsistent_date})
                 self.clear_data()
                 return dx_result
             dx_result = self.excess_oa(dx_result, table_key)
@@ -149,13 +151,13 @@ class ExcessOA(object):
         if avg_oaf < 0 or avg_oaf > 125.0:
             msg = ("{}: Inconclusive result, unexpected OAF value: {}".format(ECON4, avg_oaf))
             # color_code = "GREY"
-            result = {"low": 31.2, "normal": 31.2, "high": 31.2}
-            dx_table = {ECON4 + DX: result}
+            dx_table = {ECON4 + DX: self.invalid_oaf_dict}
             dx_result.log(msg)
             dx_result.insert_table_row(table_key, dx_table)
             self.clear_data()
             return dx_result
 
+        avg_oaf = max(0.0, min(100.0, avg_oaf))
         thresholds = zip(self.excess_damper_threshold.items(), self.excess_oaf_threshold.items())
         for (key, damper_thr), (key2, oaf_thr) in thresholds:
             result = 30.0
@@ -232,8 +234,7 @@ class ExcessOA(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 dx_result.log("{}: economizing - reinitialize!".format(ECON4))
-                diagnostic_msg = {"low": 36.0, "normal": 36.0, "high": 36.0}
-                dx_table = {ECON4 + DX: diagnostic_msg}
+                dx_table = {ECON4 + DX: self.economizing_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
                 self.clear_data()
@@ -265,6 +266,8 @@ class InsufficientOA(object):
         self.ventilation_oaf_threshold = ventilation_oaf_threshold
         self.desired_oaf = desired_oaf
         self.analysis = analysis
+        self.invalid_oaf_dict = {key: 41.2 for key in self.ventilation_oaf_threshold}
+        self.inconsistent_date = {key: 44.2 for key in self.ventilation_oaf_threshold}
 
     def econ_alg5(self, dx_result, oatemp, ratemp, matemp, cur_time):
         """
@@ -289,8 +292,7 @@ class InsufficientOA(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             table_key = create_table_key(self.analysis, self.timestamp[-1])
             if elapsed_time > self.max_dx_time:
-                dx_msg = {"low": 44.2, "normal": 44.2, "high": 44.2}
-                dx_result.insert_table_row(table_key, {ECON5 + DX: dx_msg})
+                dx_result.insert_table_row(table_key, {ECON5 + DX: self.inconsistent_date})
                 self.clear_data()
                 return dx_result
             dx_result = self.insufficient_oa(dx_result, table_key)
@@ -314,13 +316,13 @@ class InsufficientOA(object):
             msg = ("{}: Inconclusive result, the OAF calculation led to an "
                    "unexpected value: {}".format(ECON5, avg_oaf))
             # color_code = "GREY"
-            result = {"low": 41.2, "normal": 41.2, "high": 41.2}
-            dx_table = {ECON5 + DX: result}
+            dx_table = {ECON5 + DX: self.invalid_oaf_dict}
             dx_result.log(msg)
             dx_result.insert_table_row(table_key, dx_table)
             self.clear_data()
             return dx_result
 
+        avg_oaf = max(0.0, min(100.0, avg_oaf))
         for key, threshold in self.ventilation_oaf_threshold.items():
             if self.desired_oaf - avg_oaf > threshold:
                 msg = "{}: Insufficient OA is being provided for ventilation - sensitivity: {}".format(ECON5, key)

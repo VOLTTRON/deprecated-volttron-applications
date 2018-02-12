@@ -128,7 +128,7 @@ class Interface(BasicRevert, BaseInterface):
                 for entry in self.data:
                    
                     entityId = entry['entity_id']
-                    
+                    #print entry
 ################################################################################################################################################################
 
                     if(entityId.startswith("climate.")):
@@ -144,31 +144,47 @@ class Interface(BasicRevert, BaseInterface):
                                 self.register_device(False, climatePointName + key, 'string','Shows the away mode value')
                             elif key == "operation_mode":
                                 self.register_device(False, climatePointName + key, 'string','Shows the operation mode value')
+                            elif key == "operation_list":
+                                self.register_device(False, climatePointName + key, 'string','Shows the operation mode list value')
                             elif key == "fan_mode":
                                 self.register_device(False, climatePointName + key, 'string','Shows the fan mode value')
-                            elif key == "unit_of_measurement":
-                                self.register_device(False, climatePointName + key, 'string','Shows the temperature unit of measurement')
-                            elif key == "current_temperatuure":
-                                self.register_device(False, climatePointName + key, 'float','Shows the current temperature value')
-                            elif key == "aux_heat":
-                                 self.register_device(False, climatePointName + key, 'string','Shows the aux heat value value')
-                            elif key == "max_temp":
-                                 self.register_device(False, climatePointName + key, 'float','Shows the max temperature value')
-                            elif key == "min_temp":
-                                self.register_device(False, climatePointName + key, 'float','Shows the min temperature value')
-                            elif key == "temperature":
-                                self.register_device(False, climatePointName + key, 'float','Shows the target temperature value')
+                            elif key == "fan_list":
+                                self.register_device(False, climatePointName + key, 'string','Shows the fan mode list value')
                             elif key == "swing_mode":
                                 self.register_device(False, climatePointName + key, 'string','Shows the swing mode value')  
+                            elif key == "swing_list":
+                                self.register_device(False, climatePointName + key, 'string','Shows the swing mode list value')
+                            elif key == "aux_heat":
+                                 self.register_device(False, climatePointName + key, 'string','Shows the aux heat value value')
+                            elif key == "state":
+                                self.register_device(False, climatePointName + key, 'string','Shows the max state value')
+                            elif key == "friendly_name":
+                                self.register_device(False, climatePointName + key, 'string','Shows the friendly_name value')
+                            elif key == "unit_of_measurement":
+                                self.register_device(False, climatePointName + key, 'string','Shows the temperature unit of measurement')
+                            elif key == "current_temperature":
+                                self.register_device(False, climatePointName + key, 'float','Shows the current temperature value')
+                            elif key == "temperature":
+                                self.register_device(False, climatePointName + key, 'float','Shows the temperature value')
+                            elif key == "max_temp":
+                                 self.register_device(False, climatePointName + key, 'float','Shows the maximum temperature value')
+                            elif key == "min_temp":
+                                self.register_device(False, climatePointName + key, 'float','Shows the minimum temperature value')
+                            elif key == "temperature":
+                                self.register_device(False, climatePointName + key, 'float','Shows the target temperature value')
                             elif key == "target_temp_low":
                                 self.register_device(False, climatePointName + key, 'float','Shows the target temperature low value')                            
                             elif key == "target_temp_high":
                                 self.register_device(False, climatePointName + key, 'float','Shows the target temperature high value')
+                            elif key == "max_temp":
+                                self.register_device(False, climatePointName + key, 'float','Shows the maximum temperature value')
+                            elif key == "min_temp":
+                                self.register_device(False, climatePointName + key, 'float','Shows the minimum temperature value')
+                            
 ################################################################################################################################################################
                                 
         except requests.exceptions.RequestException as e:
             print(e)   
-     
      
     
     def register_device(self, read_only, point_name, units,description):
@@ -184,7 +200,6 @@ class Interface(BasicRevert, BaseInterface):
 
             self.insert_register(register)
             
-      
    
     def get_point(self, point_name, **kwargs):
         '''
@@ -199,7 +214,6 @@ class Interface(BasicRevert, BaseInterface):
         val = self.get_point_name_value(pointNameInfo[0], point_name)
 
         return str(val)
-    
     
                     
     def get_point_name_value(self, component_type, point_name):
@@ -231,7 +245,6 @@ class Interface(BasicRevert, BaseInterface):
                 entityId = pointNameInfo[1]
                 property= pointNameInfo[2]
                 
-                
                 for entry in self.data:
                    
                     if entityId == entry['entity_id']:
@@ -248,7 +261,6 @@ class Interface(BasicRevert, BaseInterface):
         except requests.exceptions.RequestException as e:
             print(e)
             
-
 
     def _set_point(self, point_name, value, **kwargs):
         '''
@@ -302,7 +314,6 @@ class Interface(BasicRevert, BaseInterface):
                 return str(value)   
             
 
-
     def _scrape_all(self):
         results = {}
         for point in self.point_map.keys():
@@ -313,14 +324,13 @@ class Interface(BasicRevert, BaseInterface):
         return results
 
 
-
 class HASSClimate(object):
     
     
     def __init__(self, url):
         
         self.url = url
-        
+
         
     def SetTargetTemperature(self, entityId, targetTemp, opMode):
         '''
@@ -524,5 +534,6 @@ class HASSClimate(object):
             
         except requests.exceptions.RequestException as e:
             print(e)
+            
             
             

@@ -72,7 +72,6 @@ class DuctStaticAIRCx(object):
                  analysis, stcpr_stpt_cname):
         # Initialize data arrays
         self.table_key = None
-        self.zn_dmpr_array = []
         self.stcpr_stpt_array = []
         self.stcpr_array = []
         self.timestamp_array = []
@@ -91,6 +90,11 @@ class DuctStaticAIRCx(object):
         self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)
         self.hdzn_dmpr_thr = hdzn_dmpr_thr
+        self.ls_dmpr_low_avg = []
+        self.ls_dmpr_high_avg = []
+        self.hs_dmpr_high_avg = []
+        self.low_sf_condition = []
+        self.high_sf_condition = []
         self.dx_offset = 0.0
 
     def reinitialize(self):
@@ -103,6 +107,11 @@ class DuctStaticAIRCx(object):
         self.stcpr_stpt_array = []
         self.stcpr_array = []
         self.timestamp_array = []
+        self.ls_dmpr_low_avg = []
+        self.ls_dmpr_high_avg = []
+        self.hs_dmpr_high_avg = []
+        self.low_sf_condition = []
+        self.high_sf_condition = []
 
     def stcpr_aircx(self, current_time, stcpr_stpt_data, stcpr_data,
                     zn_dmpr_data, low_sf_cond, high_sf_cond, dx_result):
@@ -117,38 +126,45 @@ class DuctStaticAIRCx(object):
         :param dx_result:
         :return:
         """
-        try:
-            if check_date(current_time, self.timestamp_array):
-                dx_result = pre_conditions(INCONSISTENT_DATE, DX_LIST, self.analysis, current_time, dx_result)
-                self.reinitialize()
-                return dx_result
+        if check_date(current_time, self.timestamp_array):
+            dx_result = pre_conditions(INCONSISTENT_DATE, DX_LIST, self.analysis, current_time, dx_result)
+            self.reinitialize()
 
-            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
+        run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
-            if run_status is None:
-                dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-                dx_result = pre_conditions(INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time, dx_result)
-                self.reinitialize()
-                return dx_result
+        if run_status is None:
+            dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
+            dx_result = pre_conditions(INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time, dx_result)
+            self.reinitialize()
 
-            if run_status:
-                self.table_key = create_table_key(self.analysis, self.timestamp_array[-1])
-                avg_stcpr_stpt, dx_table, dx_result = setpoint_control_check(self.stcpr_stpt_array, self.stcpr_array,
-                                                                             self.stpt_deviation_thr, DUCT_STC_RCX,
-                                                                             self.dx_offset, dx_result)
+        if run_status:
+            self.table_key = create_table_key(self.analysis, self.timestamp_array[-1])
+            avg_stcpr_stpt, dx_table, dx_result = setpoint_control_check(self.stcpr_stpt_array, self.stcpr_array,
+                                                                         self.stpt_deviation_thr, DUCT_STC_RCX,
+                                                                         self.dx_offset, dx_result)
 
-                dx_result.insert_table_row(self.table_key, dx_table)
-                dx_result = self.low_stcpr_aircx(dx_result, avg_stcpr_stpt, low_sf_cond)
-                dx_result = self.high_stcpr_aircx(dx_result, avg_stcpr_stpt, high_sf_cond)
-                self.reinitialize()
-            return dx_result
-        finally:
-            self.stcpr_stpt_array.append(mean(stcpr_data))
-            self.stcpr_array.append(mean(stcpr_stpt_data))
-            self.zn_dmpr_array.append(mean(zn_dmpr_data))
-            self.timestamp_array.append(current_time)
+            dx_result.insert_table_row(self.table_key, dx_table)
+            dx_result = self.low_stcpr_aircx(dx_result, avg_stcpr_stpt)
+            dx_result = self.high_stcpr_aircx(dx_result, avg_stcpr_stpt)
+            self.reinitialize()
 
-    def low_stcpr_aircx(self, dx_result, avg_stcpr_stpt, low_sf_condition):
+        self.stcpr_stpt_array.append(mean(stcpr_data))
+        self.stcpr_array.append(mean(stcpr_stpt_data))
+
+        zn_dmpr_data.sort(reverse=False)
+        self.ls_dmpr_low_avg.append(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])
+        self.ls_dmpr_high_avg.append(zn_dmpr_data[int(math.ceil(len(zn_dmpr_data) * 0.5)) - 1 if len(zn_dmpr_data) != 1 else 0:])
+
+        zn_dmpr_data.sort(reverse=True)
+        self.hs_dmpr_high_avg.append(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])
+
+        self.low_sf_condition.append(low_sf_cond if low_sf_cond is not None else 0)
+        self.high_sf_condition.append(high_sf_cond if high_sf_cond is not None else 0)
+        self.timestamp_array.append(current_time)
+
+        return dx_result
+
+    def low_stcpr_aircx(self, dx_result, avg_stcpr_stpt):
         """
         AIRCx to identify and correct low duct static pressure.
         :param dx_result:
@@ -156,13 +172,9 @@ class DuctStaticAIRCx(object):
         :param low_sf_condition:
         :return:
         """
-        zn_dmpr = self.zn_dmpr_array[:]
-        zn_dmpr.sort(reverse=False)
-        dmpr_low_temps = zn_dmpr[:int(math.ceil(len(self.zn_dmpr_array)*0.5)) if len(self.zn_dmpr_array) != 1 else 1]
-        dmpr_low_avg = mean(dmpr_low_temps)
-
-        dmpr_high_temps = zn_dmpr[int(math.ceil(len(self.zn_dmpr_array)*0.5)) - 1 if len(self.zn_dmpr_array) != 1 else 0:]
-        dmpr_high_avg = mean(dmpr_high_temps)
+        dmpr_low_avg = mean(self.ls_dmpr_low_avg)
+        dmpr_high_avg = mean(self.ls_dmpr_high_avg)
+        low_sf_condition = True if sum(self.low_sf_condition)/len(self.low_sf_condition) > 0.5 else False
         thresholds = zip(self.zn_high_dmpr_thr.items(), self.zn_low_dmpr_thr.items())
         diagnostic_msg = {}
 
@@ -205,7 +217,7 @@ class DuctStaticAIRCx(object):
         dx_result.insert_table_row(self.table_key, {DUCT_STC_RCX1 + DX: diagnostic_msg})
         return dx_result
 
-    def high_stcpr_aircx(self, dx_result, avg_stcpr_stpt, high_sf_condition):
+    def high_stcpr_aircx(self, dx_result, avg_stcpr_stpt):
         """
         AIRCx to identify and correct high duct static pressure.
         :param dx_result:
@@ -213,14 +225,12 @@ class DuctStaticAIRCx(object):
         :param high_sf_condition:
         :return:
         """
-        zn_dmpr = self.zn_dmpr_array[:]
-        zn_dmpr.sort(reverse=True)
-        zn_dmpr = zn_dmpr[:int(math.ceil(len(self.zn_dmpr_array)*0.5)) if len(self.zn_dmpr_array) != 1 else 1]
-        avg_zn_damper = mean(zn_dmpr)
+        high_sf_condition = True if sum(self.high_sf_condition) / len(self.high_sf_condition) > 0.5 else False
+        dmpr_high_avg = mean(self.hs_dmpr_high_avg)
         diagnostic_msg = {}
 
         for key, hdzn_dmpr_thr in self.hdzn_dmpr_thr.items():
-            if avg_zn_damper <= hdzn_dmpr_thr:
+            if dmpr_high_avg <= hdzn_dmpr_thr:
                 if high_sf_condition is not None and high_sf_condition:
                     msg = "{} - duct static pressure too high. Supply fan at minimum.".format(key)
                     result = 25.1

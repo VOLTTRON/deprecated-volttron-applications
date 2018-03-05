@@ -148,27 +148,24 @@ class SchedResetAIRCx(object):
         :return:
         """
         schedule = self.schedule[current_time.weekday()]
-        try:
-            run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, run_schedule="daily")
+        run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, run_schedule="daily")
 
-            if run_status is None:
-                schedule_name = create_table_key(self.analysis, self.timestamp_array[0])
-                dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-                dx_result = pre_conditions(INSUFFICIENT_DATA, [SCHED_RCX], schedule_name, current_time, dx_result)
-                self.reinitialize_sched()
-                return dx_result
+        if run_status is None:
+            schedule_name = create_table_key(self.analysis, self.timestamp_array[0])
+            dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
+            dx_result = pre_conditions(INSUFFICIENT_DATA, [SCHED_RCX], schedule_name, current_time, dx_result)
+            self.reinitialize_sched()
 
-            if run_status:
-                dx_result = self.unocc_fan_operation(dx_result)
-                self.reinitialize_sched()
+        if run_status:
+            dx_result = self.unocc_fan_operation(dx_result)
+            self.reinitialize_sched()
 
-            return dx_result
+        if current_time.time() < schedule[0] or current_time.time() > schedule[1]:
+            self.stcpr_array.extend(stcpr_data)
+            self.fan_status_array.append((current_time, current_fan_status))
+            self.schedule_time_array.append(current_time)
+        return dx_result
 
-        finally:
-            if current_time.time() < schedule[0] or current_time.time() > schedule[1]:
-                self.stcpr_array.extend(stcpr_data)
-                self.fan_status_array.append((current_time, current_fan_status))
-                self.schedule_time_array.append(current_time)
 
     def setpoint_reset_aircx(self, current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data, dx_result):
         """
@@ -180,43 +177,41 @@ class SchedResetAIRCx(object):
         :param dx_result:
         :return:
         """
-        try:
-            stcpr_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
-                                                run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
+        stcpr_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
+                                            run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
 
-            if not self.timestamp_array:
-                return dx_result
-
-            self.reset_table_key = reset_name = create_table_key(self.analysis, self.timestamp_array[0])
-            if stcpr_run_status is None:
-                dx_result.log("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
-                dx_result = pre_conditions(INSUFFICIENT_DATA, [DUCT_STC_RCX3], reset_name, current_time, dx_result)
-                self.stcpr_stpt_array = []
-            elif stcpr_run_status:
-                dx_result = self.no_static_pr_reset(dx_result)
-                self.stcpr_stpt_array = []
-
-            sat_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
-                                              run_schedule="daily", minimum_point_array=self.sat_stpt_array)
-
-            if sat_run_status is None:
-                dx_result.log("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
-                dx_result = pre_conditions(INSUFFICIENT_DATA, [SA_TEMP_RCX3], reset_name, current_time, dx_result)
-                self.sat_stpt_array = []
-                self.timestamp_array = []
-            elif sat_run_status:
-                dx_result = self.no_sat_stpt_reset(dx_result)
-                self.sat_stpt_array = []
-                self.timestamp_array = []
-
+        if not self.timestamp_array:
             return dx_result
 
-        finally:
-            if current_fan_status:
-                if stcpr_stpt_data:
-                    self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
-                if sat_stpt_data:
-                    self.sat_stpt_array.append(mean(sat_stpt_data))
+        self.reset_table_key = reset_name = create_table_key(self.analysis, self.timestamp_array[0])
+        if stcpr_run_status is None:
+            dx_result.log("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
+            dx_result = pre_conditions(INSUFFICIENT_DATA, [DUCT_STC_RCX3], reset_name, current_time, dx_result)
+            self.stcpr_stpt_array = []
+        elif stcpr_run_status:
+            dx_result = self.no_static_pr_reset(dx_result)
+            self.stcpr_stpt_array = []
+
+        sat_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
+                                          run_schedule="daily", minimum_point_array=self.sat_stpt_array)
+
+        if sat_run_status is None:
+            dx_result.log("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
+            dx_result = pre_conditions(INSUFFICIENT_DATA, [SA_TEMP_RCX3], reset_name, current_time, dx_result)
+            self.sat_stpt_array = []
+            self.timestamp_array = []
+        elif sat_run_status:
+            dx_result = self.no_sat_stpt_reset(dx_result)
+            self.sat_stpt_array = []
+            self.timestamp_array = []
+
+        if current_fan_status:
+            if stcpr_stpt_data:
+                self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
+            if sat_stpt_data:
+                self.sat_stpt_array.append(mean(sat_stpt_data))
+
+        return dx_result
 
     def unocc_fan_operation(self, dx_result):
         """

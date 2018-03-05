@@ -185,7 +185,8 @@ class CreateSiteView(CreateView):
 
         if form.is_valid():
             self.object = form.save(commit=False)
-            self.object.ven_id = get_new_ven_ID()
+            if not self.object.ven_id:
+                self.object.ven_id = get_new_ven_ID()
             self.object.save()
 
             if 'dr_programs' in request.POST:

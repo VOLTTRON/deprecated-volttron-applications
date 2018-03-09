@@ -1,4 +1,4 @@
-import datetime
+import datetime, dateutil.parser
 import logging
 import sys
 import uuid
@@ -58,6 +58,10 @@ def HEMS_agent(config_path, **kwargs):
     # beta values
     device_beta_topic_dict = {}
     device_beta_dict = {}
+    
+    # start and end time for energy reduction
+    start_time_topic = house + '/' + 'energy_reduction_startTime'
+    end_time_topic = house + '/' + 'energy_reduction_endTime'
    
     for device_name in device_config:
         # setpoints topic
@@ -148,6 +152,18 @@ def HEMS_agent(config_path, **kwargs):
                                       prefix=P_topic,
                                   callback=self.on_receive_energy_reduction_message_fncs)
             
+            # Initialize subscription function to start time
+            _log.info('Subscribing to energy reduction starting time of one day')
+            self.vip.pubsub.subscribe(peer='pubsub',
+                                      prefix=start_time_topic,
+                                      callback=self.on_receive_start_time_message_fncs)
+            
+            # Initialize subscription function to start time
+            _log.info('Subscribing to energy reduction ending time of one day')
+            self.vip.pubsub.subscribe(peer='pubsub',
+                                      prefix=end_time_topic,
+                                      callback=self.on_receive_end_time_message_fncs)
+            
             # Initialize subscription function to change beta values
             for device_name in device_beta_topic_dict:
                 _log.info('Subscribing to ' + device_beta_topic_dict[device_name])
@@ -175,12 +191,18 @@ def HEMS_agent(config_path, **kwargs):
                                           callback=self.on_receive_fncs_bridge_message_fncs)
             
                         
-            # Set energy consumption time starts at 14 minutes after simulation begins, and lasts for 3 minutes
-            _log.info('Simulation starts from: {}.'.format(str(currTime)))
-            self.startEnergyReduction = currTime + datetime.timedelta(minutes=16)
-            self.endEnergyReduction = currTime + datetime.timedelta(minutes=21)
-            _log.info('Energy reduction starts from: {}.'.format(str(self.startEnergyReduction)))
-            _log.info('Energy reduction ends at: {}.'.format(str(self.endEnergyReduction)))
+#             # Set energy consumption time starts at 14 minutes after simulation begins, and lasts for 3 minutes
+#             _log.info('Simulation starts from: {}.'.format(str(currTime)))
+#             self.startEnergyReduction = currTime + datetime.timedelta(minutes=16)
+#             self.endEnergyReduction = currTime + datetime.timedelta(minutes=21)
+#             _log.info('Energy reduction starts from: {}.'.format(str(self.startEnergyReduction)))
+#             _log.info('Energy reduction ends at: {}.'.format(str(self.endEnergyReduction)))
+            
+            # Set up initial start and end time of eneeeergy reduction
+            self.startEnergyReduction = dateutil.parser.parse("2020-01-01 00:00:00")
+            self.endEnergyReduction = dateutil.parser.parse("2020-01-01 00:00:00")
+            
+            # Initialization of flags
             self.energyReduced = False
             self.energyPeriodCalculated = False
             self.energyCalTime = currTime
@@ -202,6 +224,26 @@ def HEMS_agent(config_path, **kwargs):
             device_setpoint_val_dict.update({device: setpoint})
 #             _log.info('Unit {0:s} setpoint changed to {1} at time {2} '.format(device, setpoint, str(datetime.datetime.now())))
     
+        def on_receive_start_time_message_fncs(self, peer, sender, bus, topic, headers, message):
+            """Subscribe to energy reduction starting time from UI 
+            """    
+            # Update device setpoint
+            self.startEnergyReduction = dateutil.parser.parse(message[:19])
+            
+            # Print the starting time
+            date_format = "%Y-%m-%dT%H:%M:%S.%fZ" 
+            _log.info('Energy reduction starting time is set up as {0} '.format(datetime.datetime.strptime(message[:19], "%Y-%m-%dT%H:%M:%S"), date_format))
+        
+        def on_receive_end_time_message_fncs(self, peer, sender, bus, topic, headers, message):
+            """Subscribe to energy reduction ending time from UI 
+            """    
+            # Update device setpoint
+            self.endEnergyReduction = dateutil.parser.parse(message[:19])
+            
+            # Print the starting time
+            date_format = "%Y-%m-%dT%H:%M:%S.%fZ" 
+            _log.info('Energy reduction ending time is set up as {0} '.format(datetime.datetime.strptime(message[:19], "%Y-%m-%dT%H:%M:%S"), date_format))
+
         def on_receive_beta_message_fncs(self, peer, sender, bus, topic, headers, message):
             """Subscribe to appliance beta values based on slider bar changes
             """ 
@@ -239,29 +281,30 @@ def HEMS_agent(config_path, **kwargs):
                 _log.info('Energy reduction begins at time {} '.format(str(datetime.datetime.now())))
                 self.energyReduced = True # Set flag so that setpoint updates for energy reduction only changes once
                 self.publish_setpoint()
-            
-#             # Check if energy reduction time ends
-#             if (datetime.datetime.now() >= self.endEnergyReduction) and (self.energyPeriodCalculated == False):
-#                 self.energyPeriodCalculated = True # Set flag so that total energy consumption is ony displayed once
-#                 now = datetime.datetime.utcnow().isoformat(' ') + 'Z'
-#                 headers = {
-#                     headers_mod.DATE: now
-#                 }
-#                 index = 0
-#                 for device_name in device_setpoint_dict:
-#                     # Publish the original setpoints:
-#                     pub_topic = 'fncs/input/house/' + device_name + '/' + device_setpoint_dict[device_name]
-#                     self.vip.pubsub.publish('pubsub', pub_topic, headers, device_setpoint_val_ori_dict[device_name])
-#                     _log.info('HEMS agent publishes updated setpoints {0} to unit {1:s} with topic: {2}'.format(device_setpoint_val_ori_dict[device_name], device_name, pub_topic))
-#                     index += 1 
-#                     # Also update final energy consumption values
-#                     load_curr = device_load_val_dict[device_name]
-#                     energy_ori = device_energy_dict_Period[device_name]
-#                     timediff = self.cal_time_diff(self.endEnergyReduction, self.loadChangeTime[device_name])
-#                     energy_update = energy_ori + load_curr * timediff / 60
-#                     device_energy_dict_Period.update({device_name: energy_update})
-#                     _log.info('unit {0:s} total energy consumption during the energy reduction period is {1:f}'.format(device_name, device_energy_dict_Period[device_name]))
-#         
+        
+        @Core.periodic(1)
+        def change_back_setpoints(self):
+            ''' This method publishes original setpoint when the energy reduction ends
+            '''            
+            # Check if energy reduction time arrives
+            if (self.energyReduced == True and datetime.datetime.now() >= self.endEnergyReduction):
+                _log.info('Energy reduction ends at time {} '.format(str(datetime.datetime.now())))
+                            
+                # At the energy reduction time, publish the changed setpoints based on optimization function
+                now = datetime.datetime.utcnow().isoformat(' ') + 'Z'
+                headers = {
+                    headers_mod.DATE: now
+                }
+    
+                for device_name in device_setpoint_val_ori_dict:
+                    # Publish the original setpoints:
+                    pub_topic = 'house/' + device_name + '/' + device_setpoint_val_ori_dict[device_name]
+                    _log.info('HEMS agent publishes updated setpoints {0} to unit {1:s} with topic: {2}'.format(device_setpoint_val_ori_dict[device_name], device_name, pub_topic))
+                    self.vip.pubsub.publish('pubsub', pub_topic, headers, device_setpoint_val_ori_dict[device_name])
+                
+                # Set flag
+                self.energyReduced = False
+
         # ====================Obtain values from fncs_bridge ===========================
         def on_receive_fncs_bridge_message_fncs(self, peer, sender, bus, topic, headers, message):
             """Subscribe to fncs_bridge publications, change appliance setpoints back, and summarize the total energy reduction
@@ -311,7 +354,8 @@ def HEMS_agent(config_path, **kwargs):
                        (t1_tuple.tm_sec - t2_tuple.tm_sec)
                        
             return timediff
-                         
+        
+        # This function receives messages from GLD test, and calculate corresponding accumulated energy for verification               
         def on_receive_load_message_fncs(self, peer, sender, bus, topic, headers, message):
             """Subscribe to appliance loads and record the load data accordingly 
             """               

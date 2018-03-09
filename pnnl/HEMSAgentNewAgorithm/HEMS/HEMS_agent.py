@@ -350,20 +350,20 @@ def HEMS_agent(config_path, **kwargs):
             
             # Publish the energy consumption as well as the load to the message bus, whenever the load changes
             headers = {headers_mod.TIMESTAMP: now, headers_mod.DATE: now}
-            # devices/all/wh-9845/office/skycentrics
-            topicLoad = 'house/{0:s}/load(kW)'.format(device_name)
-            mesgLoad = {'load(kW)': load_curr}
-            topicEnergy = 'house/{0:s}/Energy(kWH)'.format(device_name)
-            mesgEnergy = {'Energy(kWH)': energy_update}
+            
+#             topicLoad = 'analysis/house/{0:s}/load(kW)'.format(device_name)
+#             mesgLoad = {'load(kW)': load_curr}
+#             topicEnergy = 'analysis/house/{0:s}/Energy(kWH)'.format(device_name)
+#             mesgEnergy = {'Energy(kWH)': energy_update}
 
-            topicAll = 'devices/all/{0:s}/office/skycentrics'.format(device_name)
+            topicAll = 'analysis/skycentrics/house/{0:s}/all'.format(device_name)
             mesgAll =  [{'InstantaneousElectricityConsumption': load_curr,
                         'TotalEnergyStorageCapacity': energy_update},
                        {'InstantaneousElectricityConsumption': {'units': 'kW', 'tz': 'UTC', 'type': 'float'},
                         'TotalEnergyStorageCapacity': {'units': 'kWh', 'tz': 'UTC', 'type': 'float'}
                         }]
-            self.vip.pubsub.publish('pubsub', topicLoad, headers, mesgLoad)
-            self.vip.pubsub.publish('pubsub', topicEnergy, headers, mesgEnergy)
+#             self.vip.pubsub.publish('pubsub', topicLoad, headers, mesgLoad)
+#             self.vip.pubsub.publish('pubsub', topicEnergy, headers, mesgEnergy)
             # Publish all messages
             self.vip.pubsub.publish('pubsub', topicAll, headers, mesgAll)
             
@@ -486,7 +486,7 @@ def HEMS_agent(config_path, **kwargs):
             # ======================== Test code ===========================================================#
             
             
-            # Predeined market clearing price lambda1
+            # Predefined market clearing price lambda1
             lambda_e = 0.10
             lambda_u = 0.05
             
@@ -541,8 +541,28 @@ def HEMS_agent(config_path, **kwargs):
             # self.vip.pubsub.publish('pubsub', pub_topic, headers, sol['primal objective'])
             
             # Publish the total energy reduction expected
-            pub_topic = 'fncs/input/house/energy_reduction'
-            self.vip.pubsub.publish('pubsub', pub_topic, headers, totalE)
+            topicE = 'record/skycentrics/energyReduction'
+            mesgE =  [{'EstimatedEnergyReduction': totalE
+                        },
+                       {'EstimatedEnergyReduction': {'units': 'kWh', 'tz': 'UTC', 'type': 'float'}
+                        }]
+            topicComp = 'record/skycentrics/Compensation'
+            mesgComp =  [{
+                        'Compensation': net_revenue
+                        },
+                       {
+                        'Compensation': {'units': '$', 'tz': 'UTC', 'type': 'float'}
+                        }]
+            # Publish all messages
+            self.vip.pubsub.publish('pubsub', topicE, headers, mesgE)
+            self.vip.pubsub.publish('pubsub', topicComp, headers, mesgComp)
+            
+#             pub_topic = 'record/energy_reduction'
+#             self.vip.pubsub.publish('pubsub', pub_topic, headers, totalE)
+#             # Publish total revenue estimated
+#             pub_topic = 'fncs/input/house/revenue'
+#             self.vip.pubsub.publish('pubsub', pub_topic, headers, revenue)
+            
         
         def publish_setpoint(self): 
             

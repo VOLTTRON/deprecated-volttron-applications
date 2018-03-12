@@ -47,12 +47,7 @@ def HEMS_agent(config_path, **kwargs):
     diff = {}
     reductionE = {}
     disutility = {}
-    # load consumption related values initialization
-    device_load_topic_dict = {}
-    device_load_val_dict = {}
-    device_energy_dict = {}
-    device_energy_dict_Period = {}
-    device_energy_area = {}
+
     # pre-generated delta setpoint and delta power parameters
     device_para_dict = {}
     # beta values
@@ -74,23 +69,12 @@ def HEMS_agent(config_path, **kwargs):
         diff.update({device_name: 0.0})
         reductionE.update({device_name: 0.0})
         disutility.update({device_name: 0.0})
-               
-        # Load topic full path
-        loadName = device_config[device_name][1]
-        load_topic = 'fncs/output/devices/fncs_Test/' + device_name + '/' + loadName
-        device_load_topic_dict.update({device_name: load_topic})
-        device_load_val_dict.update({device_name: 0.0})
         
         # beta topic
         betaName = device_config[device_name][2]
         beta_topic = house + '/' + device_name + '/' + betaName
         device_beta_topic_dict.update({device_name: beta_topic})
-        
-        # Intialize device energy consumption for the whole simulation time, and for the energy reduction time only
-        device_energy_dict.update({device_name: 0.0})
-        device_energy_dict_Period.update({device_name: 0.0})
-        device_energy_area.update({device_name: 0.0}) # used to calculate average enery consumption after energy reduction start till the end of the day
-        
+
         # Read in pre-generated device parameters for relationship between setpoint and power changes
         if 'parameters' in config['device']:
             if 'setpoint' in device_para[device_name]:
@@ -214,9 +198,6 @@ def HEMS_agent(config_path, **kwargs):
         def on_receive_setpoint_message_fncs(self, peer, sender, bus, topic, headers, message):
             """Subscribe to appliance setpoint and change the data accordingly 
             """    
-#             _log.info("Whole message", topic, message)
-#             #The time stamp is in the headers
-#             _log.info('Date', headers['Date'])
             # Find the appliance name
             device = topic.split("/")[-2]
             # Update device setpoint
@@ -304,44 +285,6 @@ def HEMS_agent(config_path, **kwargs):
                 
                 # Set flag
                 self.energyReduced = False
-
-        # ====================Obtain values from fncs_bridge ===========================
-        def on_receive_fncs_bridge_message_fncs(self, peer, sender, bus, topic, headers, message):
-            """Subscribe to fncs_bridge publications, change appliance setpoints back, and summarize the total energy reduction
-            """    
-            val =  message[0] # value True
-            if (val == 'True'):
-                _log.info('----------------- HEMS agent recieves from fncs_bridge the siimulation ending signal.-----------------------')
-                
-                # Calculate and publish the total energy reduction at the end of the day
-                now = datetime.datetime.utcnow().isoformat(' ') + 'Z'
-                headers = {
-                    headers_mod.DATE: now
-                }
-                
-                currTime = datetime.datetime.now()
-
-                for device_name in device_setpoint_dict:
-                    # Publish the original setpoints:
-                    pub_topic = 'fncs/input/house/' + device_name + '/' + device_setpoint_dict[device_name]
-                    self.vip.pubsub.publish('pubsub', pub_topic, headers, device_setpoint_val_ori_dict[device_name])
-                    _log.info('HEMS agent publishes updated setpoints {0} to unit {1:s} with topic: {2}'.format(device_setpoint_val_ori_dict[device_name], device_name, pub_topic))
-                    
-                    # Also update final energy consumption values
-                    load_curr = device_load_val_dict[device_name]
-                    energy_ori = device_energy_dict_Period[device_name]
-                    timediff = self.cal_time_diff(currTime, self.loadChangeTime[device_name])
-                    energy_update = energy_ori + load_curr * timediff / 60
-                    device_energy_dict_Period.update({device_name: energy_update})
-                    _log.info('unit {0:s} total energy consumption after the energy reduction starts is {1:f} kWh'.format(device_name, device_energy_dict_Period[device_name]))
-                    
-                    # Calculation of energy area accumulation
-                    area = (energy_update - energy_ori) / 2 * timediff / 60 + energy_ori * timediff / 60 
-                    device_energy_area[device_name] += area
-                    _log.info('unit {0:s} total energy area after the energy reduction starts is {1:f}'.format(device_name, device_energy_area[device_name]))
-                    
-                # Stop HEMS agent
-                self.core.stop() 
                 
         def cal_time_diff(self, t1, t2):
             '''Calculate the time difference in seconds
@@ -354,66 +297,6 @@ def HEMS_agent(config_path, **kwargs):
                        (t1_tuple.tm_sec - t2_tuple.tm_sec)
                        
             return timediff
-        
-        # This function receives messages from GLD test, and calculate corresponding accumulated energy for verification               
-        def on_receive_load_message_fncs(self, peer, sender, bus, topic, headers, message):
-            """Subscribe to appliance loads and record the load data accordingly 
-            """               
-            
-            currTime = datetime.datetime.now()
-            now = datetime.datetime.utcnow().isoformat(' ') + 'Z'
-            
-            # Find the appliance name
-            device_name = topic.split("/")[-2]
-            _log.info('unit {0:s} changes load to {1:f} at time {2:s}'.format(device_name, message[0], str(currTime)))
-            
-            # Check if energy consumption calculation after the enery reduction period starts
-            if (currTime >= self.startEnergyReduction):
-                load_curr = device_load_val_dict[device_name]
-                energy_ori = device_energy_dict_Period[device_name]
-                # Calculate time difference based on whether energy accumulation was done last time after energy reduction has started
-                if (self.loadChangeTime[device_name] < self.startEnergyReduction): 
-                    timediff = self.cal_time_diff(currTime, self.startEnergyReduction)
-                else:
-                    timediff = self.cal_time_diff(currTime, self.loadChangeTime[device_name])
-                # Calculation of energy accumulation
-                energy_update = energy_ori + load_curr * timediff / 60
-                device_energy_dict_Period.update({device_name: energy_update})
-                # Calculation of energy area accumulation
-                area = (energy_update - energy_ori) / 2 * timediff / 60 + energy_ori * timediff / 60   
-                device_energy_area[device_name] += area
-                
-            # Write to log the total energy consssumption whenever load changes during the simulation
-            load_curr = device_load_val_dict[device_name]
-            energy_ori = device_energy_dict[device_name]
-            timediff = self.cal_time_diff(currTime, self.energyCalTime)
-            energy_update = energy_ori + load_curr * timediff / 60
-            device_energy_dict.update({device_name: energy_update})
-            self.energyCalTime = currTime
-            _log.info('unit {0:s}: total energy consumption is {1:f} kWh, load changed to {3:f} kW, at time {2:s}'.format(device_name, device_energy_dict[device_name], str(datetime.datetime.now()), message[0]))
-            
-            # Publish the energy consumption as well as the load to the message bus, whenever the load changes
-            headers = {headers_mod.TIMESTAMP: now, headers_mod.DATE: now}
-            
-#             topicLoad = 'analysis/house/{0:s}/load(kW)'.format(device_name)
-#             mesgLoad = {'load(kW)': load_curr}
-#             topicEnergy = 'analysis/house/{0:s}/Energy(kWH)'.format(device_name)
-#             mesgEnergy = {'Energy(kWH)': energy_update}
-
-            topicAll = 'analysis/skycentrics/house/{0:s}/all'.format(device_name)
-            mesgAll =  [{'InstantaneousElectricityConsumption': load_curr,
-                        'TotalEnergyStorageCapacity': energy_update},
-                       {'InstantaneousElectricityConsumption': {'units': 'kW', 'tz': 'UTC', 'type': 'float'},
-                        'TotalEnergyStorageCapacity': {'units': 'kWh', 'tz': 'UTC', 'type': 'float'}
-                        }]
-#             self.vip.pubsub.publish('pubsub', topicLoad, headers, mesgLoad)
-#             self.vip.pubsub.publish('pubsub', topicEnergy, headers, mesgEnergy)
-            # Publish all messages
-            self.vip.pubsub.publish('pubsub', topicAll, headers, mesgAll)
-            
-            # Update device load (kW)
-            device_load_val_dict.update({device_name: message[0]})
-            self.loadChangeTime[device_name] = currTime
         
         def congestion(self, lambda_avg, lambda_sigma):
             '''
@@ -518,17 +401,7 @@ def HEMS_agent(config_path, **kwargs):
         def energy_reduction(self): 
             '''
             This function calculate the setpoint change of each device, so that total energy reduction can achieve the desired amount
-            '''
-            # ======================== Test code ===========================================================#
-#             device_para['AC1']['setpoint_delta'] = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0]
-#             device_para['AC1']['power_delta'] = [0,0.153484954,0.306724537,0.460570602,0.617362269,0.776594907,0.927584491,1.079421296,1.233296296,1.401094907,1.55643287,1.694083333,1.832385417,1.974203704,2.11971875,2.298293981,2.440744213]
-#             device_para['AC2']['setpoint_delta'] = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0]
-#             device_para['AC2']['power_delta'] = [0,0.116864583,0.234591435,0.352828704,0.470645833,0.581621528,0.703003472,0.809390046,0.916498843,1.025902778,1.137876157,1.26200463,1.371810185]
-#             device_para['WH1']['setpoint_delta'] = [0, -0.5, -1.0, -1.5, -2.0, -2.5,-3.0, -3.5, -4.0, -4.5, -5.0, -5.5, -6.0, -6.5, -7.0, -7.5, -8.0, -8.5, -9.0, -9.5, -10]
-#             device_para['WH1']['power_delta'] = [0,0.050699074,0.103472222,0.156386574,0.21721875,0.254753472,0.280082176,0.315210648,0.342613426,0.375969907,0.407893519,0.440503472,0.514478009,0.588524306,0.599260417,0.610091435,0.616633102,0.635606481,0.636326389,0.637357639,0.642358796]
-
-            # ======================== Test code ===========================================================#
-            
+            '''    
             
             # Predefined market clearing price lambda1
             lambda_e = 0.10

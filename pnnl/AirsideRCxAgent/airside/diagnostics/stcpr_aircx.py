@@ -150,8 +150,9 @@ class DuctStaticAIRCx(object):
             dx_result = self.high_stcpr_aircx(dx_result, avg_stcpr_stpt)
             self.reinitialize()
 
-        self.stcpr_stpt_array.append(mean(stcpr_data))
-        self.stcpr_array.append(mean(stcpr_stpt_data))
+        self.stcpr_stpt.append(mean(stcpr_data))
+        if stcpr_stpt_data:
+            self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
 
         zn_dmpr_data.sort(reverse=False)
         self.ls_dmpr_low_avg.extend(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])

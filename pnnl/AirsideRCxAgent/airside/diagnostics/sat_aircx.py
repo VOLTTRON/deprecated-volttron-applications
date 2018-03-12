@@ -174,7 +174,8 @@ class SupplyTempAIRCx(object):
 
         self.sat_array.append(mean(sat_data))
         self.rht_array.append(mean(zone_rht_data))
-        self.sat_stpt_array.append(mean(sat_stpt_data))
+        if sat_stpt_data:
+            self.sat_stpt_array.append(mean(sat_stpt_data))
         self.percent_rht.append(tot_rht / count_rht)
         self.percent_dmpr.append(tot_dmpr / count_damper)
         self.timestamp_array.append(current_time)

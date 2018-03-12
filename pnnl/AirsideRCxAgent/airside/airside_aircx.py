@@ -157,7 +157,7 @@ class Application(AbstractDrivenAgent):
         def get_or_none(name):
             value = kwargs["point_mapping"].get(name, None)
             if value:
-                value = value.lower()
+                value = value
             return value
 
         if sensitivity is not None and sensitivity == "custom":

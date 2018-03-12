@@ -132,7 +132,7 @@ def driven_agent(config_path, **kwargs):
     missing_data_threshold = config.get("missing_data_threshold", 15.0)/100.0
     map_names = {}
     for key, value in conversion_map.items():
-        map_names[key.lower() if isinstance(key, str) else key] = value
+        map_names[key if isinstance(key, str) else key] = value
 
     application = config.get("application")
     validation_error = ""

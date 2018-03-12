@@ -58,23 +58,23 @@ from datetime import datetime as dt, timedelta as td
 from dateutil.parser import parse
 
 from volttron.platform.agent import utils
-from volttron.platform.agent.utils import (setup_logging, jsonapi, get_aware_utc_now, format_timestamp)
+from volttron.platform.agent.utils import (setup_logging, get_aware_utc_now, format_timestamp)
 from volttron.platform.vip.agent import Agent, Core
 from volttron.platform.jsonrpc import RemoteError
 from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
 import dateutil.tz
 
-__version__ = "1.0.5"
+__version__ = "1.0.8"
 
 __author1__ = "Craig Allwardt <craig.allwardt@pnnl.gov>"
 __author2__ = "Robert Lutes <robert.lutes@pnnl.gov>"
 __author3__ = "Poorva Sharma <poorva.sharma@pnnl.gov>"
-__copyright__ = "Copyright (c) 2016, Battelle Memorial Institute"
+__copyright__ = "Copyright (c) 2017, Battelle Memorial Institute"
 __license__ = "FreeBSD"
 DATE_FORMAT = "%m-%d-%y %H:%M"
 
-utils.setup_logging()
+setup_logging()
 _log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.info, format="%(asctime)s   %(levelname)-8s %(message)s", datefmt=DATE_FORMAT)
 
@@ -129,6 +129,7 @@ def driven_agent(config_path, **kwargs):
 
     device_lock_duration = config.get("device_lock_duration", 10.0)
     conversion_map = config.get("conversion_map")
+    missing_data_threshold = config.get("missing_data_threshold", 15.0)/100.0
     map_names = {}
     for key, value in conversion_map.items():
         map_names[key.lower() if isinstance(key, str) else key] = value
@@ -265,7 +266,7 @@ def driven_agent(config_path, **kwargs):
             device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
                 fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
-                if fraction_missing < 0.10:
+                if fraction_missing < missing_data_threshold:
                     _log.error("Device values already present, reinitializing at publish: {}".format(timestamp))
                     self.initialize_devices()
                     device_needed = self.aggregate_subdevice(device_data, topic)
@@ -279,7 +280,7 @@ def driven_agent(config_path, **kwargs):
             if self._should_run_now() or missing_but_running:
                 field_names = {}
                 for point, data in self.device_values.items():
-                    field_names[point.lower() if isinstance(point, str) else point] = data
+                    field_names[point] = data
                 if not converter.initialized and conversion_map is not None:
                     converter.setup_conversion_map(map_names, field_names)
 
@@ -404,7 +405,7 @@ def driven_agent(config_path, **kwargs):
             warning:: Calling without previously scheduling a device and not within
                          the time allotted will raise a LockError"""
 
-            _now = utils.get_aware_utc_now()
+            _now = get_aware_utc_now()
             str_now = format_timestamp(_now)
             _end = _now + td(minutes=device_lock_duration)
             str_end = format_timestamp(_end)

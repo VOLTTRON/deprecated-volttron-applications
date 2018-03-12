@@ -103,7 +103,6 @@ class DuctStaticAIRCx(object):
         :return:
         """
         self.table_key = None
-        self.zn_dmpr_array = []
         self.stcpr_stpt_array = []
         self.stcpr_array = []
         self.timestamp_array = []
@@ -139,9 +138,12 @@ class DuctStaticAIRCx(object):
 
         if run_status:
             self.table_key = create_table_key(self.analysis, self.timestamp_array[-1])
-            avg_stcpr_stpt, dx_table, dx_result = setpoint_control_check(self.stcpr_stpt_array, self.stcpr_array,
-                                                                         self.stpt_deviation_thr, DUCT_STC_RCX,
-                                                                         self.dx_offset, dx_result)
+            avg_stcpr_stpt, dx_table, dx_result = setpoint_control_check(self.stcpr_stpt_array,
+                                                                         self.stcpr_array,
+                                                                         self.stpt_deviation_thr,
+                                                                         DUCT_STC_RCX,
+                                                                         self.dx_offset,
+                                                                         dx_result)
 
             dx_result.insert_table_row(self.table_key, dx_table)
             dx_result = self.low_stcpr_aircx(dx_result, avg_stcpr_stpt)
@@ -152,11 +154,11 @@ class DuctStaticAIRCx(object):
         self.stcpr_array.append(mean(stcpr_stpt_data))
 
         zn_dmpr_data.sort(reverse=False)
-        self.ls_dmpr_low_avg.append(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])
-        self.ls_dmpr_high_avg.append(zn_dmpr_data[int(math.ceil(len(zn_dmpr_data) * 0.5)) - 1 if len(zn_dmpr_data) != 1 else 0:])
+        self.ls_dmpr_low_avg.extend(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])
+        self.ls_dmpr_high_avg.extend(zn_dmpr_data[int(math.ceil(len(zn_dmpr_data) * 0.5)) - 1 if len(zn_dmpr_data) != 1 else 0:])
 
         zn_dmpr_data.sort(reverse=True)
-        self.hs_dmpr_high_avg.append(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])
+        self.hs_dmpr_high_avg.extend(zn_dmpr_data[:int(math.ceil(len(zn_dmpr_data) * 0.5)) if len(zn_dmpr_data) != 1 else 1])
 
         self.low_sf_condition.append(low_sf_cond if low_sf_cond is not None else 0)
         self.high_sf_condition.append(high_sf_cond if high_sf_cond is not None else 0)

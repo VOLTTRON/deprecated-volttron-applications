@@ -84,7 +84,7 @@ class ExcessOA(object):
         # Application thresholds (Configurable)
         self.cfm = cfm
         self.eer = eer
-        self.max_dx_time = td(minutes=60)
+        self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.data_window = data_window
         self.no_required_data = no_required_data
         self.excess_oaf_threshold = excess_oaf_threshold
@@ -144,7 +144,6 @@ class ExcessOA(object):
         avg_oaf = mean(oaf) * 100.0
         avg_damper = mean(self.oad_values)
         desired_oaf = self.desired_oaf / 100.0
-        msg = ""
         diagnostic_msg = {}
         energy_impact = {}
 
@@ -160,31 +159,28 @@ class ExcessOA(object):
         avg_oaf = max(0.0, min(100.0, avg_oaf))
         thresholds = zip(self.excess_damper_threshold.items(), self.excess_oaf_threshold.items())
         for (key, damper_thr), (key2, oaf_thr) in thresholds:
-            result = 30.0
-            energy = 0.0
-            if avg_damper - self.min_damper_sp > damper_thr:
+            if avg_damper > damper_thr:
                 msg = "{}: The OAD should be at the minimum but is significantly higher.".format(ECON4)
                 # color_code = "RED"
                 result = 32.1
-
-            if avg_oaf - self.desired_oaf > oaf_thr:
-                if result > 30.0:
-                    msg += ("{}: The OAD should be at the minimum for ventilation "
-                            "but is significantly above that value. Excess outdoor air is "
-                            "being provided; This could significantly increase "
-                            "heating and cooling costs".format(ECON4))
+                if avg_oaf - self.desired_oaf > oaf_thr:
+                    msg = ("{}: The OAD should be at the minimum for ventilation "
+                           "but is significantly above that value. Excess outdoor air is "
+                           "being provided; This could significantly increase "
+                           "heating and cooling costs".format(ECON4))
+                    energy = self.energy_impact_calculation(desired_oaf)
                     result = 34.1
-                else:
-                    msg = ("{}: Excess outdoor air is being provided, this could "
-                           "increase heating and cooling energy consumption.".format(ECON4))
-                    result = 33.1
-                    # color_code = "RED"
-
-            elif result == 30.0:
-                msg = ("{}: The calculated OAF is within configured limits.".format(ECON4))
-
-            if result > 30:
+            elif avg_oaf - self.desired_oaf > oaf_thr:
+                msg = ("{}: Excess outdoor air is being provided, this could "
+                       "increase heating and cooling energy consumption.".format(ECON4))
+                # color_code = "RED"
                 energy = self.energy_impact_calculation(desired_oaf)
+                result = 33.1
+            else:
+                # color_code = "GREEN"
+                msg = ("{}: The calculated OAF is within configured limits.".format(ECON4))
+                result = 30.0
+                energy = 0.0
 
             dx_result.log(msg)
             energy_impact.update({key: energy})
@@ -229,11 +225,11 @@ class ExcessOA(object):
 
     def economizer_conditions(self, dx_result, econ_condition, cur_time):
         if econ_condition:
-            dx_result.log("{}: economizing, for data {} .".format(ECON4, cur_time))
+            dx_result.log("{}: economizing at {} .".format(ECON4, cur_time))
             if self.economizing is None:
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
-                dx_result.log("{}: economizing - reinitialize!".format(ECON4))
+                dx_result.log("{}: economizing for data set, reinitialize.".format(ECON4))
                 dx_table = {ECON4 + DX: self.economizing_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
@@ -258,7 +254,7 @@ class InsufficientOA(object):
         self.rat_values = []
         self.mat_values = []
         self.timestamp = []
-        self.max_dx_time = td(minutes=60)
+        self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
 
         # Application thresholds (Configurable)
         self.data_window = data_window
@@ -323,15 +319,15 @@ class InsufficientOA(object):
             return dx_result
 
         avg_oaf = max(0.0, min(100.0, avg_oaf))
-        for key, threshold in self.ventilation_oaf_threshold.items():
+        for sensitivity, threshold in self.ventilation_oaf_threshold.items():
             if self.desired_oaf - avg_oaf > threshold:
-                msg = "{}: Insufficient OA is being provided for ventilation - sensitivity: {}".format(ECON5, key)
+                msg = "{}: Insufficient OA is being provided for ventilation - sensitivity: {}".format(ECON5, sensitivity)
                 result = 43.1
             else:
-                msg = "{}: The calculated OAF was within acceptable limits - sensitivity: {}".format(ECON5, key)
+                msg = "{}: The calculated OAF was within acceptable limits - sensitivity: {}".format(ECON5, sensitivity)
                 result = 40.0
             dx_result.log(msg)
-            diagnostic_msg.update({key: result})
+            diagnostic_msg.update({sensitivity: result})
 
         dx_table = {ECON5 + DX: diagnostic_msg}
         dx_result.insert_table_row(table_key, dx_table)

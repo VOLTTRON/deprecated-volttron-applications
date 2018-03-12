@@ -96,7 +96,6 @@ class SupplyTempAIRCx(object):
         self.stpt_deviation_thr = stpt_deviation_thr
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
-        self.dgr_sym = u"\N{DEGREE SIGN}"
         self.data_window = data_window
 
         # Low SAT RCx thresholds
@@ -162,9 +161,12 @@ class SupplyTempAIRCx(object):
 
         if run_status:
             self.table_key = create_table_key(self.analysis, self.timestamp_array[-1])
-            avg_sat_stpt, dx_table, dx_result = setpoint_control_check(self.sat_stpt_array, self.sat_array,
-                                                                       self.stpt_deviation_thr, SA_TEMP_RCX,
-                                                                       self.dx_offset, dx_result)
+            avg_sat_stpt, dx_table, dx_result = setpoint_control_check(self.sat_stpt_array,
+                                                                       self.sat_array,
+                                                                       self.stpt_deviation_thr,
+                                                                       SA_TEMP_RCX,
+                                                                       self.dx_offset,
+                                                                       dx_result)
             dx_result.insert_table_row(self.table_key, dx_table)
             dx_result = self.low_sat(dx_result, avg_sat_stpt)
             dx_result = self.high_sat(dx_result, avg_sat_stpt)
@@ -204,15 +206,14 @@ class SupplyTempAIRCx(object):
                     if aircx_sat_stpt <= self.max_sat_stpt:
                         dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
-                        msg = "{} - SAT too low. SAT set point increased to: {}{}F".format(key, self.dgr_sym, sat_stpt)
+                        msg = "{} - SAT too low. SAT set point increased to: {}F".format(key, sat_stpt)
                         result = 41.1
                     else:
                         dx_result.command(self.sat_stpt_cname, self.max_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % self.max_sat_stpt)
                         sat_stpt = str(sat_stpt)
-                        msg = "{} - SAT too low. Auto-correcting to max SAT set point {}{}F".format(key,
-                                                                                                    self.dgr_sym,
-                                                                                                    sat_stpt)
+                        msg = "{} - SAT too low. Auto-correcting to max SAT set point {}F".format(key,
+                                                                                                  sat_stpt)
                         result = 42.1
                 else:
                     msg = "{} - SAT detected to be too low but auto-correction is not enabled.".format(key)
@@ -254,15 +255,14 @@ class SupplyTempAIRCx(object):
                     if aircx_sat_stpt >= self.min_sat_stpt:
                         dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
-                        msg = "{} - SAT too high. SAT set point decreased to: {}{}F".format(key, self.dgr_sym, sat_stpt)
+                        msg = "{} - SAT too high. SAT set point decreased to: {}F".format(key, sat_stpt)
                         result = 51.1
                     else:
                         # Create diagnostic message for fault condition
                         # where the maximum SAT has been reached
                         dx_result.command(self.sat_stpt_cname, self.min_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % self.min_sat_stpt)
-                        msg = "{} - SAT too high. Auto-correcting to min SAT set point {}{}F".format(key,
-                                                                                                     self.dgr_sym,
+                        msg = "{} - SAT too high. Auto-correcting to min SAT set point {}F".format(key,
                                                                                                      sat_stpt)
                         result = 52.1
                 else:

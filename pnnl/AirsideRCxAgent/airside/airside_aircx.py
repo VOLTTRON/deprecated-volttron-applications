@@ -288,41 +288,43 @@ class Application(AbstractDrivenAgent):
             "normal": unocc_time_thr,
             "high": unocc_time_thr*0.5
         }
-        sat_reset_thr = {
+        sat_reset_threshold = {
             "low": max(sat_reset_thr - 1.0, 0.5),
             "normal": sat_reset_thr,
             "high": sat_reset_thr + 1.0
         }
-        stcpr_reset_thr = {
+        stcpr_reset_threshold = {
             "low": stcpr_reset_thr*1.5,
             "normal": stcpr_reset_thr,
             "high": stcpr_reset_thr*0.5
         }
 
-        self.stcpr_aircx = DuctStaticAIRCx(no_required_data, data_window, auto_correct_flag,
+        self.stcpr_aircx = DuctStaticAIRCx(no_required_data, self.data_window, auto_correct_flag,
                                            stcpr_stpt_deviation_thr, max_stcpr_stpt,
                                            stcpr_retuning, zn_high_damper_thr,
                                            zn_low_damper_thr, hdzn_damper_thr,
                                            min_stcpr_stpt, analysis, duct_stp_stpt_cname)
 
-        self.sat_aircx = SupplyTempAIRCx(no_required_data, data_window, auto_correct_flag,
+        self.sat_aircx = SupplyTempAIRCx(no_required_data, self.data_window, auto_correct_flag,
                                          sat_stpt_deviation_thr, rht_on_thr,
                                          sat_high_damper_thr, percent_damper_thr,
                                          percent_reheat_thr, min_sat_stpt, sat_retuning,
                                          reheat_valve_thr, max_sat_stpt, analysis, sat_stpt_cname)
 
         self.sched_reset_aircx = SchedResetAIRCx(unocc_time_thr, unocc_stp_thr,
-                                                 monday_sch, tuesday_sch, wednesday_sch,
-                                                 thursday_sch, friday_sch, saturday_sch,
-                                                 sunday_sch, no_required_data, stcpr_reset_thr,
-                                                 sat_reset_thr, analysis)
+                                                 monday_sch, tuesday_sch,
+                                                 wednesday_sch, thursday_sch,
+                                                 friday_sch, saturday_sch,
+                                                 sunday_sch, no_required_data,
+                                                 stcpr_reset_threshold,
+                                                 sat_reset_threshold, analysis)
 
     def run(self, cur_time, points):
         device_dict = {}
         dx_result = Results()
 
         for key, value in points.items():
-            point_device = [_name.lower() for _name in key.split("&")]
+            point_device = [_name for _name in key.split("&")]
             if point_device[0] not in device_dict:
                 device_dict[point_device[0]] = [(point_device[1], value)]
             else:

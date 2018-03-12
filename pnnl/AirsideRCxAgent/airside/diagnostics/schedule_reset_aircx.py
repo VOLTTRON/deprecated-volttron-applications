@@ -290,17 +290,16 @@ class SchedResetAIRCx(object):
         """
         diagnostic_msg = {}
         stcpr_daily_range = max(self.stcpr_stpt_array) - min(self.stcpr_stpt_array)
-        for key, stcpr_reset_thr in self.stcpr_reset_thr.items():
+        for sensitivity, stcpr_reset_thr in self.stcpr_reset_thr.items():
             if stcpr_daily_range < stcpr_reset_thr:
-                msg = ("No duct static pressure reset detected. A duct static "
-                       "pressure set point reset can save significant energy.")
+                msg = ("{} - No duct static pressure reset detected.".format(sensitivity))
                 result = 71.1
             else:
                 msg = ("{} - No problems detected for duct static pressure set point "
-                       "reset diagnostic.".format(key))
+                       "reset diagnostic.".format(sensitivity))
                 result = 70.0
             dx_result.log(msg)
-            diagnostic_msg.update({key: result})
+            diagnostic_msg.update({sensitivity: result})
 
         dx_result.insert_table_row(self.reset_table_key, {DUCT_STC_RCX3 + DX:  diagnostic_msg})
         return dx_result
@@ -313,15 +312,15 @@ class SchedResetAIRCx(object):
         """
         diagnostic_msg = {}
         sat_daily_range = max(self.sat_stpt_array) - min(self.sat_stpt_array)
-        for key, reset_thr in self.sat_reset_thr.items():
+        for sensitivity, reset_thr in self.sat_reset_thr.items():
             if sat_daily_range < reset_thr:
-                msg = "{} - SAT reset was not detected.  This can result in excess energy consumption.".format(key)
+                msg = "{} - SAT reset was not detected.".format(sensitivity)
                 result = 81.1
             else:
-                msg = "{} - No problems detected for SAT set point reset diagnostic.".format(key)
+                msg = "{} - No problems detected for SAT set point reset diagnostic.".format(sensitivity)
                 result = 80.0
             dx_result.log(msg)
-            diagnostic_msg.update({key: result})
+            diagnostic_msg.update({sensitivity: result})
 
         dx_result.insert_table_row(self.reset_table_key, {SA_TEMP_RCX3 + DX:  diagnostic_msg})
         return dx_result

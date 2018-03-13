@@ -192,7 +192,7 @@ class DuctStaticAIRCx(object):
                     # is not available.
                     msg = "{} - duct static pressure is too low but set point data is not available.".format(key)
                     result = 14.1
-                elif self.auto_correct_flag:
+                elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_stcpr_stpt = avg_stcpr_stpt + self.stcpr_retuning
                     if aircx_stcpr_stpt <= self.max_stcpr_stpt:
                         dx_result.command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
@@ -243,7 +243,7 @@ class DuctStaticAIRCx(object):
                     # is not available.
                     msg = "{} - duct static pressure is too high but set point data is not available.".format(key)
                     result = 24.1
-                elif self.auto_correct_flag:
+                elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_stcpr_stpt = avg_stcpr_stpt - self.stcpr_retuning
                     if aircx_stcpr_stpt >= self.min_stcpr_stpt:
                         dx_result.command(self.stcpr_stpt_cname, aircx_stcpr_stpt)

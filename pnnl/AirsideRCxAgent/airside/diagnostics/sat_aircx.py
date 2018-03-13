@@ -202,7 +202,7 @@ class SupplyTempAIRCx(object):
                     # is not available.
                     msg = "{} - The SAT too low but SAT set point data is not available.".format(key)
                     result = 44.1
-                elif self.auto_correct_flag:
+                elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_sat_stpt = avg_sat_stpt + self.sat_retuning
                     if aircx_sat_stpt <= self.max_sat_stpt:
                         dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
@@ -249,7 +249,7 @@ class SupplyTempAIRCx(object):
                     # is not available.
                     msg = "{} - The SAT too high but SAT set point data is not available.".format(key)
                     result = 54.1
-                elif self.auto_correct_flag:
+                elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_sat_stpt = avg_sat_stpt - self.sat_retuning
                     # Create diagnostic message for fault condition
                     # with auto-correction

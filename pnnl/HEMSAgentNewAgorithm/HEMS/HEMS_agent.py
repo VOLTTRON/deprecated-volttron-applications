@@ -15,6 +15,8 @@ from scipy.interpolate import interp1d
 from cvxopt import matrix, solvers
 from os.path import warnings
 
+from Energy_predict import Energy_predict
+
 utils.setup_logging()
 _log = logging.getLogger(__name__)
 __version__ = '0.1'
@@ -61,7 +63,7 @@ def HEMS_agent(config_path, **kwargs):
     for device_name in device_config:
         # setpoints topic
         setpointName = device_config[device_name][0]
-        setpoint_topic = 'fncs/output/devices/fncs_Test/' + house + '/' + device_name + '/' + setpointName
+        setpoint_topic = house + '/' + device_name + '/' + setpointName
         device_setpoint_topic_dict.update({device_name: setpoint_topic})
         device_setpoint_dict.update({device_name: setpointName})
         device_setpoint_val_dict.update({device_name: 0.0})
@@ -82,22 +84,22 @@ def HEMS_agent(config_path, **kwargs):
                 device_setpoint_val_ori_dict[device_name] = device_para[device_name]['setpoint']
             else:
                 warnings.warn('Default setpoint is not given in config file, a base setpoint is needed from user') 
-            if 'setpoint_delta' in device_para[device_name]:
-                setpoint_list = device_para[device_name]['setpoint_delta']
-            else:
-                raise ValueError('setpoint list is not given in config file')
-            if 'power_delta' in device_para[device_name]:
-                power_list = device_para[device_name]['power_delta']
-            else:
-                raise ValueError('power list is not given in config file')
+#             if 'setpoint_delta' in device_para[device_name]:
+#                 setpoint_list = device_para[device_name]['setpoint_delta']
+#             else:
+#                 raise ValueError('setpoint list is not given in config file')
+#             if 'power_delta' in device_para[device_name]:
+#                 power_list = device_para[device_name]['power_delta']
+#             else:
+#                 raise ValueError('power list is not given in config file')
             if 'beta' in device_para[device_name]:
                 beta = device_para[device_name]['beta']
                 
             device_beta_dict.update({device_name: beta})
-            setpoint_power_list = []
-            setpoint_power_list.append(setpoint_list)
-            setpoint_power_list.append(power_list)
-            device_para_dict.update({device_name: setpoint_power_list})
+#             setpoint_power_list = []
+#             setpoint_power_list.append(setpoint_list)
+#             setpoint_power_list.append(power_list)
+#             device_para_dict.update({device_name: setpoint_power_list})
         
     agent_id = config.get('agentid', 'HEMS_agent')
 
@@ -155,33 +157,7 @@ def HEMS_agent(config_path, **kwargs):
                 self.vip.pubsub.subscribe(peer='pubsub',
                                           prefix=beta_topic,
                                           callback=self.on_receive_beta_message_fncs)
-            
-            # Initialize subscription function to record current loads from appliances
-            self.loadChangeTime = {}
-            self.energyPeriodCalculated = {}
-            for device_name in device_load_topic_dict:
-                _log.info('Subscribing to ' + device_load_topic_dict[device_name])
-                self.vip.pubsub.subscribe(peer='pubsub',
-                                          prefix=device_load_topic_dict[device_name],
-                                          callback=self.on_receive_load_message_fncs)
-                self.loadChangeTime[device_name] = currTime
-                self.energyPeriodCalculated[device_name] = False
-            
-            # Initialize subscription function to fncs_bridge:
-            topic = 'FNCS_Volttron_Bridge/simulation_end'
-            _log.info('Subscribing to ' + topic)
-            self.vip.pubsub.subscribe(peer='pubsub',
-                                      prefix=topic,
-                                          callback=self.on_receive_fncs_bridge_message_fncs)
-            
-                        
-#             # Set energy consumption time starts at 14 minutes after simulation begins, and lasts for 3 minutes
-#             _log.info('Simulation starts from: {}.'.format(str(currTime)))
-#             self.startEnergyReduction = currTime + datetime.timedelta(minutes=16)
-#             self.endEnergyReduction = currTime + datetime.timedelta(minutes=21)
-#             _log.info('Energy reduction starts from: {}.'.format(str(self.startEnergyReduction)))
-#             _log.info('Energy reduction ends at: {}.'.format(str(self.endEnergyReduction)))
-            
+
             # Set up initial start and end time of eneeeergy reduction
             self.startEnergyReduction = dateutil.parser.parse("2020-01-01 00:00:00")
             self.endEnergyReduction = dateutil.parser.parse("2020-01-01 00:00:00")
@@ -193,7 +169,6 @@ def HEMS_agent(config_path, **kwargs):
             
             # Conduct optimization problem with the default beta values, at the begining of the simulations
             self.energy_reduction()
-
                         
         def on_receive_setpoint_message_fncs(self, peer, sender, bus, topic, headers, message):
             """Subscribe to appliance setpoint and change the data accordingly 
@@ -204,7 +179,16 @@ def HEMS_agent(config_path, **kwargs):
             setpoint = message[0]
             device_setpoint_val_dict.update({device: setpoint})
 #             _log.info('Unit {0:s} setpoint changed to {1} at time {2} '.format(device, setpoint, str(datetime.datetime.now())))
-    
+
+            # Once receive real device setpoint before energy reduction starts, 
+            # need to run prediction scripts to get the device delta_T and delta_E relation
+            if (self.energyReduced == False) :
+                E_1_reduction_temp, E_1_reduction_day, E_3_reduction_temp, E_3_reduction_day = Energy_predict(device_setpoint_val_dict.values()[0], device_setpoint_val_dict.values()[1]) # Now used for two-appliance only case
+                device_para['AC1']['setpoint_delta'] = E_1_reduction_temp
+                device_para['AC1']['power_delta'] = E_1_reduction_day
+                device_para['WH1']['setpoint_delta'] = E_3_reduction_temp
+                device_para['WH1']['power_delta'] = E_3_reduction_day
+                
         def on_receive_start_time_message_fncs(self, peer, sender, bus, topic, headers, message):
             """Subscribe to energy reduction starting time from UI 
             """    
@@ -285,18 +269,6 @@ def HEMS_agent(config_path, **kwargs):
                 
                 # Set flag
                 self.energyReduced = False
-                
-        def cal_time_diff(self, t1, t2):
-            '''Calculate the time difference in seconds
-            '''
-            t1_tuple = datetime.datetime.timetuple(t1)
-            t2_tuple = datetime.datetime.timetuple(t2)
-            timediff = (t1_tuple.tm_mday - t2_tuple.tm_mday) * 24 * 3600 + \
-                       (t1_tuple.tm_hour - t2_tuple.tm_hour) * 3600 + \
-                       (t1_tuple.tm_min - t2_tuple.tm_min) * 60 + \
-                       (t1_tuple.tm_sec - t2_tuple.tm_sec)
-                       
-            return timediff
         
         def congestion(self, lambda_avg, lambda_sigma):
             '''

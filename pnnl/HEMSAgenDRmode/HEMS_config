@@ -1,276 +1,110 @@
 {
-  "device_information":{
-    "house1": {
-      "initial_value": {
-        "controller_information": {
-          "range_high": 5.699125831010113,
-          "bid_delay": 1,
-          "range_low": -4.113109485055272,
-          "hvac_load": 5.4732599999992031,
-          "heat_cool_gain": -81861.100000016275,
-          "bid_id": "controller_house_1",
-          "period": 10,
-          "use_override": "OFF",
-          "ramp_low": 2.5617005358355893,
-          "base_setpoint": 73.72,
-          "ramp_high": 2.6656595157551193,
-          "aggregatorName": "Aggregator_3",
-          "control_mode": "CN_DOUBLE_PRICE_ver2",
-          "houseName": "house1",
-          "ctrl_cap": 394.1054647386483,
-          "use_predictive_bidding": 0
-        }
-      },
-      "subscriptions": {
-        "outdoor_temperature": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "mass_heat_coeff": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "air_heat_capacity_cd": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "mass_heat_capacity": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "cooling_COP": {
-	          "units": "none",
-	          "default": 0.0,
-	          "type": "double"
-	      },
-        "Qi": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "design_cooling_capacity": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "mass_temperature": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "air_temperature": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "power_state": {
-          "units": "none",
-          "default": "ON",
-          "type": "string"
-        },
-        "UA": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "solar_gain": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        }
-      }
-    },
-    "house2": {
-      "initial_value": {
-        "controller_information": {
-          "range_high": 7.849233063859476,
-          "bid_delay": 1,
-          "range_low": -5.019388946513468,
-          "hvac_load": 2.5575299999994514,
-          "heat_cool_gain": -34360.5,
-          "bid_id": "controller_house_2",
-          "period": 10,
-          "use_override": "OFF",
-          "ramp_low": 1.8949090273637812,
-          "base_setpoint": 72.45,
-          "ramp_high": 2.0239200843751997,
-          "aggregatorName": "Aggregator_3",
-          "control_mode": "CN_DOUBLE_PRICE_ver2",
-          "houseName": "house2",
-          "ctrl_cap": 323.14008422495715,
-          "use_predictive_bidding": 0
-        }
-      },
-      "subscriptions": {	
-          "outdoor_temperature": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "cooling_COP": {
-	          "units": "none",
-	          "default": 0.0,
-	          "type": "double"
-	      },
-          "Qi": {
-	          "units": "none",
-	          "default": 0.0,
-	          "type": "double"
-	      },
-          "mass_heat_coeff": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "air_heat_capacity_cd": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "mass_heat_capacity": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "design_cooling_capacity": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "mass_temperature": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "air_temperature": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "power_state": {
-            "units": "none",
-            "default": "ON",
-            "type": "string"
-          },
-          "UA": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          },
-          "solar_gain": {
-            "units": "none",
-            "default": 0.0,
-            "type": "double"
-          }
-      }		
-    },
-    "house3": {
-      "initial_value": {
-        "controller_information": {
-          "range_high": 6.2090108185752175,
-          "bid_delay": 1,
-          "range_low": -4.853240074270956,
-          "hvac_load": 2.9484799999994591,
-          "heat_cool_gain": -40207.699999994584,
-          "bid_id": "controller_house_3",
-          "period": 10,
-          "use_override": "OFF",
-          "ramp_low": 1.362769819105874,
-          "base_setpoint": 73.22,
-          "ramp_high": 1.8463980014601833,
-          "aggregatorName": "Aggregator_3",
-          "control_mode": "CN_DOUBLE_PRICE_ver2",
-          "houseName": "house3",
-          "ctrl_cap": 214.62446973565545,
-          "use_predictive_bidding": 0
-        }
-      },
-      "subscriptions": {
-        "outdoor_temperature": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "mass_heat_coeff": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "air_heat_capacity_cd": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "cooling_COP": {
-	          "units": "none",
-	          "default": 0.0,
-	          "type": "double"
-	      },
-        "Qi": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "mass_heat_capacity": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "design_cooling_capacity": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "mass_temperature": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "air_temperature": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "power_state": {
-          "units": "none",
-          "default": "ON",
-          "type": "string"
-        },
-        "UA": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        },
-        "solar_gain": {
-          "units": "none",
-          "default": 0.0,
-          "type": "double"
-        }
-      }
-    }
-  },
-  "aggregator_information": {
-    "aggregator_unit": "kW",
-    "std_dev": 16.0,
-    "clear_price": 65.0,
-    "price_cap": 1000,
-    "market_id": 0,
-    "average_price": 65.0,
-    "period": 60,
-    "initial_price": 65.0
-  },
-  "agentid": "controller_1",
-  "fncs_bridge": [
-    {
-      "FNCS_Volttron_Bridge": {
-        "propertyValue": 0,
-        "propertyUnit": "none",
-        "propertyType": "String"
-      }
-    }
-  ]
+	"device_information": {
+		"AC1": {
+			"initial_value": {
+				"controller_information": {
+					"base_setpoint": 73.72,
+					"range_high": 5.699125831010113,
+					"bid_delay": 1,
+					"range_low": -4.113109485055272,
+					"bid_id": "controller_house_1",
+					"period": 10,
+					"use_override": "OFF",
+					"ramp_low": 2.5617005358355893,
+					"ramp_high": 2.6656595157551193,
+					"aggregatorName": "Aggregator_3",
+					"control_mode": "CN_DOUBLE_PRICE_ver2",
+					"houseName": "house1",
+					"use_predictive_bidding": 0,
+					"outdoor_temperature": 75.9
+				},
+				"device_information": {
+					"hvac_load": 4.0,
+					"heat_cool_gain": -81861.100000016275,
+					"air_heat_capacity": 1188.59330141685,
+					"MassInternalGainFraction": 0.5,
+					"MassSolarGainFraction": 0.5,
+					"cooling_COP": 10,
+					"UA": 716.483587456827,
+					"solar_gain": 0
+				}
+			},
+			"subscriptions": {
+				"outdoor_temperature": {
+					"units": "none",
+					"default": 0.0,
+					"type": "double"
+				},
+				"air_temperature": {
+					"units": "none",
+					"default": 0.0,
+					"type": "double"
+				},
+				"power_state": {
+					"units": "none",
+					"default": "ON",
+					"type": "string"
+				}
+			}
+		},
+		"WH1": {
+			"initial_value": {
+				"controller_information": {
+					"range_high": 7.849233063859476,
+					"bid_delay": 1,
+					"range_low": -5.019388946513468,
+					"hvac_load": 2.5575299999994514,
+					"heat_cool_gain": -34360.5,
+					"bid_id": "controller_house_2",
+					"period": 10,
+					"use_override": "OFF",
+					"ramp_low": 1.8949090273637812,
+					"base_setpoint": 72.45,
+					"ramp_high": 2.0239200843751997,
+					"aggregatorName": "Aggregator_3",
+					"control_mode": "CN_DOUBLE_PRICE_ver2",
+					"houseName": "house2",
+					"ctrl_cap": 323.14008422495715,
+					"use_predictive_bidding": 0,
+					"outdoor_temperature": 75.9
+				},
+				"device_information": {
+					"hvac_load": 4.0,
+					"mdot": 0,
+					"Cp": 1,
+					"Cw": 417.11,
+					"Q_elec": 1379.3,
+					"T_amb": 70,
+					"T_inlet": 60,
+					"UA": 3.02689849161905				
+				}
+			},
+			"subscriptions": {
+				"water_flow_temperature": {
+					"units": "none",
+					"default": 0.0,
+					"type": "double"
+				},
+				"power_state": {
+					"units": "none",
+					"default": "ON",
+					"type": "string"
+				}
+			}
+		}
+	},
+	"aggregator_information": {
+		"aggregator_unit": "kW",
+		"std_dev": 0.01,
+		"clear_price": 0.15,
+		"price_cap": 1,
+		"market_id": 0,
+		"average_price": 0.15,
+		"period": 60,
+		"initial_price": 0.15,
+		"P_R": 0.0325,
+		"Q_lim": 4
+	},
+	"agentid": "controller_1"
+	
 }

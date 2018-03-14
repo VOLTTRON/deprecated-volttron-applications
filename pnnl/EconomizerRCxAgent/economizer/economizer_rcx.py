@@ -60,7 +60,7 @@ from diagnostics.temperature_sensor_dx import TempSensorDx
 from diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
 from diagnostics.ventilation_dx import ExcessOA, InsufficientOA
 
-__version__ = "1.0.5"
+__version__ = "1.0.8"
 
 ECON1 = "Temperature Sensor Dx"
 ECON2 = "Not Economizing When Unit Should Dx"
@@ -240,7 +240,7 @@ class Application(AbstractDrivenAgent):
             'normal': desired_oaf*0.5,
             'high': desired_oaf*0.25
         }
-
+        self.sensitivity = ['low', 'normal', 'high']
         self.econ1 = TempSensorDx(data_window, no_required_data,
                                   temp_difference_threshold, open_damper_time,
                                   oat_mat_check, temp_damper_threshold,

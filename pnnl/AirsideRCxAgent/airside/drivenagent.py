@@ -266,7 +266,7 @@ def driven_agent(config_path, **kwargs):
             device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
                 fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
-                if fraction_missing < missing_data_threshold:
+                if fraction_missing > missing_data_threshold:
                     _log.error("Device values already present, reinitializing at publish: {}".format(timestamp))
                     self.initialize_devices()
                     device_needed = self.aggregate_subdevice(device_data, topic)

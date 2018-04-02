@@ -216,7 +216,6 @@ class ILCAgent(Agent):
                                                       point="all")
         self.kill_device_topic = None
         kill_token = config.get("kill_switch")
-
         if kill_token is not None:
             kill_device = kill_token["device"]
             self.kill_pt = kill_token["point"]
@@ -260,7 +259,6 @@ class ILCAgent(Agent):
         self.device_group_size = None
         self.current_stagger = None
         self.next_release = None
-        self.demand_limit = float(demand_limit) if demand_limit != "trigger" else None
         self.power_meta = None
         self.tasks = {}
         self.tz = None
@@ -336,10 +334,17 @@ class ILCAgent(Agent):
         now = parser.parse(headers["Date"])
         current_time_str = format_timestamp(now)
         parsed_data = parse_sympy(data)
+
+        subdevices = self.curtailment.get_device(device_name).command_status.keys()
+        for subdevice in subdevices:
+            status = self.curtailment.get_device(device_name).currently_curtailed[subdevice]
+            _log.debug("Device: {} -- subdevice: {} -- status: {}".format(device_name, subdevice, status))
+            self.criteria.get_device(device_name[0]).criteria_status(subdevice, status)
+
         self.criteria.get_device(device_name[0]).ingest_data(now, parsed_data)
         self.curtailment.get_device(device_name).ingest_data(parsed_data)
-        # self.create_curtailment_publish(current_time_str, device_name, meta)
         self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
+        # self.create_curtailment_publish(current_time_str, device_name, meta)
 
     def create_curtailment_publish(self, current_time_str, device_name, meta):
         try:
@@ -542,7 +547,7 @@ class ILCAgent(Agent):
                     self.power_meta = {
                         "tz": "UTC", "units": "kiloWatts", "type": "float"
                     }
-            _log.debug("Power meta: {}". format(self.power_meta))
+
             if self.reset_curtail_count is not None:
                 if self.reset_curtail_count <= current_time:
                     _log.debug("Resetting curtail count")
@@ -899,6 +904,7 @@ class ILCAgent(Agent):
                     _log.debug("Reverted point: {} - Result: {}".format(curtailed_point, result))
                 if currently_curtailed:
                     _log.debug("Removing from curtailed list: {} ".format(curtailed_iterate[item]))
+                    self.curtailment.get_device((device, actuator)).reset_curtail_status(device_id)
                     index = curtailed_iterate.index(curtailed_iterate[item]) - index_counter
                     currently_curtailed.pop(index)
                     index_counter += 1
@@ -1063,7 +1069,7 @@ class ILCAgent(Agent):
         start_time = parser.parse(target_info["start"]).astimezone(to_zone)
         end_time = parser.parse(target_info.get("end", start_time.replace(hour=23, minute=59, second=59))).astimezone(to_zone)
 
-        demand_goal = float(target_info["target"])
+        demand_goal = target_info["target"]
         task_id = target_info["id"]
 
         _log.debug("TARGET: Simulation running.")

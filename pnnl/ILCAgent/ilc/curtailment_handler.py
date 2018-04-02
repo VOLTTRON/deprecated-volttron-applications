@@ -222,8 +222,11 @@ class CurtailmentManager(object):
             self.curtail_count[device_id] = 0.0
 
     def increment_curtail(self, device_id):
-        self.currently_curtailed[device_id] = False
+        self.currently_curtailed[device_id] = True
         self.curtail_count[device_id] += 1.0
+
+    def reset_curtail_status(self, device_id):
+        self.currently_curtailed[device_id] = False
 
     def get_on_commands(self):
         return [command for command, state in self.command_status.iteritems() if state]

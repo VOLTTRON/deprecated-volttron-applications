@@ -73,14 +73,18 @@ class EconCorrectlyOn(object):
     def __init__(self, oaf_economizing_threshold, open_damper_threshold,
                  minimum_damper_setpoint, data_window, no_required_data,
                  cfm, eer, analysis):
+        # Initialize data arrays
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
+
+        # Initialize not_cooling and not_economizing flags
         self.not_cooling = None
         self.not_economizing = None
+
 
         self.open_damper_threshold = open_damper_threshold
         self.oaf_economizing_threshold = oaf_economizing_threshold
@@ -261,20 +265,22 @@ class EconCorrectlyOff(object):
     """
     def __init__(self, data_window, no_required_data, min_damper_sp,
                  excess_damper_threshold, desired_oaf, cfm, eer, analysis):
+        # Initialize data arrays.
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.oad_values = []
         self.fan_spd_values = []
         self.timestamp = []
+
         self.economizing = None
-        self.cfm = cfm
-        self.eer = eer
+
         # Application result messages
         self.alg_result_messages = \
             ["The OAD should be at the minimum position but is significantly above this value.",
              "No problems detected.",
              "Inconclusive results, could not verify the status of the economizer."]
+        # Map configurable parameters
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3/2
         self.data_window = data_window
         self.no_required_data = no_required_data

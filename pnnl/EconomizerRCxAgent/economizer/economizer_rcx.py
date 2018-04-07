@@ -111,7 +111,7 @@ class Application(AbstractDrivenAgent):
                  temp_band=1.0, data_window=30, no_required_data=15,
                  open_damper_time=5, low_supply_fan_threshold=15.0,
                  mat_low_threshold=50.0, mat_high_threshold=90.0,
-                 oat_low_threshold=30.0, oat_high_threshold=100.0,
+                 oat_low_threshold=30.0, oat_high_threshold=110.0,
                  rat_low_threshold=50.0, rat_high_threshold=90.0,
                  temp_difference_threshold=4.0, temp_damper_threshold=90.0,
                  open_damper_threshold=80.0, oaf_temperature_threshold=5.0,
@@ -146,7 +146,7 @@ class Application(AbstractDrivenAgent):
             rat_low_threshold = 50.
             rat_high_threshold = 90.
             oat_low_threshold = 30.
-            oat_high_threshold = 100.
+            oat_high_threshold = 110.
             open_damper_threshold = 80.
             minimum_damper_setpoint = 20.
             desired_oaf = 10.

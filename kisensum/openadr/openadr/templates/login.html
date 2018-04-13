@@ -1,0 +1,21 @@
+{% extends 'basewithpics.html' %}
+{% load static %}
+
+    {% block content %}
+        <link rel="stylesheet" type="text/css" href={% static 'css/base_css.css'%}>
+    {% if user.is_authenticated %}
+        <meta http-equiv="refresh" content="0; {% url 'vtn:home' %}" />
+    {% else %}
+        <center>
+        <h2>Please Enter Your Credentials</h2>
+            <br>
+            <form method="post">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button name="login" style="width:5cm" class="btn btn-primary" type="submit"><big><big>Login</big></big></button>
+            </form>
+            <br>
+{#        <a href="{% url 'vtn:signup' %}"><button style="width:5cm" class="btn btn-primary" type="submit"><big><big>Sign up</big></big></button></a>#}
+        </center>
+    {% endif %}
+    {% endblock %}

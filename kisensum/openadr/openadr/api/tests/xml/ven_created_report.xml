@@ -1,0 +1,14 @@
+<oadr:oadrPayload xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07">
+  <oadr:oadrSignedObject>
+        <oadr:oadrCreatedReport xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110" schemaVersion="2.0b">
+            <ei:eiResponse xmlns:pyld="http://docs.oasis-open.org/ns/energyinterop/201110/payloads">
+                <ei:responseCode>200</ei:responseCode>
+                <pyld:requestID>c206f5a8-e1c3-11e7-91ae-6c96cfdb28b5</pyld:requestID>
+            </ei:eiResponse>
+            <oadr:oadrPendingReports>
+                <ei:reportRequestID>0</ei:reportRequestID>
+            </oadr:oadrPendingReports>
+            <ei:venID>0</ei:venID>
+        </oadr:oadrCreatedReport>
+    </oadr:oadrSignedObject>
+</oadr:oadrPayload>

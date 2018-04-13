@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+{% load static %}
+{% block title %}
+    <div class="col-2">
+        <h1 class="title">Overview </h1>
+    </div>
+        {% endblock %}
+{% block content %}
+<script src="{% static 'js/jquery.floatThead.min.js' %}"></script>
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css">
+
+<script src="{% static 'js/jquery.floatThead.min.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/base_css.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/home.css' %}">
+
+
+<div id="container2" class="container-fluid">
+<div class="row tableTitle justify-content-around" style="text-align: center">
+    <div class="col-md-10 tableTitle">
+        <h2>Customers</h2>
+        <br>
+    </div>
+</div>
+    <div class="row justify-content-center" style="text-align: center">
+    {% if customers.count > 0 %}
+        <div class="col-md-10 center-block">
+            <div class="tableInDiv table-responsive">
+            <table id="customerTable" class="table table-bordered table-striped table-hover table-condensed tablesorter">
+                <thead>
+                <tr>
+                    <th class="col-xs-3">Customer </th>
+                    <th class="col-xs-3">Utility ID </th>
+                    <th class="col-xs-3">Contact Name </th>
+                    <th class="col-sm-2">Phone Number</th>
+                    <th class="col-sm-2">Sites </th>
+                    <th class="col-sm-2"> Online</th>
+                    <th class="col-sm-2">Offline</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for customer in customers %}
+                    <tr>
+                    <td><a href="{% url 'vtn:customer_detail' customer.pk %}">{{ customer.name }} </a></td>
+                    <td>{{ customer.utility_id }}</td>
+                    <td>{{ customer.contact_name }}</td>
+                    <td>{{ customer.phone_number }}</td>
+                    <td> {{ customer.sites }}</td>
+                    <td>{{ customer.online }}</td>
+                    <td>{{ customer.offline }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        {% else %}
+        <h4> No customers </h4>
+    {% endif %}
+    </div>
+<br>
+<div class="row justify-content-center" style="text-align: center">
+    <div class="col-sm-10">
+            <a href="{% url 'vtn:customer_add' %}" class="btn btn-lg btn-primary">Add Customer</a>
+    </div>
+    </div>
+
+<div class="row tableTitle top-buffer justify-content-around">
+    <div class="col-sm-10 tableTitle" style="text-align: center">
+        <h2>DR Events</h2>
+        <br>
+    </div>
+</div>
+    <div class="row justify-content-around">
+    {% if dr_event_data.count > 0 %}
+    <div class="col-md-10 col-md-offset-2 center-block" style="text-align: center">
+            <div class="tableInDiv tableResponsive" style="text-align: right">
+            <table id="eventTable" class="table table-sm table-bordered table-striped table-hover
+                                    table-condensed tablesorter" width="100%">
+                <thead>
+                <tr>
+                    <th>Program </th>
+                    <th>Notification </th>
+                    <th> Start </th>
+                    <th>End </th>
+                    <th>Sites</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for d in dr_event_data %}
+                <tr>
+                    {% if not d.deleted and not d.superseded %}
+                     <td><a href="{% url 'vtn:dr_event_dispatch' d.pk %}"> {{ d.dr_program }} </a></td>
+                    {% else %}
+                    <td>{{ d.dr_program }} </td>
+                    {% endif %}
+                    <td>{{ d.scheduled_notification_time }}</td>
+                    <td>{{ d.start}}</td>
+                    <td>{{ d.end }}</td>
+                    <td>{{ d.numSites }}</td>
+                    {% if d.deleted %}
+                    <td>Cancelled</td>
+                        {% elif d.status == 'far' or d.status == 'near' %}
+                        <td>Scheduled</td>
+                    {% else %}
+                    <td>{{ d.status | capfirst }}</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <h4>No events</h4>
+    {% endif %}
+    </div>
+<br>
+<div class="row justify-content-around" style="text-align: center">
+    <div class="col-sm-6">
+            <a href="{% url 'vtn:dr_event' %}" class="btn btn-lg btn-primary">Add DR Event</a>
+    </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+    var $table = $('#customerTable');
+    $table.floatThead({
+        scrollContainer: function($table){
+            return $table.closest('.tableInDiv');
+        }
+    });
+    var $table2 = $('#eventTable');
+    $table2.floatThead({
+        scrollContainer: function($table2){
+            return $table2.closest('.tableInDiv');
+        }
+    });
+
+    console.log("{% static 'css/home.css' %}")
+</script>
+
+{#<script type="text/javascript">#}
+{#$(document).ready(function() {#}
+{#  $(".tableInDiv").css({#}
+{#    'width': ($("#customerTable").width() + 'px')#}
+{#  });#}
+{#});#}
+{#</script>#}
+
+
+{% endblock %}

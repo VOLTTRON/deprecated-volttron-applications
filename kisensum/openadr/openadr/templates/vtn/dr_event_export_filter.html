@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load table_tags %}
+{% load staticfiles %}
+{% load timetags %}
+{% block title %}
+    <div class="col-2">
+        <h1 class="title">Export DR Event Data </h1>
+    </div>
+{% endblock %}
+ {% block heading %}
+        Export Report Data
+    {% endblock heading %}
+{% block content %}
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
+<link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" />
+<script src="{% static 'js/jquery.floatThead.min.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/dr_event_export_filter.css' %}">
+
+
+<div class="container">
+<!-- Container whose html is updated to reflect latest filtered DR events -->
+<br>
+<div id="drevent_container" style="background-color: lightgrey">
+    <center>
+
+    {% if data.count > 0 %}
+
+        <!-- Filter form that user sees (i.e. is visible) -->
+        <form method="POST" id="filterForm">
+            {%csrf_token %}
+                Date Range:  <input type="text" name="datefilter" id="datefilter" value="" />
+                {% for field in form %}
+                    {% if field.name == 'dr_program' %}
+                        DR Program {{ field }}
+                    {% endif %}
+                {% endfor %}
+                <input type="hidden" id="exportInput" value="True">
+                <button type="submit" name="filter_button" class="btn btn-lg btnFilter btn-primary">Filter</button>
+        </form>
+
+
+        <!-- Clear filters form -->
+        <button type="button" class="btn btn-lg btn-primary btnFilter" id="clear_filters">Clear Filter(s) </button>
+
+
+    </center>
+
+    <!-- Actual table to hold DR events -->
+    <div id="_drprograms" class="row tableRow align-items-start justify-content-between">
+        <div class="col-10">
+            <div class="tableInDiv jquery-thead">
+                <table id="filterTable" class="table table-sm table-bordered table-striped table-hover tableSorter" width="100%">
+                    <thead>
+                         <tr>
+                            <th class="col-xs-3"> DR Program </th>
+                            <th class="col-xs-3"> Notification </th>
+                            <th class="col-xs-3"> Start </th>
+                            <th class="col-sm-2"> End </th>
+                            <th class="col-xs-3"> Sites </th>
+                            <th class="col-xs-3"> Event Status </th>
+                             <th class="col-xs-3"> Action </th>
+                         </tr>
+                    </thead>
+                    <tbody>
+                    {% for event in data %}
+                        <tr>
+                             <td>{{ event.dr_program }}</td>
+                             <td>{{ event.scheduled_notification_time }}</td>
+                             <td>{{ event.start }}</td>
+                             <td>{{ event.end }}</td>
+                            <td>{{ event.numSites }}</td>
+                             <td> {{ event.status | changeStatus | capfirst}}</td>
+                            <td> <a id="export_event" href="{% url 'vtn:export_dr_events_csv' event.pk %}">Export </a> </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <h4> No events to export </h4>
+    {% endif %}
+</div> <!-- end DR Event container -->
+</div>
+
+
+<script>
+    $('#filterForm').on('submit', function(event){
+        event.preventDefault();
+        $('#id_dr_program2').val($('#id_dr_program').val())
+        $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:get_more_tables' %}",
+            data: {'drprogram': $('#id_dr_program').val(),
+                    'daterange' : $('#datefilter').val()}
+        })
+        .done(function(response) {
+            var $tableBodyContent = response;
+            var $table = $('#filterTable');
+            $table.find('tbody').empty().append($tableBodyContent);
+            $table.trigger('reflow')
+        });
+    });
+</script>
+
+<script>
+    $('#exportDREvents').on('click', function(event){
+        event.preventDefault();
+        $('#dateFilter2').val($('#datefilter').val())
+        $('#filterForm2').submit()
+    });
+</script>
+
+<script>
+$('#clear_filters').on('click', function(event){
+    event.preventDefault();
+    $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:get_more_tables' %}",
+            data: {'clearFilters': true}
+    })
+    .done(function(response) {
+        var $tableBodyContent = response;
+        var $table = $('#filterTable');
+        $table.find('tbody').empty().append($tableBodyContent);
+        $table.trigger('reflow')
+        $('#id_dr_program').val("");
+        $('#datefilter').val("")
+
+        });
+    });
+</script>
+
+<script type="text/javascript">
+    $(function() {
+
+        $('input[name="datefilter"]').daterangepicker({
+            "buttonClasses" : "btn btn-lg",
+            autoUpdateInput: false,
+            locale: {
+                cancelLabel: 'Clear'
+            },
+            ranges: {
+               'Today': [moment(), moment()],
+               'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+               'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+               'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+               'This Month': [moment().startOf('month'), moment().endOf('month')],
+               'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            }
+        });
+
+        $('input[name="datefilter"]').on('apply.daterangepicker', function(ev, picker) {
+            $(this).val(picker.startDate.format('MM/DD/YYYY') + ' - ' + picker.endDate.format('MM/DD/YYYY'));
+        });
+
+        $('input[name="datefilter"]').on('cancel.daterangepicker', function(ev, picker) {
+            $(this).val('');
+        });
+    });
+</script>
+
+
+
+    <script type="text/javascript">
+
+    let $table = $('#filterTable');
+    $table.floatThead({
+        scrollContainer: function($table){
+            return $table.closest('.tableInDiv');
+        }
+    });
+
+    $table.tablesorter();
+
+</script>
+
+{% endblock %}

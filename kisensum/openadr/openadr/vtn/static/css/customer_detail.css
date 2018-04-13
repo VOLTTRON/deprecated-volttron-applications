@@ -1,0 +1,52 @@
+
+    .online {
+        background-color: #63B97F;
+    }
+
+    .offline {
+        background-color: #DA3849;
+    }
+
+    .top-buffer {
+        margin-top: 5%;
+    }
+
+    .wrapper {
+        overflow-y: scroll;
+        max-height: 200px;
+    }
+
+
+    .col-sm-3 {
+        border: 1px solid #95979b;
+        margin-right: 5%;
+        padding-top: 2%;
+    }
+
+    .col-sm-6.box {
+        padding-top: 2%;
+        padding-bottom: 2%;
+        border-left: 1px solid #95979b;
+        padding-left: 6%;
+    }
+
+    input.form-control {
+        width: 200px;
+    }
+
+    .btn.edit-customer {
+        width: 100px;
+    }
+
+    input.form-control {
+        font-size: 13px;
+    }
+
+    #popupElement {
+        display: none;
+    }
+
+    a {
+        color: white;
+    }
+

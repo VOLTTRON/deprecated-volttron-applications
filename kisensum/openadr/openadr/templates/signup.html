@@ -1,0 +1,115 @@
+{% extends 'basewithpics.html' %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="/static/admin/css/base.css">
+<link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css">
+    <style>
+    h2 {
+    font-size: 16px;
+    margin-top: 5%;
+    padding: 0;
+    margin-left: 5%;
+}
+
+    form {
+        margin-left: 5%;
+        margin-top: 2%;
+    }
+
+    html {
+        background-color: lightgrey;
+    }
+        .h1, h1 {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        line-height: 1.1;
+        color: black;
+        margin-top: 0;
+    }
+    .h1, h1 {
+        font-size: 2.5rem;
+    }
+    .row, .col {
+        background-color: lightgrey;
+    }
+
+    .col-2 {
+        text-align: center;
+    }
+    .title {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        font-weight: 500;
+        line-height: 1.1;
+        color: inherit;
+        font-size: 2.5rem;
+}
+
+    .second_row {
+        margin-top: 3%;
+    }
+
+    .end-label {
+        padding-right: 5%;
+        margin-right: 5%;
+    }
+    .notification-label {
+        text-align: center;
+        padding-left: 10%;
+    }
+
+    .last-row {
+        margin-top : 3%;
+    }
+
+    .non-field-errors, .field-errors {
+        color: red;
+    }
+
+    ul li {
+        list-style-type: none;
+    }
+
+    .clockbox ul {
+        max-height: 100px;
+        overflow-y: scroll;
+    }
+
+    .h1, h1 {
+        font-size: 2.5rem;
+    }
+
+    .h1, h1 {
+        margin-bottom: .5rem;
+        font-family: inherit;
+        line-height: 1.1;
+        color: black;
+        margin-top: 0;
+    }
+
+    label {
+        display: block;
+    }
+
+    h1 {
+    margin-bottom: .5rem;
+    font-family: inherit;
+    font-weight: 500;
+    line-height: 1.1;
+    color: inherit;
+}
+    </style>
+
+
+    {% if user.is_authenticated %}
+    <h1> please logout before you sign up </h1>
+    <a href="{% url 'vtn:logout' %}"> <button type="button">Go to logout page</button></a>
+    {% else %}
+          <h2>Sign up</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Sign up</button>
+  </form>
+    {% endif %}
+{% endblock content %}

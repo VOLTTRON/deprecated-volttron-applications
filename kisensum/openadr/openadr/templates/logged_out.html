@@ -1,0 +1,41 @@
+{% extends 'basewithpics.html' %}
+{% load static %}
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/base.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="/admin/jsi18n/"></script>
+<script type="text/javascript" src="/static/admin/js/core.js"></script>
+<script type="text/javascript" src="/static/admin/js/vendor/jquery/jquery.js"></script>
+<script type="text/javascript" src="/static/admin/js/jquery.init.js"></script>
+<script type="text/javascript" src="/static/admin/js/admin/RelatedObjectLookups.js"></script>
+<script type="text/javascript" src="/static/admin/js/actions.js"></script>
+<script type="text/javascript" src="/static/admin/js/urlify.js"></script>
+<script type="text/javascript" src="/static/admin/js/prepopulate.js"></script>
+<script type="text/javascript" src="/static/admin/js/vendor/xregexp/xregexp.js"></script>
+<script type="text/javascript" src="/static/admin/js/calendar.js"></script>
+<script type="text/javascript" src="/static/js/DateTimeShortcuts2.js"></script>
+<script type="text/javascript" src="/static/admin/js/calendar.js"></script>
+
+{% load bootstrap4 %}
+{% bootstrap_css %}
+    <link rel="stylesheet" type="text/css" href={% static 'css/base_css.css'%}>
+
+
+
+    <style>
+    h1, h2 {
+        font-weight: normal;
+    }
+    </style>
+    <link rel="stylesheet" type="text/css" href="/static/admin/css/forms.css">
+    {% if user.is_authenticated %}
+        <meta http-equiv="refresh" content="0; {% url 'vtn:home' %}" />
+    {% else %}
+        <center>
+        <h2>You have been logged out</h2>
+               <a href="{% url 'vtn:login' %}"><button style="width:5cm" class="btn btn-primary" type="submit"><big><big>Login</big></big></button></a>
+        </center>
+    {% endif %}
+{% endblock content %}

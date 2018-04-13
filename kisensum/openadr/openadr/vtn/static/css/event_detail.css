@@ -1,0 +1,129 @@
+    text {
+        font: 12px sans-serif;
+    }
+    svg {
+        display: block;
+    }
+
+    a.nav-item.nav-link {
+        max-width: 200px;
+    }
+
+    .navbar {
+        background-color: #bec2c6;
+        border-bottom: 2px solid black;
+    }
+
+    .nav-link, .dropdown-toggle {
+        font-size: 20px;
+    }
+
+    .nav-item>a  {
+        border-color: #d45500;
+        border-bottom-color: transparent;
+    }
+    .nav-item:first-child {
+        border-right: 1px solid #95979B;
+    }
+
+
+    .nav-tabs .nav-link.active {
+        background-color: transparent;
+        border: 1px solid black;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+    }
+
+    .nav-tabs {
+        border-bottom: none;
+    }
+
+    #event_details {
+        background-color: white;
+    }
+
+    text {
+        font: 12px sans-serif;
+    }
+
+
+    rect {
+        background-color: white;
+    }
+
+    table,th,td {
+        border : 1px solid black;
+        border-collapse: collapse;
+    }
+
+    th,td {
+        padding: 5px;
+    }
+
+    .col-sm-2 {
+        width: 100px;
+    }
+
+    .col-sm-4 {
+        width: 200px;
+    }
+
+    div#event_details {
+        background-color: #BEC2C6;
+        font-family: inherit;
+        font-size: 1.2rem;
+        border: 1px solid black;
+    }
+    .tableInDiv {
+        overflow-y: scroll;
+        max-height: 300px;
+        border-bottom: 1px solid black;
+        max-width: 800px;
+    }
+
+    #siteTable {
+        border-bottom: none;
+    }
+
+    table.floatThead-table {
+        border-top: none;
+        border-bottom: none;
+    }
+
+    #siteTable {
+        border-bottom: none;
+    }
+
+    .negative {
+        color: red
+    }
+
+    #siteTable {
+        margin-bottom: 0;
+    }
+
+    .table>thead>tr>th  {
+        vertical-align: middle;
+    }
+
+    .table>tbody>tr>td {
+        vertical-align: middle;
+    }
+
+    .table > colgroup + thead > tr:first-child > th {
+        border-top : 1px solid black;
+    }
+
+    select {
+        width: 200px;
+    }
+
+    tr th {
+        border-top : none;
+    }
+
+    .subTitle {
+        font-size: 12px;
+    }

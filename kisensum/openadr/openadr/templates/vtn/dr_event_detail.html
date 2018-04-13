@@ -1,0 +1,321 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load timetags %}
+
+ {% block heading %}
+
+     Event Detail: {{ event.dr_program }} <br>
+
+    {% endblock heading %}
+
+
+{% block content %}
+
+
+<link href="/static/graph/nv.d3.css" rel="stylesheet" type="text/css">
+<script src="/static/graph/d3.min.js" charset="utf-8"></script>
+<script src="/static/graph/nv.d3.js"></script>
+{% load bootstrap4 %}
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
+        integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
+        crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js"
+        integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn"
+        crossorigin="anonymous"></script>
+<link rel="stylesheet" type="text/css" href="{% static 'css/event_detail.css' %}">
+<script src="{% static 'js/jquery.floatThead.min.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment.js"></script>
+<script data-require="moment-timezone-with-data@0.4.0" data-semver="0.4.0"
+        src="http://momentjs.com/downloads/moment-timezone-with-data.js"></script>
+{% load admin_static %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/dr_event_detail.css' %}">
+
+<div class="row justify-content-around">
+    <div class="col-sm-4">
+        <nav class="nav nav-tabs nav-stacked" id="myTab" role="tablist">
+            <a class="nav-item nav-link active" id="nav-home-tab" data-toggle="tab" href="#nav-home" role="tab"
+               aria-controls="nav-home" aria-expanded="true">Graph</a>
+            <a class="nav-item nav-link" id="nav-profile-tab" data-toggle="tab" href="#nav-sites_details" role="tab"
+               aria-controls="nav-profile">Site Details</a>
+        </nav>
+    </div>
+<div class="col-4" style="text-align: center">
+        <div id="event_details">
+                <div class="row justify-content-between">
+                    <div class="col-sm-2" style="font-weight: bold">Notification <br></div>
+                    <div class="col-sm-5">{{ event.scheduled_notification_time }}</div>
+                </div>
+                <div class="row justify-content-between">
+                    <div class="col-sm-2" style="font-weight: bold">Start <br></div>
+                    <div class="col-sm-5">{{ event.start }}</div>
+                </div>
+                <div class="row justify-content-between">
+                    <div class="col-sm-2" style="font-weight: bold">End <br></div>
+                    <div class="col-sm-5">{{ event.end }}</div>
+                </div>
+                <div class="row justify-content-between">
+                    <div class="col-sm-2" style="font-weight: bold">Status <br></div>
+                    <div class="col-sm-5">{{ event.status | capfirst }}</div>
+                </div>
+
+            </div>
+    <br> <br>
+                <button type="button" id="cancel_event" class="btn btn-lg btn-danger" data-toggle="modal"
+                    data-target="#cancelModal">Cancel Event</button>
+                    <br>
+    <br>
+
+    </div>
+</div>
+
+    {% if no_data != True %}
+<div class="tab-content" id="nav-tabContent">
+    <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+         <div class="row justify-content-center">
+             <div class="col-md-2">
+                <h3>Customer</h3>
+                        {{ customerForm.customer }}
+             </div>
+             <div class="col-md-2">
+                 <h3>Site</h3>
+                        {{ siteForm.site }}
+             </div>
+        </div>
+
+<br> <br>
+<center>
+<table id="chart" frame="border", width="1200px">
+    <th>
+        <div id="chart" class='with-3d-shadow with-transitions'>
+            <svg style="height:450px;width:1200px;background-color: white"></svg>
+        </div>
+    </th>
+</table>
+    <br> <br>
+</center>
+<br> <br> <br> <br>
+  </div>
+        {% else %}
+            <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+<center>
+
+    <h2> No data for event </h2>
+</center>
+  </div>
+
+    {% endif %}
+
+<div class="tab-pane fade" id="nav-sites_details" role="tabpanel" aria-labelledby="nav-sites_details-tab">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+        <div class="tableInDiv">
+         <table id="siteTable" class="table table-bordered table-striped table-hover table-condensed">
+                <thead>
+                <tr>
+                    <th class="col-sm-2">Site </th>
+                    <th class="col-sm-2"> Notification Sent Time</th>
+                    <th class="col-sm-2">Opt-in</th>
+                    <th class="col-sm-2">Last opt-in</th>
+                    <th class="col-sm-2">Most recent power (kw)</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for site_event in site_events %}
+                    <tr>
+                    <td style="text-align: left">{{ site_event.site }}</td>
+                    <td>{{ site_event.notification_sent_time}}</td>
+                        {% if site_event.opt_in == 'optIn' %}
+                            <td style="background-color: green">Opted in</td>
+                        {% elif site_event.opt_in == 'optOut' %}
+                            <td style="background-color: #a31813">Opted out</td>
+                        {% else %}
+                            <td>{{ site_event.opt_in | capfirst }}  </td>
+                        {% endif %}
+                    <td>{{ site_event.last_opt_in}}</td>
+                    {% if site_event.last_stat > 0 %}
+                        <td class="negative"> -{{ site_event.last_stat }}</td>
+                    {% elif site_event.last_stat < 0 %}
+                        <td class="positive"> +{{ site_event.last_stat }}</td>
+                        {% else %}
+                        <td> {{ site_event.last_stat }}</td>
+                    {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<div id="cancelModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalLiveLabel"
+     aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLiveLabel">Confirm</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body" style="font-size: 14px">
+          <center>
+        <p>Are you sure you want to cancel this event? <br>
+        It is already in progress.</p>
+              </center>
+      </div>
+      <div class="modal-footer" style="text-align: center">
+        <button type="button" style="margin: 0 auto" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <a style="margin: 0 auto" href="{% url 'vtn:dr_event_cancel' pk %}" class="btn btn-danger">Cancel</a>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+    <!-- End second tab pane -->
+
+
+<script type="text/javascript">
+    $(document).on('change', '#id_customer', function() {
+        console.log("change");
+
+        if ($('#id_customer').val() == '') {
+            $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:dr_event_get_details' pk %}",
+            data: {'customer': 'empty'}
+        })
+        .done(function(response) {
+            $('#chart').html(response);
+            $('#id_site').val('');
+        });
+        } else {
+
+        $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:dr_event_get_details' pk %}",
+            data: {'customer': $('#id_customer').val()}
+        })
+        .done(function(response) {
+            $('#chart').html(response);
+            $('#id_site').val('');
+        });
+        }
+    });
+
+    $(document).on('change', '#id_site', function() {
+
+        console.log($('#id_site').val());
+
+        if ($('#id_site').val() == '') {
+            $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:dr_event_get_details' pk %}",
+            data: {'site': 'empty'}
+        })
+        .done(function(response) {
+            $('#chart').html(response);
+            $('#id_customer').val('');
+        });
+        }
+        else {
+
+        $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:dr_event_get_details' pk %}",
+            data: {'site': $('#id_site').val()}
+        })
+        .done(function(response) {
+            $('#chart').html(response);
+            $('#id_customer').val('');
+        });
+        }
+    });
+
+</script>
+
+<script>
+
+    data_lineWithFocusChart = [
+        {color:'red', key: 'Baseline Power (kw)',
+        values: [
+            {% for key, value in sum_baseline.items %}
+            {x: {{key | toUnixSlice }}, y: {{ value }}},
+            {% endfor %}
+
+        ]},
+        {color:'blue', key: 'Measured Power (kw)',
+        values: [
+            {% for key, value in sum_measured.items %}
+            {x: ({{key | toUnixSlice }}), y: {{ value }}},
+            {% endfor %}
+        ]}
+    ];
+
+
+
+    nv.addGraph(function() {
+        var chart = nv.models.lineWithFocusChart(
+        );
+        chart.margin({left: 100, bottom: 50, right: 100});
+        chart.brushExtent([{{ start_focus | toUnix }} ,{{ end_focus | toUnix }} ]);
+
+
+        chart.xAxis
+            .axisLabel('Time')
+            .tickFormat(function (d) {
+                if (d != undefined) {
+                    var offset = -1 * moment().zone();
+                    return d3.time.format('%-I:%M %p')(moment(d).add(offset, 'm').toDate())
+
+                }
+            });
+
+        chart.focusHeight(70 + 20);
+
+        chart.focusMargin({ "bottom": 20 + 20 });
+
+        chart.noData("There is no data to display");
+
+
+        chart.x2Axis
+            .tickFormat(function (d) {
+                  var offset = -1 * moment().zone();
+                  return d3.time.format('%-I:%M %p')(moment(d).add(offset, 'm').toDate())
+
+            });
+
+        chart.yAxis
+            .axisLabel('Power(kW)')
+            .tickFormat(d3.format(',.2f'));
+        chart.y2Axis.tickFormat(d3.format(',.2f'));
+        chart.useInteractiveGuideline(false);
+
+        d3.select('#chart svg')
+            .datum(data_lineWithFocusChart)
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+
+</script>
+
+    <script type="text/javascript">
+
+    var $table = $('#siteTable');
+    $table.floatThead({
+        scrollContainer: function($table){
+            return $table.closest('.tableInDiv');
+        }
+    });
+</script>
+
+
+{% endblock content %}

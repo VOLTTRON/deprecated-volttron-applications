@@ -1,0 +1,106 @@
+    text {
+            font: 12px sans-serif;
+        }
+
+        /*svg {*/
+            /*display: block;*/
+        /*}*/
+
+        html, body{
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: white;
+        }
+
+
+        #chart, svg {
+            width: 60%;
+            height: 50%;
+
+        }
+
+        svg.nvd3-svg {
+            width: 60%;
+        }
+
+        html {
+            background-color: lightgrey;
+        }
+
+        /*rect {*/
+            /*background-color: white;*/
+        /*}*/
+
+        table,th,td {
+            border : 1px solid black;
+            border-collapse: collapse;
+        }
+
+        th,td {
+            padding: 5px;
+        }
+
+    .col-sm-4 {
+        width: 200px;
+    }
+
+    div#event_details {
+        background-color: #BEC2C6;
+        font-family: inherit;
+        font-size: 1.2rem;
+        border: 1px solid black;
+    }
+    .tableInDiv {
+        overflow-y: scroll;
+        max-height: 300px;
+        border-bottom: 1px solid black;
+        max-width: 1000px;
+    }
+
+    #siteTable {
+        border-bottom: none;
+    }
+
+    #siteTable {
+        border-bottom: none;
+    }
+
+    .negative {
+        color: red
+    }
+
+    #siteTable {
+        margin-bottom: 0;
+    }
+
+    .table>thead>tr>th  {
+        vertical-align: middle;
+    }
+
+    .table>tbody>tr>td {
+        vertical-align: middle;
+    }
+
+    .table > colgroup + thead > tr:first-child > th {
+        border-top : 1px solid black;
+    }
+
+
+
+    tr th {
+        border-top : none;
+    }
+
+    select {
+    font-size: 14px;
+    }
+    #event_details {
+        font-size: 20px;
+    }
+
+    .col-sm-5, .col-sm-2 {
+        font-size : 14px;
+    }
+
+

@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{{ form.media }}
+{% block title %}
+    <div class="col-2">
+        <h1 class="title">Add DR Event </h1>
+    </div>
+        {% endblock %}
+
+{% load staticfiles %}
+{% load bootstrap_tags %}
+{% load widget_tweaks %}
+{% load admin_static %}
+{% load static %}
+ {% block heading %}
+        Edit DR Event
+{% endblock heading %}
+{% block content %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/dr_event_update.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'css/bootstrap337.css' %}">
+
+
+<div class="container" style="background-color: lightgrey">
+    {% if form.non_field_errors %}
+        <div class="row justify-content-center">
+            <div class="non-field-errors">
+                {% for err in form.non_field_errors %}
+                    <p class="form-error">{{ form.utility_id.errors.as_text }}</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+        {% if form.errors %}
+            <div class="row justify-content-center">
+                <div class="field-errors col-2">
+                {% for key, value in form.errors.items %}
+                    <b>{{ value.as_text }} </b> <br>
+                    {% endfor %}
+                </div>
+            </div>
+    {% endif %}
+  <form method="POST">
+      {% csrf_token %}
+        <div class="row justify-content-around">
+            <div class="col-md-4 col-md-offset-1">
+                <label for="{{ form.dr_program.id_for_label }}">DR Program </label>
+                {{ form.dr_program }}
+                <br>
+                <span class="tip">First pick a program, and the 'Sites' will auto-populate </span><br> <br>
+                <label for="{{ form.sites.id_for_label }}"> {{ form.sites.label }}</label>
+            <div id="Sites">
+                {{ form.sites }}
+            </div>
+            </div>
+
+            <div class="col-md-4">
+                <label style="padding-left: 14%" class="right-column-label" for="{{ form.notification.id_for_label }}">Notification</label>
+                {{ form.scheduled_notification_time }}
+                <br>
+                <label style="padding-left: 20%" for="{{form.start.id_for_label }}">Start </label>
+                {{ form.start }}
+                <br>
+                <label style="padding-left: 21%" class="right-column-label" for="{{form.end.id_for_label }}">End </label>
+                {{ form.end }}
+            </div>
+        </div>
+
+        <div class="row justify-content-center last-row" style="text-align:center">
+            <div class="col-sm-4">
+                <button type="submit" name="Save" class="btn btn-lg btn-primary">Save</button>
+            </div>
+        </div>
+        {{ form.last_status_time }}
+
+    </form>
+
+    <div id="popupElement"></div>
+<br>
+<br>
+<center>
+<button type="submit" id="cancel_event" class="btn btn-lg btn-primary" data-toggle="modal"
+                    data-target="#cancelModal">Cancel Event</button>
+    </center>
+</div>
+
+    <!-- Modal -->
+<div id="cancelModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="exampleModalLiveLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLiveLabel">Confirm</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+      <div class="modal-body" style="font-size: 14px">
+        <p>Are you sure you want to cancel this event?</p>
+      </div>
+      <div class="modal-footer" style="text-align: left">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <a href="{% url 'vtn:dr_event_delete' pk %}" class="btn btn-danger">Cancel</a>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+    $(document).on('change', '#id_dr_program', function() {
+        $.ajax({
+            type: "GET",
+            url: "{% url 'vtn:get_dr_event_form' %}",
+            data: {'dr_program': $('#id_dr_program').val()}
+        })
+        .done(function(response) {
+            $('#Sites').html(response);
+        });
+    });
+
+</script>
+
+
+    <a href="#" id="clocklink1">
+        <span class="clock-icon"></span>
+    </a>
+
+{% endblock %}
+

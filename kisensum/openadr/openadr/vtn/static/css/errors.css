@@ -1,0 +1,8 @@
+    .non-field-errors, .field-errors {
+        color: red;
+    }
+
+    .errors {
+        color: red;
+        font-weight: bold;
+    }

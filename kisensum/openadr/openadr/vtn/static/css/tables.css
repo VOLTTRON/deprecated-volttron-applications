@@ -1,0 +1,36 @@
+    tr {
+        text-align: center;
+    }
+
+    th {
+        text-align: center;
+
+    }
+
+    th:first-child div{
+        border: none;
+}
+
+    th.eventTable {
+        text-align : center;
+        background-color: #95979B;
+    }
+
+        .table, .table td {
+        border: 1px solid black;
+    }
+
+                .table-condensed {
+        font-size : 12px;
+    }
+    td {
+        vertical-align: middle;
+    }
+
+    .table-bordered>tbody>tr>td {
+        border: 1px solid black;
+    }
+
+    .table-bordered>thead>tr>th {
+        border: 1px solid black;
+    }

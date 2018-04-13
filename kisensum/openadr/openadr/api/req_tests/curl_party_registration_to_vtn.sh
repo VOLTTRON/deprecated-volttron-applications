@@ -1,0 +1,1 @@
+curl -X POST -d "@sample_create_party_registration.xml" --header "Content-Type: application/xml"  http://127.0.0.1:8000/OpenADR2/Simple/2.0b/EiRegisterParty

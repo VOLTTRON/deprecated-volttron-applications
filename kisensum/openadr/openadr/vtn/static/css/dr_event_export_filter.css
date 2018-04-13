@@ -1,0 +1,78 @@
+
+form {
+display: inline-block;
+}
+
+.col-2 {
+    text-align: center;
+}
+
+.col-6 {
+    height: 50%;
+}
+
+.container {
+    height: 100%;
+}
+
+.clear {
+    clear : both;
+}
+
+.tableInDiv{
+    overflow-y : scroll;
+    max-height: 300px;
+    margin-top: 2%;
+    border-bottom: 1px solid black;
+}
+.col-6 {
+    overflow-y : scroll;
+    height: 50%;
+    width: 100%;
+}
+
+
+footer {
+    text-align: center
+}
+
+
+.btnFilter {
+    width: 100px;
+}
+
+form {
+    font-size: 12px;
+}
+
+#filterTable {
+    margin-bottom: 0;
+    margin-right: 0;
+}
+
+#filterTable>tbody>tr:last-child {
+    border: none;
+}
+
+#filterTable{
+    border-bottom: none;
+}
+
+table.floatThead-table {
+    border-bottom: none;
+}
+
+/*.table-bordered>tbody>tr>td.col-sm-2 {*/
+    /*max-width: 10px;*/
+    /*overflow-x: hidden;*/
+/*}*/
+
+/*.table-bordered>tbody>tr>th.col-sm-2 {*/
+    /*max-width: 10px;*/
+    /*overflow-x: hidden;*/
+/*}*/
+
+/*.table>colgroup+thead>tr:first-child>th {*/
+    /*max-width: 10px;*/
+/*}*/
+

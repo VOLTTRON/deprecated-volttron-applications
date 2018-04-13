@@ -1,0 +1,98 @@
+{% load static %}
+{% load timetags %}
+<link href="/static/graph/nv.d3.css" rel="stylesheet" type="text/css">
+<script src="/static/graph/d3.min.js" charset="utf-8"></script>
+<script src="/static/graph/nv.d3.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.19.1/moment.js"></script>
+<script data-require="moment-timezone-with-data@0.4.0" data-semver="0.4.0" src="http://momentjs.com/downloads/moment-timezone-with-data.js"></script>
+
+
+{% if no_data_for_sites == 'True' %}
+
+<table frame="border", width="1200px">
+    <th style="text-align: center">
+        <div id="chart" class='with-3d-shadow with-transitions' style="text-align: center; margin:auto">
+            <center><h3>No data for customer or site </h3> </center>
+        </div>
+    </th>
+</table>
+
+{% else %}
+
+<table frame="border", width="1200px">
+    <th>
+        <div id="chart" class='with-3d-shadow with-transitions'>
+            <svg style="height:450px;width:1200px;background-color: white"></svg>
+        </div>
+    </th>
+</table>
+
+{% endif %}
+
+<script>
+
+    data_lineWithFocusChart = [
+        {color:'red', key: 'Baseline Power (kw)',
+        values: [
+            {% for key, value in sum_baseline.items %}
+            {x: {{key | toUnixSlice }}, y: {{ value }}},
+            {% endfor %}
+
+        ]},
+        {color:'blue', key: 'Measured Power (kw)',
+        values: [
+            {% for key, value in sum_measured.items %}
+            {x: ({{key | toUnixSlice }}), y: {{ value }}},
+            {% endfor %}
+        ]}
+    ];
+
+
+
+    nv.addGraph(function() {
+        var chart = nv.models.lineWithFocusChart(
+        );
+        chart.margin({left: 100, bottom: 50, right: 100});
+
+        chart.brushExtent([{{ start_focus | toUnix }} ,{{ end_focus | toUnix }} ]);
+
+
+        chart.xAxis
+            .axisLabel('Time Scale')
+            .tickFormat(function (d) {
+                if (d != undefined) {
+                    var offset = -1 * moment().zone()
+                    return d3.time.format('%-I:%M %p')(moment(d).add(offset, 'm').toDate())
+                }
+            });
+
+        chart.focusHeight(70 + 20);
+
+        chart.focusMargin({ "bottom": 20 + 20 });
+
+
+        chart.x2Axis
+            .tickFormat(function (d) {
+                var offset = -1 * moment().zone();
+                return d3.time.format('%-I:%M %p')(moment(d).add(offset, 'm').toDate())
+            });
+
+        chart.yAxis
+            .axisLabel('kW')
+            .tickFormat(d3.format(',.2f'));
+        chart.y2Axis.tickFormat(d3.format(',.2f'));
+        chart.useInteractiveGuideline(false);
+
+        d3.select('#chart svg')
+            .datum(data_lineWithFocusChart)
+            .call(chart);
+
+        nv.utils.windowResize(chart.update);
+
+        return chart;
+    });
+
+</script>

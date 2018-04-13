@@ -1,0 +1,147 @@
+ #container {
+        height: 100%;
+        background-color: lightgray;
+    }
+
+    .row {
+        max-height: 50%;
+    }
+
+    #backgroundImageOne {
+        display: inline;
+        float: left;
+        margin: 4% 8%;
+    }
+
+
+    .title {
+        position: relative;
+        top: 50%;
+        transform:translateY(-50%);
+        -webkit-transform: translateY(-50%);
+    }
+
+    #first-row {
+        height: 7%;
+    }
+    html, body {
+        height: 100%;
+    }
+
+
+    footer {
+        text-align: center;
+        background-color : lightgrey;
+    }
+    .navbar {
+        background-color: #bec2c6;
+        border-bottom: 2px solid black;
+    }
+
+    .nav-link, .dropdown-toggle {
+        font-size: 20px;
+    }
+
+    ul.dropdown-menu li {
+        font-size: 16px;
+    }
+    ul.dropdown-menu {
+        background-color: #bec2c6;
+    }
+    .nav-item>a  {
+        border-color: #d45500;
+        border-bottom-color: transparent;
+    }
+    .nav-item:first-child {
+        border-right: 1px solid #95979B;
+    }
+
+    .nav-item.last {
+        border-left: 1px solid #95979B;
+    }
+
+    .nav-item {
+        padding-right: 20px;
+        padding-left: 20px;
+    }
+
+    ul li {
+        list-style-type: none;
+    }
+
+    a.btn {
+        color: white;
+    }
+
+    tr th {
+        background-color: #95979b
+    }
+
+    tr th {
+        color: black;
+        border-top: 1px solid black;
+    }
+
+    * {
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+
+    table tbody tr td {
+        font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+    .btn {
+        width: 150px;
+    }
+
+    input {
+        font-weight: normal;
+    }
+
+    h1 {
+        font-weight: normal;
+    }
+    .form-control  {
+        font-size: 12px;
+    }
+
+    .backButtonDiv {
+        margin-left: 2%;
+        padding-left: 0;
+    }
+
+    .backButton {
+        width: 100px;
+    }
+
+    .col-sm-6.heading {
+        text-align: left;
+        margin-left: 2%;
+    }
+
+    footer {
+        padding-bottom : 2%;
+    }
+
+    label {
+        font-weight: normal;
+        color: #666;
+        font-size: 13px;
+    }
+
+    .tip {
+        font-size: 1rem;
+    }
+
+    .disabled-link {
+        pointer-events: none;
+        cursor: default;
+    }
+
+    .btn-primary {
+        background-color: #417690;
+        border-color: #417690;
+    }
+
+    .delete-confirmation form .cancel-link {
+        height: 25px;
+    }

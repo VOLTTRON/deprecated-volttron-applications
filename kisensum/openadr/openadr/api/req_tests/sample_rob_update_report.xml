@@ -1,0 +1,73 @@
+<oadr:oadrPayload xmlns:oadr="http://openadr.org/oadr-2.0b/2012/07">
+  <oadr:oadrSignedObject>
+        <oadr:oadrUpdateReport xmlns:pyld="http://docs.oasis-open.org/ns/energyinterop/201110/payloads" xmlns:ei="http://docs.oasis-open.org/ns/energyinterop/201110" schemaVersion="2.0b">
+            <pyld:requestID>41dbaeee-d6ad-11e7-a84e-6c96cfdb28b5</pyld:requestID>
+            <oadr:oadrReport>
+                <xcal:duration xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                    <oadr:duration>PT20S</oadr:duration>
+                </xcal:duration>
+                <strm:intervals xmlns:strm="urn:ietf:params:xml:ns:icalendar-2.0:stream">
+                    <ei:interval xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                        <xcal:dtstart>
+                            <oadr:date-time>2017-12-01T15:34:08.724871Z</oadr:date-time>
+                        </xcal:dtstart>
+                        <xcal:duration>
+                            <oadr:duration>PT1M</oadr:duration>
+                        </xcal:duration>
+                        <oadr:oadrReportPayload>
+                            <ei:rID>baseline_power</ei:rID>
+                            <ei:payloadFloat>
+                                <ei:value>6.2</ei:value>
+                            </ei:payloadFloat>
+                        </oadr:oadrReportPayload>
+                        <oadr:oadrReportPayload>
+                            <ei:rID>actual_power</ei:rID>
+                            <ei:payloadFloat>
+                                <ei:value>2.84059868567</ei:value>
+                            </ei:payloadFloat>
+                        </oadr:oadrReportPayload>
+                        <oadr:oadrReportPayload>
+                            <ei:rID>resource_status</ei:rID>
+                            <ei:oadrPayloadResourceStatus>
+                                <oadr:oadrOnline>false</oadr:oadrOnline>
+                                <oadr:oadrManualOverride>false</oadr:oadrManualOverride>
+                            </ei:oadrPayloadResourceStatus>
+                        </oadr:oadrReportPayload>
+                    </ei:interval>
+                    <ei:interval xmlns:xcal="urn:ietf:params:xml:ns:icalendar-2.0">
+                        <xcal:dtstart>
+                            <oadr:date-time>2017-12-01T15:34:23.745410Z</oadr:date-time>
+                        </xcal:dtstart>
+                        <xcal:duration>
+                            <oadr:duration>PT1M</oadr:duration>
+                        </xcal:duration>
+                        <oadr:oadrReportPayload>
+                            <ei:rID>baseline_power</ei:rID>
+                            <ei:payloadFloat>
+                                <ei:value>6.2</ei:value>
+                            </ei:payloadFloat>
+                        </oadr:oadrReportPayload>
+                        <oadr:oadrReportPayload>
+                            <ei:rID>actual_power</ei:rID>
+                            <ei:payloadFloat>
+                                <ei:value>2.36054628151</ei:value>
+                            </ei:payloadFloat>
+                        </oadr:oadrReportPayload>
+                        <oadr:oadrReportPayload>
+                            <ei:rID>resource_status</ei:rID>
+                            <ei:oadrPayloadResourceStatus>
+                                <oadr:oadrOnline>false</oadr:oadrOnline>
+                                <oadr:oadrManualOverride>false</oadr:oadrManualOverride>
+                            </ei:oadrPayloadResourceStatus>
+                        </oadr:oadrReportPayload>
+                    </ei:interval>
+                </strm:intervals>
+                <ei:reportRequestID>19</ei:reportRequestID>
+                <ei:reportSpecifierID>telemetry</ei:reportSpecifierID>
+                <oadr:reportName>TELEMETRY_USAGE</oadr:reportName>
+                <oadr:createdDateTime>2017-12-01T15:35:28.069153Z</oadr:createdDateTime>
+            </oadr:oadrReport>
+            <oadr:venID>0</oadr:venID>
+        </oadr:oadrUpdateReport>
+    </oadr:oadrSignedObject>
+</oadr:oadrPayload>

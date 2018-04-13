@@ -1,0 +1,46 @@
+        div.vcenter {
+        display: inline-block;
+        vertical-align: middle;
+        float: none;
+        max-width: 150px;
+    }
+    .table-row {
+        display: table;
+        table-layout: fixed;
+        width: 80%;
+        max-height: 25%;
+        margin-left: 7%;
+    }
+
+    .tableInDiv {
+        overflow-y: scroll;
+        max-height: 200px;
+    }
+
+    .table-row [class^="col-"] {
+        display: table-cell;
+        float: none;
+        width: 100%;
+        text-align: center;
+    }
+
+    select[multiple] {
+        max-width: 200px;
+    }
+
+    .topBuffer {
+        margin-top : 1%;
+    }
+
+    div {
+        font-size: 12px;
+    }
+
+    .form-control  {
+        font-size: 12px;
+    }
+        h6 {
+        font-weight: normal;
+        color: #666;
+        font-size: 13px;
+    }

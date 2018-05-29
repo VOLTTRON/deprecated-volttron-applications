@@ -105,7 +105,7 @@ class ILCAgent(Agent):
         self.application_category = config.get("application_category", "Load Control")
         self.application_name = config.get("application_name", "Intelligent Load Control")
 
-        self.ilc_start_topic = self.agent_id
+        ilc_start_topic = self.agent_id
         # --------------------------------------------------------------------------------
 
         # For Target agent updates...
@@ -293,6 +293,11 @@ class ILCAgent(Agent):
         self.vip.pubsub.subscribe(peer="pubsub", prefix=self.target_agent_subscription, callback=demand_limit_handler)
         _log.debug("Target agent subscription: " + self.target_agent_subscription)
         self.vip.pubsub.publish("pubsub", self.ilc_start_topic, headers={}, message={})
+
+    @Core.receiver("onstop")
+    def shutdown(self, sender, **kwargs):
+        _log.debug("Shutting down ILC, releasing all controls!")
+        self.reinitialize_stagger()
 
     def setup_demand_schedule(self):
         self.tasks = {}
@@ -570,7 +575,7 @@ class ILCAgent(Agent):
             if self.break_end is not None and current_time < self.break_end:
                 return
 
-            if len(self.bldg_power) < 0:
+            if len(self.bldg_power) < 15:
                 return
             self.check_load(average_power, current_time)
 
@@ -708,6 +713,7 @@ class ILCAgent(Agent):
         need_curtailed = bldg_power - self.demand_limit
         est_curtailed = 0.0
         remaining_devices = scored_devices[:]
+        
         for device in self.devices_curtailed:
             current_tuple = (device[0], device[1], device[5])
             if current_tuple in remaining_devices:

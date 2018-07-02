@@ -158,6 +158,8 @@ class DriverAgent(BasicAgent):
         driver_type = config["driver_type"]
         registry_config = config.get("registry_config")
         self.heart_beat_point = config.get("heart_beat_point")
+        _log.info("Registry config of {} is {}".format(driver_type, registry_config))
+        _log.info("Driver config of {} is {}".format(driver_type, driver_config))
         self.interface = self.get_interface(driver_type, driver_config, registry_config)
         self.meta_data = {}
         for point in self.interface.get_register_names():

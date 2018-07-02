@@ -75,21 +75,6 @@ def check_date(current_time, timestamp_array):
         return False
 
 
-def validation_builder(validate, dx_name, data_tag):
-    """
-
-    :param validate:
-    :param dx_name:
-    :param data_tag:
-    :return:
-    """
-    data = {}
-    for key, value in validate.items():
-        tag = dx_name + data_tag + key
-        data.update({tag: value})
-    return data
-
-
 def check_run_status(timestamp_array, current_time, no_required_data, minimum_diagnostic_time=None,
                      run_schedule="hourly", minimum_point_array=None):
     """
@@ -126,7 +111,7 @@ def check_run_status(timestamp_array, current_time, no_required_data, minimum_di
     return False
 
 
-def setpoint_control_check(set_point_array, point_array, allowable_deviation, dx_name, dx_offset, dx_result):
+def setpoint_control_check(set_point_array, point_array, setpoint_deviation_threshold, dx_name, dx_offset, dx_result):
     """
     Verify that point if tracking with set point - identify potential control or sensor problems.
     :param set_point_array:
@@ -138,22 +123,21 @@ def setpoint_control_check(set_point_array, point_array, allowable_deviation, dx
     :return:
     """
     avg_set_point = None
-    set_point_array = [float(pt) for pt in set_point_array if pt != 0]
     diagnostic_msg = {}
-    for key, deviation_threshold in allowable_deviation.items():
+    for key, threshold in setpoint_deviation_threshold.items():
         if set_point_array:
             avg_set_point = sum(set_point_array)/len(set_point_array)
             zipper = (set_point_array, point_array)
             set_point_tracking = [abs(x - y) for x, y in zip(*zipper)]
-            set_point_tracking = mean(set_point_tracking)/avg_set_point*100
+            set_point_tracking = mean(set_point_tracking)/avg_set_point*100.
 
-            if set_point_tracking > deviation_threshold:
+            if set_point_tracking > threshold:
                 # color_code = 'red'
                 msg = '{} - {}: point deviating significantly from set point.'.format(key, dx_name)
                 result = 1.1 + dx_offset
             else:
                 # color_code = 'green'
-                msg = " {} - No problem detected or {} set".format(key, dx_name)
+                msg = " {} - No problem detected for {} set".format(key, dx_name)
                 result = 0.0 + dx_offset
         else:
             # color_code = 'grey'

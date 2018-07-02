@@ -65,7 +65,7 @@ from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.messaging import (headers as headers_mod, topics)
 import dateutil.tz
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 __author1__ = "Craig Allwardt <craig.allwardt@pnnl.gov>"
 __author2__ = "Robert Lutes <robert.lutes@pnnl.gov>"
@@ -129,9 +129,10 @@ def driven_agent(config_path, **kwargs):
 
     device_lock_duration = config.get("device_lock_duration", 10.0)
     conversion_map = config.get("conversion_map")
+    missing_data_threshold = config.get("missing_data_threshold", 15.0)/100.0
     map_names = {}
     for key, value in conversion_map.items():
-        map_names[key.lower() if isinstance(key, str) else key] = value
+        map_names[key if isinstance(key, str) else key] = value
 
     application = config.get("application")
     validation_error = ""
@@ -265,7 +266,7 @@ def driven_agent(config_path, **kwargs):
             device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
                 fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
-                if fraction_missing < 0.10:
+                if fraction_missing > missing_data_threshold:
                     _log.error("Device values already present, reinitializing at publish: {}".format(timestamp))
                     self.initialize_devices()
                     device_needed = self.aggregate_subdevice(device_data, topic)
@@ -279,7 +280,7 @@ def driven_agent(config_path, **kwargs):
             if self._should_run_now() or missing_but_running:
                 field_names = {}
                 for point, data in self.device_values.items():
-                    field_names[point.lower() if isinstance(point, str) else point] = data
+                    field_names[point] = data
                 if not converter.initialized and conversion_map is not None:
                     converter.setup_conversion_map(map_names, field_names)
 

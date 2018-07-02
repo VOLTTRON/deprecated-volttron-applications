@@ -179,7 +179,7 @@ def validate_input(pairwise_matrix, col_sums):
     # Calculate the consistency ratio
     consistency_ratio = consistency_index / random_index[len(col_sums)]
 
-    return consistency_ratio < 0.2
+    return consistency_ratio < 0.5
 
 
 def build_score(_matrix, weight, priority):
@@ -213,7 +213,6 @@ def input_matrix(builder, criteria_labels):
     sum_mat = defaultdict(float)
     inp_mat = {}
     label_check = builder.values()[-1].keys()
-    _log.debug("LABELS: {} - {}".format(label_check, criteria_labels))
     if set(label_check) != set(criteria_labels):
         raise Exception('Input criteria and data criteria do not match.')
     for device_data in builder.values():

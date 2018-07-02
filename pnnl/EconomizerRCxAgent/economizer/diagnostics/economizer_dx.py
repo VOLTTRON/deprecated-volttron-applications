@@ -73,14 +73,18 @@ class EconCorrectlyOn(object):
     def __init__(self, oaf_economizing_threshold, open_damper_threshold,
                  minimum_damper_setpoint, data_window, no_required_data,
                  cfm, eer, analysis):
+        # Initialize data arrays
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
+
+        # Initialize not_cooling and not_economizing flags
         self.not_cooling = None
         self.not_economizing = None
+
 
         self.open_damper_threshold = open_damper_threshold
         self.oaf_economizing_threshold = oaf_economizing_threshold
@@ -91,7 +95,7 @@ class EconCorrectlyOn(object):
         self.eer = eer
 
         self.analysis = analysis
-        self.max_dx_time = td(minutes=60)
+        self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.not_economizing_dict = {key: 15.0 for key in self.oaf_economizing_threshold}
         self.not_cooling_dict = {key: 14.0 for key in self.oaf_economizing_threshold}
         self.inconsistent_date = {key: 13.2 for key in self.oaf_economizing_threshold}
@@ -159,22 +163,22 @@ class EconCorrectlyOn(object):
         energy_impact = {}
         thresholds = zip(self.open_damper_threshold.items(), self.oaf_economizing_threshold.items())
         for (key, damper_thr), (key2, oaf_thr) in thresholds:
-            if avg_damper_signal - self.minimum_damper_setpoint < damper_thr:
-                msg = "{}: {} - sensitivity: {}".format(ECON2, self.alg_result_messages[0], key)
+            if avg_damper_signal < damper_thr:
+                msg = "{} - {}: {}".format(ECON2, key, self.alg_result_messages[0])
                 # color_code = "RED"
                 result = 11.1
                 energy = self.energy_impact_calculation()
             else:
-                if 100.0 - avg_oaf <= oaf_thr:
-                    msg = "{}: {} - sensitivity: {}".format(ECON2, self.alg_result_messages[1], key)
-                    # color_code = "GREEN"
-                    result = 10.0
-                    energy = 0.0
-                else:
-                    msg = "{}: {} --OAF: {} - sensitivity: {}".format(ECON2, self.alg_result_messages[2], avg_oaf, key)
+                if avg_oaf < oaf_thr:
+                    msg = "{} - {}: {} - OAF={}".format(ECON2, key, self.alg_result_messages[2], avg_oaf)
                     # color_code = "RED"
                     result = 12.1
                     energy = self.energy_impact_calculation()
+                else:
+                    msg = "{} - {}: {}".format(ECON2, key, self.alg_result_messages[1])
+                    # color_code = "GREEN"
+                    result = 10.0
+                    energy = 0.0
             dx_result.log(msg)
             diagnostic_msg.update({key: result})
             energy_impact.update({key: energy})
@@ -197,11 +201,11 @@ class EconCorrectlyOn(object):
         :return:
         """
         if not cooling_call:
-            dx_result.log("{}: not cooling for data for data {}".format(ECON2, cur_time))
+            dx_result.log("{}: not cooling at {}".format(ECON2, cur_time))
             if self.not_cooling is None:
                 self.not_cooling = cur_time
             if cur_time - self.not_cooling >= self.data_window:
-                dx_result.log("{}: unit is not cooling - reinitialize!".format(ECON2))
+                dx_result.log("{}: no cooling during data set - reinitialize.".format(ECON2))
                 dx_table = {ECON2 + DX: self.not_cooling_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
@@ -211,11 +215,11 @@ class EconCorrectlyOn(object):
             self.not_cooling = None
 
         if not econ_condition:
-            dx_result.log("{}: Not economizing, for data {} -- {}.".format(ECON2, cur_time, self.not_economizing))
+            dx_result.log("{}: not economizing at {}.".format(ECON2, cur_time))
             if self.not_economizing is None:
                 self.not_economizing = cur_time
             if cur_time - self.not_economizing >= self.data_window:
-                dx_result.log("{}: unit is not economizing - reinitialize!".format(ECON2))
+                dx_result.log("{}: no economizing during data set - reinitialize.".format(ECON2))
                 dx_table = {ECON2 + DX: self.not_economizing_dict}
                 table_key = create_table_key(self.analysis, cur_time)
                 dx_result.insert_table_row(table_key, dx_table)
@@ -261,21 +265,23 @@ class EconCorrectlyOff(object):
     """
     def __init__(self, data_window, no_required_data, min_damper_sp,
                  excess_damper_threshold, desired_oaf, cfm, eer, analysis):
+        # Initialize data arrays.
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
         self.oad_values = []
         self.fan_spd_values = []
         self.timestamp = []
+
         self.economizing = None
-        self.cfm = cfm
-        self.eer = eer
+
         # Application result messages
         self.alg_result_messages = \
             ["The OAD should be at the minimum position but is significantly above this value.",
              "No problems detected.",
              "Inconclusive results, could not verify the status of the economizer."]
-        self.max_dx_time = td(minutes=60)
+        # Map configurable parameters
+        self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3/2
         self.data_window = data_window
         self.no_required_data = no_required_data
         self.min_damper_sp = min_damper_sp
@@ -339,20 +345,20 @@ class EconCorrectlyOff(object):
         avg_damper = mean(self.oad_values)
         diagnostic_msg = {}
         energy_impact = {}
-        for key, threshold in self.excess_damper_threshold.items():
-            if avg_damper - self.min_damper_sp > threshold:
-                msg = "{}: {} - sensitivity: {}".format(ECON3, self.alg_result_messages[0], key)
+        for sensitivity, threshold in self.excess_damper_threshold.items():
+            if avg_damper > threshold:
+                msg = "{} - {}: {}".format(ECON3, sensitivity, self.alg_result_messages[0])
                 # color_code = "RED"
                 result = 21.1
                 energy = self.energy_impact_calculation(desired_oaf)
             else:
-                msg = "{}: {} - sensitivity: {}".format(ECON3, self.alg_result_messages[1], key)
+                msg = "{} - {}: {}".format(ECON3, sensitivity, self.alg_result_messages[1])
                 # color_code = "GREEN"
                 result = 20.0
                 energy = 0.0
             dx_result.log(msg)
-            diagnostic_msg.update({key: result})
-            energy_impact.update({key: energy})
+            diagnostic_msg.update({sensitivity: result})
+            energy_impact.update({sensitivity: energy})
 
         dx_table = {
             ECON3 + DX: diagnostic_msg,

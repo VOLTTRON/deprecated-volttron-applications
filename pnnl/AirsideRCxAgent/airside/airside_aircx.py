@@ -70,7 +70,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -97,17 +97,17 @@ class Application(AbstractDrivenAgent):
             conclusive analysis.
         warm_up_time (int): Number of minutes after equipment startup prior
             to beginning data collection for analysis.
-        duct_stcpr_retuning (float): Amount to increment or decrement the duct
+        stcpr_retuning (float): Amount to increment or decrement the duct
             static pressure set point high/low duct static pressure set point
             problem is detected (assumed to be in inches water column (gauge)).
-        max_duct_stcpr_stpt (float): Maximum value for the duct static pressure set
+        max_stcpr_stpt (float): Maximum value for the duct static pressure set
             point when applying auto-correction.
         high_sf_thr (float): Auto-correction for low duct static pressure set point
             will not be effective if the supply fan for the AHU is operating at or near 100%
             of full speed. Auto-correction will not be applied if this condition exists.
         zn_high_damper_thr (float):
         zn_low_damper_thr (float):
-        min_duct_stcpr_stpt (float): Minimum value for the duct static pressure set
+        min_stcpr_stpt (float): Minimum value for the duct static pressure set
             point when applying auto-correction.
         low_sf_thr (float): Auto-correction for high duct static pressure set point
             will not be effective if the supply fan for the AHU is operating at or near its
@@ -131,40 +131,81 @@ class Application(AbstractDrivenAgent):
     """
     def __init__(
             self, no_required_data=10, warm_up_time=15, data_window=None,
-            duct_stcpr_retuning=0.15, max_duct_stcpr_stpt=2.5,
-            high_sf_thr=95.0, zn_high_damper_thr=90.0,
-            zn_low_damper_thr=15.0, min_duct_stcpr_stpt=0.5,
-            hdzn_damper_thr=30.0, low_sf_thr=20.0,
-            stpt_deviation_thr=10.0, stcpr_reset_thr=0.25,
+            stcpr_retuning=0.15, min_stcpr_stpt=0.5, max_stcpr_stpt=2.5,
+            sat_retuning=1., min_sat_stpt=50., max_sat_stpt=70.,
+            low_sf_thr=20., high_sf_thr=95.0, auto_correct_flag=False,
 
-            percent_reheat_thr=25.0, rht_on_thr=10.0,
-            sat_reset_thr=5.0, sat_high_damper_thr=80.0,
-            percent_damper_thr=60.0, min_sat_stpt=50.0,
-            sat_retuning=1.0, reheat_valve_thr=50.0,
-            max_sat_stpt=75.0,
+            stcpr_stpt_deviation_thr=20.,
+            zn_high_damper_thr=90., zn_low_damper_thr=25.,
+            hdzn_damper_thr=30.,
+            stcpr_reset_thr=0.25,
+
+            sat_stpt_deviation_thr=5.0,
+            sat_high_damper_thr=80.0, rht_on_thr=10.0,
+            percent_reheat_thr=25.0, percent_damper_thr=60.0,
+            reheat_valve_thr=50.0,
+            sat_reset_thr=2.0,
 
             unocc_time_thr=40.0, unocc_stp_thr=0.2,
             monday_sch=["5:30", "18:30"], tuesday_sch=["5:30", "18:30"],
             wednesday_sch=["5:30", "18:30"], thursday_sch=["5:30", "18:30"],
             friday_sch=["5:30", "18:30"], saturday_sch=["0:00", "0:00"],
-            sunday_sch=["0:00", "0:00"], auto_correct_flag=False,
-            analysis_name="", sensitivity="all", **kwargs):
+            sunday_sch=["0:00", "0:00"],
+            analysis_name="", sensitivity="default", **kwargs):
 
         # Point names (Configurable)
         def get_or_none(name):
             value = kwargs["point_mapping"].get(name, None)
             if value:
-                value = value.lower()
+                value = value
             return value
+
+        if sensitivity is not None and sensitivity == "custom":
+            stcpr_stpt_deviation_thr = max(10., min(stcpr_stpt_deviation_thr, 30.))
+            zn_high_damper_thr = max(70., min(zn_high_damper_thr, 70.))
+            zn_low_damper_thr = max(0., min(zn_low_damper_thr, 35.))
+            hdzn_damper_thr = max(20., min(hdzn_damper_thr, 50.))
+            stcpr_reset_thr = max(0.1, min(stcpr_reset_thr, 0.5))
+
+            sat_stpt_deviation_thr = max(2., min(sat_stpt_deviation_thr, 10.))
+            rht_on_thr = max(5., min(rht_on_thr, 30.))
+            sat_high_damper_thr = max(70., min(sat_high_damper_thr, 90.))
+            percent_reheat_thr = max(10., min(percent_reheat_thr, 40.))
+            percent_damper_thr = max(45., min(percent_damper_thr, 75.))
+            reheat_valve_thr = max(25.0, min(reheat_valve_thr, 75.))
+            sat_reset_thr = max(1., min(reheat_valve_thr, 5.))
+
+            unocc_time_thr = max(20.0, min(unocc_time_thr, 60.))
+            unocc_stp_thr = max(0.125, min(unocc_stp_thr, 0.3))
+
+            stcpr_retuning = max(0.1, min(stcpr_retuning, 0.25))
+            sat_retuning = max(1., min(sat_retuning, 3.))
+        else:
+            stcpr_stpt_deviation_thr = 20.
+            zn_high_damper_thr = 90.
+            zn_low_damper_thr = 25.
+            hdzn_damper_thr = 30.
+            stcpr_reset_thr = 0.25
+
+            sat_stpt_deviation_thr = 5.
+            rht_on_thr = 10.
+            sat_high_damper_thr = 80.
+            percent_reheat_thr = 25.
+            percent_damper_thr = 60.
+            reheat_valve_thr = 50.
+            sat_reset_thr = 2.0
+
+            unocc_time_thr = 40.
+            unocc_stp_thr = 0.2
+
+            stcpr_retuning = 0.15
+            sat_retuning = 1
 
         self.warm_up_start = None
         self.warm_up_flag = True
         self.unit_status = None
         self.data_window = td(minutes=data_window) if data_window is not None else None
         self.analysis = analysis_name
-
-        if sensitivity not in ["all", "high", "normal", "low"]:
-            sensitivity = None
 
         analysis = analysis_name
         self.fan_status_name = get_or_none("fan_status")
@@ -191,126 +232,99 @@ class Application(AbstractDrivenAgent):
         self.high_sf_thr = float(high_sf_thr)
         self.warm_up_time = td(minutes=warm_up_time)
 
-        if sensitivity is not None and sensitivity != "custom":
-            # SAT AIRCx Thresholds
-            stpt_deviation_thr = {
-                "low": stpt_deviation_thr*1.5,
-                "normal": stpt_deviation_thr,
-                "high": stpt_deviation_thr*0.5
-            }
-            percent_reheat_thr = {
-                "low":  percent_reheat_thr,
-                "normal": percent_reheat_thr,
-                "high":  percent_reheat_thr
-            }
-            percent_damper_thr = {
-                "low": percent_damper_thr + 15.0,
-                "normal": percent_damper_thr,
-                "high": percent_damper_thr - 15.0
-            }
-            reheat_valve_thr = {
-                "low": reheat_valve_thr*1.5,
-                "normal": reheat_valve_thr,
-                "high": reheat_valve_thr*0.5
-            }
-            sat_high_damper_thr = {
-                "low": sat_high_damper_thr + 15.0,
-                "normal": sat_high_damper_thr,
-                "high": sat_high_damper_thr - 15.0
-            }
-            zn_high_damper_thr = {
-                "low":  zn_high_damper_thr + 5.0,
-                "normal": zn_high_damper_thr,
-                "high": zn_high_damper_thr - 5.0
-            }
-            zn_low_damper_thr = {
-                "low": zn_low_damper_thr + 5.0,
-                "normal": zn_low_damper_thr,
-                "high": zn_low_damper_thr - 5.0
-            }
-            hdzn_damper_thr = {
-                "low": hdzn_damper_thr - 5.0,
-                "normal": hdzn_damper_thr,
-                "high": hdzn_damper_thr + 5.0
-            }
-            unocc_stp_thr = {
-                "low": unocc_stp_thr*1.5,
-                "normal": unocc_stp_thr,
-                "high": unocc_stp_thr*0.625
-            }
-            unocc_time_thr = {
-                "low": unocc_time_thr*1.5,
-                "normal": unocc_time_thr,
-                "high": unocc_time_thr*0.5
-            }
-            sat_reset_thr = {
-                "low": max(sat_reset_thr - 2.0, 0.5),
-                "normal": sat_reset_thr,
-                "high": sat_reset_thr + 2.0
-            }
-            stcpr_reset_thr = {
-                "low": stcpr_reset_thr*1.5,
-                "normal": stcpr_reset_thr,
-                "high": stcpr_reset_thr*0.5
-            }
+        # SAT AIRCx thresholds
+        stcpr_stpt_deviation_thr = {
+            "low": stcpr_stpt_deviation_thr*1.5,
+            "normal": stcpr_stpt_deviation_thr,
+            "high": stcpr_stpt_deviation_thr*0.5
+        }
+        sat_stpt_deviation_thr = {
+            "low": sat_stpt_deviation_thr * 1.5,
+            "normal": sat_stpt_deviation_thr,
+            "high": sat_stpt_deviation_thr * 0.5
+        }
+        percent_reheat_thr = {
+            "low":  percent_reheat_thr,
+            "normal": percent_reheat_thr,
+            "high":  percent_reheat_thr
+        }
+        percent_damper_thr = {
+            "low": percent_damper_thr + 15.0,
+            "normal": percent_damper_thr,
+            "high": percent_damper_thr - 15.0
+        }
+        reheat_valve_thr = {
+            "low": reheat_valve_thr*1.5,
+            "normal": reheat_valve_thr,
+            "high": reheat_valve_thr*0.5
+        }
+        sat_high_damper_thr = {
+            "low": sat_high_damper_thr + 15.0,
+            "normal": sat_high_damper_thr,
+            "high": sat_high_damper_thr - 15.0
+        }
+        zn_high_damper_thr = {
+            "low":  zn_high_damper_thr + 5.0,
+            "normal": zn_high_damper_thr,
+            "high": zn_high_damper_thr - 5.0
+        }
+        zn_low_damper_thr = {
+            "low": zn_low_damper_thr,
+            "normal": zn_low_damper_thr,
+            "high": zn_low_damper_thr
+        }
+        hdzn_damper_thr = {
+            "low": hdzn_damper_thr - 5.0,
+            "normal": hdzn_damper_thr,
+            "high": hdzn_damper_thr + 5.0
+        }
+        unocc_stp_thr = {
+            "low": unocc_stp_thr*1.5,
+            "normal": unocc_stp_thr,
+            "high": unocc_stp_thr*0.625
+        }
+        unocc_time_thr = {
+            "low": unocc_time_thr*1.5,
+            "normal": unocc_time_thr,
+            "high": unocc_time_thr*0.5
+        }
+        sat_reset_threshold = {
+            "low": max(sat_reset_thr - 1.0, 0.5),
+            "normal": sat_reset_thr,
+            "high": sat_reset_thr + 1.0
+        }
+        stcpr_reset_threshold = {
+            "low": stcpr_reset_thr*1.5,
+            "normal": stcpr_reset_thr,
+            "high": stcpr_reset_thr*0.5
+        }
 
-            if sensitivity != "all":
-                remove_sensitivities = [item for item in ["high", "normal", "low"] if item != sensitivity]
-                if remove_sensitivities:
-                    for remove in remove_sensitivities:
-
-                        stpt_deviation_thr.pop(remove)
-                        percent_reheat_thr.pop(remove)
-                        percent_damper_thr.pop(remove)
-                        reheat_valve_thr.pop(remove)
-                        sat_high_damper_thr.pop(remove)
-
-                        zn_high_damper_thr.pop(remove)
-                        zn_low_damper_thr.pop(remove)
-
-                        stcpr_reset_thr.pop(remove)
-                        sat_reset_thr.pop(remove)
-                        unocc_time_thr.pop(remove)
-                        unocc_stp_thr.pop(remove)
-        else:
-            stpt_deviation_thr = {"normal": stpt_deviation_thr}
-            percent_reheat_thr = {"normal": percent_reheat_thr}
-            percent_damper_thr = {"normal": percent_damper_thr}
-            reheat_valve_thr = {"normal": reheat_valve_thr}
-            sat_high_damper_thr = {"normal": sat_high_damper_thr}
-
-            zn_high_damper_thr = {"normal": zn_high_damper_thr}
-            zn_low_damper_thr = {"normal": zn_low_damper_thr}
-
-            stcpr_reset_thr = {"normal": stcpr_reset_thr}
-            sat_reset_thr = {"normal": sat_reset_thr}
-            unocc_time_thr = {"normal": unocc_time_thr}
-            unocc_stp_thr = {"normal": unocc_stp_thr}
-
-        self.stcpr_aircx = DuctStaticAIRCx(no_required_data, data_window, auto_correct_flag,
-                                           stpt_deviation_thr, max_duct_stcpr_stpt,
-                                           duct_stcpr_retuning, zn_high_damper_thr,
+        self.stcpr_aircx = DuctStaticAIRCx(no_required_data, self.data_window, auto_correct_flag,
+                                           stcpr_stpt_deviation_thr, max_stcpr_stpt,
+                                           stcpr_retuning, zn_high_damper_thr,
                                            zn_low_damper_thr, hdzn_damper_thr,
-                                           min_duct_stcpr_stpt, analysis, duct_stp_stpt_cname)
+                                           min_stcpr_stpt, analysis, duct_stp_stpt_cname)
 
-        self.sat_aircx = SupplyTempAIRCx(no_required_data, data_window, auto_correct_flag,
-                                         stpt_deviation_thr, rht_on_thr,
+        self.sat_aircx = SupplyTempAIRCx(no_required_data, self.data_window, auto_correct_flag,
+                                         sat_stpt_deviation_thr, rht_on_thr,
                                          sat_high_damper_thr, percent_damper_thr,
                                          percent_reheat_thr, min_sat_stpt, sat_retuning,
                                          reheat_valve_thr, max_sat_stpt, analysis, sat_stpt_cname)
 
         self.sched_reset_aircx = SchedResetAIRCx(unocc_time_thr, unocc_stp_thr,
-                                                 monday_sch, tuesday_sch, wednesday_sch,
-                                                 thursday_sch, friday_sch, saturday_sch,
-                                                 sunday_sch, no_required_data, stcpr_reset_thr,
-                                                 sat_reset_thr, analysis)
+                                                 monday_sch, tuesday_sch,
+                                                 wednesday_sch, thursday_sch,
+                                                 friday_sch, saturday_sch,
+                                                 sunday_sch, no_required_data,
+                                                 stcpr_reset_threshold,
+                                                 sat_reset_threshold, analysis)
 
     def run(self, cur_time, points):
         device_dict = {}
         dx_result = Results()
 
         for key, value in points.items():
-            point_device = [_name.lower() for _name in key.split("&")]
+            point_device = [_name for _name in key.split("&")]
             if point_device[0] not in device_dict:
                 device_dict[point_device[0]] = [(point_device[1], value)]
             else:

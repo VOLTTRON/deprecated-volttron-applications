@@ -81,7 +81,7 @@ class TempSensorDx(object):
 
         self.temp_sensor_problem = None
         self.analysis = analysis
-        self.max_dx_time = td(minutes=60)
+        self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
 
         # Application thresholds (Configurable)
         self.data_window = data_window
@@ -113,19 +113,22 @@ class TempSensorDx(object):
         self.timestamp.append(cur_time)
         elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
-        dx_result.log("Elapsed: {} -- required: {}".format(elapsed_time, self.data_window))
+        dx_result.log("Elapsed time: {} -- required tme: {}".format(elapsed_time, self.data_window))
+
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             table_key = create_table_key(self.analysis, self.timestamp[-1])
 
             if elapsed_time > self.max_dx_time:
                 dx_result.insert_table_row(table_key, {ECON1 + DX: self.inconsistent_date})
                 self.clear_data()
+            else:
+                dx_result = self.temperature_sensor_dx(dx_result, table_key)
                 return dx_result, self.temp_sensor_problem
 
-            dx_result = self.temperature_sensor_dx(dx_result, table_key)
-            return dx_result, self.temp_sensor_problem
-
-        dx_result = self.sensor_damper_dx.econ_alg(dx_result, oat, mat, oad, cur_time)
+        if self.temp_sensor_problem:
+            self.sensor_damper_dx.clear_data()
+        else:
+            dx_result = self.sensor_damper_dx.econ_alg(dx_result, oat, mat, oad, cur_time)
         return dx_result, self.temp_sensor_problem
 
     def aggregate_data(self):
@@ -148,19 +151,19 @@ class TempSensorDx(object):
         """
         avg_oa_ma, avg_ra_ma, avg_ma_oa, avg_ma_ra = self.aggregate_data()
         diagnostic_msg = {}
-        for key, value in self.temp_diff_thr.items():
-            if avg_oa_ma > value and avg_ra_ma > value:
-                msg = ("{}: MAT is less than OAT and RAT - Sensitivity: {}".format(ECON1, key))
+        for sensitivity, threshold in self.temp_diff_thr.items():
+            if avg_oa_ma > threshold and avg_ra_ma > threshold:
+                msg = ("{}: MAT is less than OAT and RAT - Sensitivity: {}".format(ECON1, sensitivity))
                 result = 1.1
-            elif avg_ma_oa > value and avg_ma_ra > value:
-                msg = ("{}: MAT is greater than OAT and RAT - Sensitivity: {}".format(ECON1, key))
+            elif avg_ma_oa > threshold and avg_ma_ra > threshold:
+                msg = ("{}: MAT is greater than OAT and RAT - Sensitivity: {}".format(ECON1, sensitivity))
                 result = 2.1
             else:
-                msg = "{}: No problems were detected - Sensitivity: {}".format(ECON1, key)
+                msg = "{}: No problems were detected - Sensitivity: {}".format(ECON1, sensitivity)
                 result = 0.0
                 self.temp_sensor_problem = False
             dx_result.log(msg)
-            diagnostic_msg.update({key: result})
+            diagnostic_msg.update({sensitivity: result})
 
         if diagnostic_msg["normal"] > 0.0:
             self.temp_sensor_problem = True
@@ -197,7 +200,6 @@ class DamperSensorInconsistencyDx(object):
         self.mat_values = []
         self.timestamp = []
         self.steady_state = None
-        self.open_damper_time = open_damper_time
         self.econ_time_check = open_damper_time
         self.data_window = data_window
         self.no_required_data = no_required_data
@@ -233,15 +235,16 @@ class DamperSensorInconsistencyDx(object):
                 open_damper_check = mean(mat_oat_diff_list)
                 table_key = create_table_key(self.analysis, self.timestamp[-1])
                 diagnostic_msg = {}
-                for key, threshold in self.oat_mat_check.items():
+                for sensitivity, threshold in self.oat_mat_check.items():
                     if open_damper_check > threshold:
-                        msg = "{}: The OAT and MAT at 100% OAD - Sensitivity: {}".format(ECON1, key)
+                        msg = "{} - {}: OAT and MAT are inconsistent when OAD is near 100%".format(ECON1, sensitivity)
                         result = 0.1
-                        dx_result.log(msg)
                     else:
+                        msg = "{} - {}: OAT and MAT are consistent when OAD is near 100%".format(ECON1, sensitivity)
                         result = 0.0
-                    diagnostic_msg.update({key: result})
+                    diagnostic_msg.update({sensitivity: result})
 
+                dx_result.log(msg)
                 dx_table = {ECON1 + DX: diagnostic_msg}
                 dx_result.insert_table_row(table_key, dx_table)
             self.clear_data()

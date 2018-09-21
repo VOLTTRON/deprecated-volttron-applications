@@ -1,0 +1,15 @@
+<FunctionSetAssignmentsList href="/sep2/edev/1/fsa" subscribable="1" all="2" results="2"
+xmlns="urn:ieee:std:2030.5:ns">
+    <FunctionSetAssignments href="/sep2/edev/1/fsa/1">
+        <mRID>A1000000</mRID>
+        <description>Inverter-A Topology FSA</description>
+        <DERProgramListLink href="/sep2/edev/1/derpF1" all="7"/>
+        <TimeLink href="/sep2/tm"/>
+    </FunctionSetAssignments>
+    <FunctionSetAssignments href="/sep2/edev/1/fsa/2">
+        <mRID>A1000001</mRID>
+        <description>Inverter-A Non-Topology FSA</description>
+        <DERProgramListLink href="/sep2/edev/1/derpF2" all="1"/>
+        <TimeLink href="/sep2/tm"/>
+    </FunctionSetAssignments>
+</FunctionSetAssignmentsList>

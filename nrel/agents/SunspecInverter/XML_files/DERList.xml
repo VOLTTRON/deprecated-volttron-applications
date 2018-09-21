@@ -1,0 +1,8 @@
+<DERList href="/sep2/edev/1/der" all="1" results="1" xmlns="urn:ieee:std:2030.5:ns">
+    <DER href="/sep2/edev/1/der/1">
+	<DERAvailabilityLink href="/sep2/edev/1/der/1/dera"/>
+	<DERCapabilityLink href="/sep2/edev/1/der/1/dercap"/>
+	<DERSettingsLink href="/sep2/edev/1/der/1/derh"/>
+	<DERStatusLink href="/sep2/edev/1/der/1/ders"/>
+    </DER>
+</DERList>

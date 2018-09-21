@@ -1,0 +1,6 @@
+<DERCapability xmlns="urn:ieee:std:2030.5:ns">
+    <modesSupported>3FFFFF</modesSupported>
+    <rtgA> <multiplier>0</multiplier> <value>20</value> </rtgA>
+    <rtgW> <multiplier>0</multiplier> <value>5000</value> </rtgW>
+    <type>4</type>
+</DERCapability>

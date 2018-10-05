@@ -1,10 +1,13 @@
 {
     "HP1": {
-        "FirstStageCooling": { 
+        "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP1",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
-                "operation_args": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"],
+                "operation_args": {
+                                    "always": ["CoolingTemperatureSetPoint", "AverageZoneTemperature"]
+                                  },
                 "minimum": 0,
                 "maximum": 10
             },
@@ -35,6 +38,7 @@
     },
     "HP2": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP2",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -69,6 +73,7 @@
     },
     "HP3": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP3",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -103,6 +108,7 @@
     },    
     "HP4": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP4",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -137,6 +143,7 @@
     },
     "HP5": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP5",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -171,6 +178,7 @@
     },
     "HP7": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP7",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -205,6 +213,7 @@
     },
     "HP8": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP8",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -239,6 +248,7 @@
     },
     "HP9": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP9",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -273,6 +283,7 @@
     },
     "HP10": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP10",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",
@@ -307,6 +318,7 @@
     },
     "HP11": {
         "FirstStageCooling": {
+            "device_topic": "CAMPUS/BUILDING/HP11",
             "zonetemperature-setpoint":{
                 "operation": "1/(AverageZoneTemperature-CoolingTemperatureSetPoint)",
                 "operation_type": "formula",

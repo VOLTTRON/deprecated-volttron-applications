@@ -71,8 +71,12 @@ from collections import deque
 import logging
 from datetime import timedelta as td
 from volttron.platform.agent.utils import setup_logging
-from ilc.ilc_matrices import (extract_criteria, calc_column_sums, normalize_matrix,
+from .ilc_matrices import (extract_criteria, calc_column_sums, normalize_matrix,
                               validate_input, build_score, input_matrix)
+
+
+from .utils import parse_sympy, create_device_topic_map, fix_up_point_name
+
 setup_logging()
 _log = logging.getLogger(__name__)
 
@@ -84,43 +88,6 @@ def register_criterion(name):
         criterion_registry[name] = klass
         return klass
     return decorator
-
-
-def parse_sympy(data, condition=False):
-    """
-    Parser for sympy.
-    :param data:
-    :param condition:
-    :return:
-    """
-
-    def clean_text(text, rep={" ": ""}):
-        rep = dict((re.escape(k), v) for k, v in rep.iteritems())
-        pattern = re.compile("|".join(rep.keys()))
-        new_key = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
-        return new_key
-
-    if isinstance(data, dict):
-        return_data = {}
-        for key, value in data.items():
-            new_key = clean_text(key)
-            return_data[new_key] = value
-
-    elif isinstance(data, list):
-        if condition:
-            return_data = ""
-            for item in data:
-                parsed_string = clean_text(item)
-                parsed_string = "(" + clean_text(item) + ")" if parsed_string not in ("&", "|") else parsed_string
-                return_data += parsed_string
-        else:
-            return_data = []
-            for item in data:
-                return_data.append(clean_text(item))
-    else:
-        return_data = clean_text(data)
-    #_log.debug("Parsing: {} to {}".format(data, return_data))
-    return return_data
 
 
 class CriteriaCluster(object):
@@ -181,6 +148,10 @@ class CriteriaContainer(object):
     def get_device(self, device_name):
         return self.devices[device_name]
 
+    def ingest_data(self, time_stamp, data):
+        for device in self.devices.itervalues():
+            device.ingest_data(time_stamp, data)
+
 
 class DeviceCriteria(object):
     def __init__(self, criteria_config):
@@ -206,15 +177,18 @@ class DeviceCriteria(object):
 
 class Criteria(object):
     def __init__(self, criteria):
+        device_topic = criteria.pop("device_topic", "")
+        self.device_topics = set()
+        self.device_topics.add(device_topic)
         self.criteria = {}
         for name, criterion in criteria.items():
-            self.add(name, criterion)
+            self.add(name, criterion, device_topic)
 
-    def add(self, name, criterion):
+    def add(self, name, criterion, device_topic):
         _log.debug("Criteria: {}".format(criterion))
         operation_type = criterion.pop('operation_type')
         klass = criterion_registry[operation_type]
-        self.criteria[name] = klass(**criterion)
+        self.criteria[name] = klass(device_topic=device_topic, **criterion)
 
     def evaluate(self):
         results = {}
@@ -235,11 +209,13 @@ class Criteria(object):
 class BaseCriterion(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, minimum=None, maximum=None):
+    def __init__(self, device_topic="", minimum=None, maximum=None):
         self.min_func = (lambda x: x) if minimum is None else (lambda x: max(x, minimum))
         self.max_func = (lambda x: x) if maximum is None else (lambda x: min(x, maximum))
         self.minimum = minimum
         self.maximum = maximum
+        self.device_topic = device_topic
+        self.device_topics = set()
 
     def numeric_check(self, value):
         """
@@ -296,7 +272,8 @@ class StatusCriterion(BaseCriterion):
             raise ValueError('Missing parameter')
         self.on_value = on_value
         self.off_value = off_value
-        self.point_name = point_name
+        self.point_name, device = fix_up_point_name(point_name, self.device_topic)
+        self.device_topics.add(device)
         self.current_status = False
 
     def evaluate(self):
@@ -307,7 +284,8 @@ class StatusCriterion(BaseCriterion):
         return value
 
     def ingest_data(self, time_stamp, data):
-        self.current_status = bool(data[self.point_name])
+        if self.point_name in data:
+            self.current_status = bool(data[self.point_name])
 
 
 @register_criterion('constant')
@@ -331,34 +309,64 @@ class FormulaCriterion(BaseCriterion):
 
         # backward compatibility with older configuration files
         if isinstance(operation_args, list):
-            operation_args = {arg: "always" for arg in operation_args}
+            operation_args = {"always": operation_args}
 
-        operation_points = operation_args.keys()
-        self.operation_parms = operation_args.values()
-        print operation_args.keys(), operation_args.values()
-        self.operation_args = parse_sympy(operation_points)
-        self.points = symbols(self.operation_args)
+        operation_args = self.fixup_dict_args(operation_args)
+        self.build_ingest_map(operation_args)
+        _log.debug("Device topic map: {}".format(self.device_topic_map))
         self.expr = parse_expr(parse_sympy(operation))
-        self.point_list = []
+
+        self.current_operation_values = {}
         self.status = False
 
+    def fixup_dict_args(self, operation_args):
+        "backwards compatiblility with old configurations"
+        need_fix = False
+        for key in operation_args:
+            if key not in ("always", "nc"):
+                need_fix = True
+                break
+
+        if not need_fix:
+            return operation_args
+
+        result = {"always": [], "nc": []}
+
+        for key, value in operation_args.iteritems():
+            if value != "nc":
+                result["always"].append(key)
+            else:
+                result["nc"].append(key)
+
+        return result
+
+
+    def build_ingest_map(self, operation_args):
+        "Build data structures for ingest data and return operation points for sympy"
+        self.device_topic_map = {}
+        self.update_points = {}
+        self.operation_arg_count = 0
+
+        for arg_type, arg_list in operation_args.iteritems():
+            topic_map, topic_set = create_device_topic_map(arg_list, self.device_topic)
+            self.device_topic_map.update(topic_map)
+            self.device_topics |= topic_set
+            self.update_points[arg_type] = set(topic_map.itervalues())
+            self.operation_arg_count += len(topic_map)
+
     def evaluate(self):
-        if self.point_list:
-            value = self.expr.subs(self.point_list)
+        if len(self.current_operation_values) >= self.operation_arg_count:
+            point_list = self.current_operation_values.items()
+            value = self.expr.subs(point_list)
         else:
             value = self.minimum
         return value
 
     def ingest_data(self, time_stamp, data):
-        point_list = []
-        for point, parm in zip(self.operation_args, self.operation_parms):
-            if parm.lower() == "nc" and self.status:
-                point_list.append([item for item in self.point_list if item[0] == point].pop())
-                _log.debug("device is curtailed use old value: {} -- {} -- {}".format(point, data[point], point_list))
-            else:
-                _log.debug("device is normal use current value: {} - {}".format(point, data[point]))
-                point_list.append((point, data[point]))
-        self.point_list = point_list
+        for topic, point in self.device_topic_map.iteritems():
+            if topic in data:
+                if not self.status or point not in self.update_points.get("nc", set()):
+                    self.current_operation_values[point] = data[topic]
 
     def criteria_status(self, status):
         self.status = status
@@ -384,7 +392,8 @@ class HistoryCriterion(BaseCriterion):
             raise ValueError('Missing parameter')
         self.history = deque()
         self.comparison_type = comparison_type
-        self.point_name = point_name
+        self.point_name, device = fix_up_point_name(point_name, self.device_topic)
+        self.device_topics.add(device)
         self.previous_time_delta = td(minutes=previous_time)
         self.current_value = None
         self.history_time = None
@@ -419,6 +428,7 @@ class HistoryCriterion(BaseCriterion):
         return value
 
     def ingest_data(self, time_stamp, data):
-        self.history_time = time_stamp - self.previous_time_delta
-        self.current_value = data[self.point_name]
-        self.history.appendleft((time_stamp, self.current_value))
+        if self.point_name in data:
+            self.history_time = time_stamp - self.previous_time_delta
+            self.current_value = data[self.point_name]
+            self.history.appendleft((time_stamp, self.current_value))

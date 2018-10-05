@@ -73,9 +73,9 @@ import dateutil.tz
 from sympy.parsing.sympy_parser import parse_expr
 from sympy import symbols
 from volttron.platform.agent import utils
-from volttron.platform.messaging import topics
+from volttron.platform.messaging import topics, headers
 from volttron.platform.agent.math_utils import mean
-from volttron.platform.agent.utils import (setup_logging, format_timestamp, get_aware_utc_now)
+from volttron.platform.agent.utils import (setup_logging, format_timestamp, get_aware_utc_now, parse_timestamp_string)
 from volttron.platform.vip.agent import Agent, Core
 from volttron.platform.jsonrpc import RemoteError
 from ilc.ilc_matrices import (extract_criteria, calc_column_sums,
@@ -128,13 +128,13 @@ class ILCAgent(Agent):
         self.ilc_topic = dashboard_topic if dashboard_topic is not None else self.update_base_topic
         self.ilc_start_topic = "/".join([ilc_start_topic, "ilc/start"])
         cluster_configs = config["clusters"]
-        self.criteria = CriteriaContainer()
-        self.curtailment = CurtailmentContainer()
+        self.criteria_container = CriteriaContainer()
+        self.curtailment_container = CurtailmentContainer()
 
         for cluster_config in cluster_configs:
             criteria_file_name = cluster_config["pairwise_criteria_file"]
 
-            if criteria_file_name[0] == "~":
+            if criteria_file_name.startswith("~"):
                 criteria_file_name = os.path.expanduser(criteria_file_name)
 
             device_criteria_config = cluster_config["device_criteria_file"]
@@ -157,36 +157,38 @@ class ILCAgent(Agent):
 
             criteria_config = utils.load_config(device_criteria_config)
             criteria_cluster = CriteriaCluster(cluster_priority, criteria_labels, row_average, criteria_config)
-            self.criteria.add_criteria_cluster(criteria_cluster)
+            self.criteria_container.add_criteria_cluster(criteria_cluster)
 
             if device_curtailment_config[0] == "~":
                 device_curtailment_config = os.path.expanduser(device_curtailment_config)
 
             curtailment_config = utils.load_config(device_curtailment_config)
             curtailment_cluster = CurtailmentCluster(curtailment_config, cluster_actuator)
-            self.curtailment.add_curtailment_cluster(curtailment_cluster)
-
+            self.curtailment_container.add_curtailment_cluster(curtailment_cluster)
+        _log.debug("CURTAILMENT_CONTAINER: {}".format(self.curtailment_container.devices.keys()))
+        _log.debug("CRITERIA_CONTAINER: {}".format(self.criteria_container.devices.keys()))
         self.base_device_topic = topics.DEVICES_VALUE(campus=campus,
                                                       building=building,
                                                       unit=None,
                                                       path="", point=None)
 
-        self.base_rpc_path = topics.RPC_DEVICE_PATH(campus=campus,
-                                                    building=building,
-                                                    unit=None,
-                                                    path="", point=None)
+        self.base_rpc_path = topics.RPC_DEVICE_PATH(campus="",
+                                                    building="",
+                                                    unit="",
+                                                    path=None,
+                                                    point="")
         self.device_topic_list = []
-        self.device_topic_map = {}
-        all_devices = self.curtailment.get_device_name_list()
+        # self.device_topic_map = {}
+        all_devices = self.curtailment_container.get_device_topic_set()
         for device_name in all_devices:
-            device_topic = topics.DEVICES_VALUE(campus=campus,
-                                                building=building,
-                                                unit=device_name[0],
-                                                path="",
+            device_topic = topics.DEVICES_VALUE(campus="",
+                                                building="",
+                                                unit="",
+                                                path=device_name,
                                                 point="all")
 
             self.device_topic_list.append(device_topic)
-            self.device_topic_map[device_topic] = device_name
+            # self.device_topic_map[device_topic] = device_name
 
         power_token = config["power_meter"]
         power_meter = power_token["device"]
@@ -317,7 +319,39 @@ class ILCAgent(Agent):
             ]
         }
 
-    def new_data(self, peer, sender, bus, topic, headers, message):
+    def breakout_all_publish(self, topic, message):
+        values_map = {}
+        meta_map = {}
+
+        topic_parts = topic.split('/')
+
+        start_index = int(topic_parts[0] == "devices")
+        end_index = -int(topic_parts[-1] == "all")
+
+        topic = "/".join(topic_parts[start_index:end_index])
+
+        values, meta = message
+
+        values = parse_sympy(values)
+        meta = parse_sympy(meta)
+
+        for point in values:
+            values_map[topic+"/"+point] = values[point]
+            if point in meta:
+                meta_map[topic + "/" + point] = meta[point]
+
+        return values_map, meta_map
+
+    def sync_status(self):
+        for (device_name, actuator), curtailment_device in self.curtailment_container.devices.iteritems():
+            criteria_device = self.criteria_container.get_device(device_name)
+            subdevices = curtailment_device.curtailments.keys()
+            for subdevice in subdevices:
+                status = curtailment_device.curtailments[subdevice].device_status.command_status
+                _log.debug("Device: {} -- subdevice: {} -- status: {}".format(device_name, subdevice, status))
+                criteria_device.criteria_status(subdevice, status)
+
+    def new_data(self, peer, sender, bus, topic, header, message):
         """
         Call back method for curtailable device data subscription.
         :param peer:
@@ -333,23 +367,29 @@ class ILCAgent(Agent):
 
         _log.info("Data Received for {}".format(topic))
         # topic of form:  devices/campus/building/device
-        device_name = self.device_topic_map[topic]
-        data = message[0]
-        meta = message[1]
-        now = parser.parse(headers["Date"])
-        current_time_str = format_timestamp(now)
-        parsed_data = parse_sympy(data)
+        # device_name = self.device_topic_map[topic]
+        # data = message[0]
+        # meta = message[1]
+        # now = parser.parse(headers["Date"])
+        # current_time_str = format_timestamp(now)
+        # parsed_data = parse_sympy(data)
+        #
+        # subdevices = self.curtailment_container.get_device(device_name).command_status.keys()
+        # for subdevice in subdevices:
+        #     status = self.curtailment_container.get_device(device_name).currently_curtailed[subdevice]
+        #     _log.debug("Device: {} -- subdevice: {} -- status: {}".format(device_name, subdevice, status))
+        #     self.criteria_container.get_device(device_name[0]).criteria_status(subdevice, status)
+        #
+        # self.criteria_container.get_device(device_name[0]).ingest_data(now, parsed_data)
+        # self.curtailment_container.get_device(device_name).ingest_data(parsed_data)
+        # self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
+        # # self.create_curtailment_publish(current_time_str, device_name, meta)
+        self.sync_status()
 
-        subdevices = self.curtailment.get_device(device_name).command_status.keys()
-        for subdevice in subdevices:
-            status = self.curtailment.get_device(device_name).currently_curtailed[subdevice]
-            _log.debug("Device: {} -- subdevice: {} -- status: {}".format(device_name, subdevice, status))
-            self.criteria.get_device(device_name[0]).criteria_status(subdevice, status)
-
-        self.criteria.get_device(device_name[0]).ingest_data(now, parsed_data)
-        self.curtailment.get_device(device_name).ingest_data(parsed_data)
-        self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
-        # self.create_curtailment_publish(current_time_str, device_name, meta)
+        now = parse_timestamp_string(header[headers.TIMESTAMP])
+        data_topics, meta_topics = self.breakout_all_publish(topic, message)
+        self.criteria_container.ingest_data(now, data_topics)
+        self.curtailment_container.ingest_data(data_topics)
 
     def create_curtailment_publish(self, current_time_str, device_name, meta):
         try:
@@ -358,10 +398,10 @@ class ILCAgent(Agent):
                 "min_compatible_version": "3.0",
                 "MessageType": "Control"
             }
-            subdevices = self.curtailment.get_device(device_name).command_status.keys()
+            subdevices = self.curtailment_container.get_device(device_name).command_status.keys()
 
             for subdevice in subdevices:
-                currently_curtailed = self.curtailment.get_device(device_name).currently_curtailed[subdevice]
+                currently_curtailed = self.curtailment_container.get_device(device_name).currently_curtailed[subdevice]
                 curtailment_topic = "/".join([self.update_base_topic, device_name[0], subdevice])
                 curtailment_status = "Active" if currently_curtailed else "Inactive"
                 curtailment_message = [
@@ -498,6 +538,8 @@ class ILCAgent(Agent):
         for n in xrange(len(self.bldg_power)):
             average_power += power_sort[n][1] * smoothing_constant * (1.0 - smoothing_constant) ** n
 
+        average_power += power_sort[-1][1]*(1.0 - smoothing_constant)**(len(self.bldg_power))
+
         norm_list = [float(i[1]) for i in self.bldg_power]
         normal_average_power = mean(norm_list) if norm_list else 0.0
 
@@ -556,7 +598,7 @@ class ILCAgent(Agent):
             if self.reset_curtail_count is not None:
                 if self.reset_curtail_count <= current_time:
                     _log.debug("Resetting curtail count")
-                    self.curtailment.reset_curtail_count()
+                    self.curtailment_container.reset_curtail_count()
 
             if self.running_ahp:
                 if current_time >= self.next_curtail_confirm and (self.devices_curtailed or self.stagger_off_time):
@@ -638,8 +680,8 @@ class ILCAgent(Agent):
 
         if self.demand_limit is not None and bldg_power > self.demand_limit:
             result = "Current load of {} kW exceeds demand limit of {} kW.".format(bldg_power, self.demand_limit)
-            scored_devices = self.criteria.get_score_order()
-            on_devices = self.curtailment.get_on_devices()
+            scored_devices = self.criteria_container.get_score_order()
+            on_devices = self.curtailment_container.get_on_devices()
             score_order = [device for scored in scored_devices for device in on_devices if scored in [(device[0], device[1])]]
 
             _log.debug("Scored devices: {}".format(scored_devices))
@@ -672,7 +714,7 @@ class ILCAgent(Agent):
         for item in score_order:
 
             device, token, device_actuator = item
-
+            curtail_point_device = self.curtailment_container.get_device((device, device_actuator)).get_point_device(token)
             _log.debug("Reserving device: {}".format(device))
 
             if device in already_handled:
@@ -681,13 +723,13 @@ class ILCAgent(Agent):
                     curtailable_device.append(item)
                 continue
 
-            curtailed_device = self.base_rpc_path(unit=device, point="")
+            curtailed_device = self.base_rpc_path(path=curtail_point_device)
             schedule_request = [[curtailed_device, start_time_str, end_time_str]]
             try:
                 if self.kill_signal_received:
                     break
                 result = self.vip.rpc.call(device_actuator, "request_new_schedule",
-                                           self.agent_id, device, "HIGH", schedule_request).get(timeout=5)
+                                           self.agent_id, curtailed_device, "HIGH", schedule_request).get(timeout=5)
             except RemoteError as ex:
                 _log.warning("Failed to schedule device {} (RemoteError): {}".format(device, str(ex)))
                 continue
@@ -697,7 +739,7 @@ class ILCAgent(Agent):
                 already_handled[device] = False
             else:
                 already_handled[device] = True
-                self.scheduled_devices.add((device, device_actuator))
+                self.scheduled_devices.add((device, device_actuator, curtailed_device))
                 curtailable_device.append(item)
 
         return curtailable_device
@@ -734,7 +776,7 @@ class ILCAgent(Agent):
 
         for device in remaining_devices:
             device_name, device_id, actuator = device
-            curtail = self.curtailment.get_device((device_name, actuator)).get_curtailment(device_id)
+            curtail = self.curtailment_container.get_device((device_name, actuator)).get_curtailment(device_id)
             curtail_point, curtail_value, curtail_load, revert_priority, revert_value = self.determine_curtail_parms(curtail, device)
             try:
                 if self.kill_signal_received:
@@ -745,7 +787,7 @@ class ILCAgent(Agent):
                 continue
 
             est_curtailed += curtail_load
-            self.curtailment.get_device((device_name, actuator)).increment_curtail(device_id)
+            self.curtailment_container.get_device((device_name, actuator)).increment_curtail(device_id)
             self.devices_curtailed.append(
                 [device_name, device_id, revert_value, revert_priority, format_timestamp(current_time), actuator]
             )
@@ -765,14 +807,14 @@ class ILCAgent(Agent):
         revert_priority = curtail["revert_priority"]
         curtailment_method = curtail["curtailment_method"]
 
-        curtail_point = self.base_rpc_path(unit=device, point=curtail_pt)
+        curtail_point = self.base_rpc_path(path=curtail_pt)
 
         if isinstance(curtail_load, dict):
             load_equation = curtail_load["load_equation"]
             load_point_values = []
 
             for point in curtail_load["load_equation_args"]:
-                point_to_get = self.base_rpc_path(unit=device, point=point)
+                point_to_get =  self.base_rpc_path(path=curtail_pt)
                 value = self.vip.rpc.call(device_actuator, "get_point", point_to_get).get(timeout=5)
                 load_point_values.append((point, value))
             curtail_load = load_equation.subs(load_point_values)
@@ -786,7 +828,7 @@ class ILCAgent(Agent):
             equation_point_values = []
 
             for point in curtail["curtail_equation_args"]:
-                point_get = self.base_rpc_path(unit=device, point=point)
+                point_get =  self.base_rpc_path(path=curtail_pt)
                 value = self.vip.rpc.call(device_actuator, "get_point", point_get).get(timeout=5)
                 equation_point_values.append((point, value))
 
@@ -882,7 +924,7 @@ class ILCAgent(Agent):
     def reset_devices(self):
         _log.info("Resetting Devices: {}".format(self.devices_curtailed))
 
-        scored_devices = self.criteria.get_score_order()
+        scored_devices = self.criteria_container.get_score_order()
         curtailed = [device for scored in scored_devices for device in self.devices_curtailed if scored in [(device[0], device[1])]]
 
         _log.debug("Curtailed devices: {}".format(self.devices_curtailed))
@@ -894,9 +936,9 @@ class ILCAgent(Agent):
 
         for item in range(self.device_group_size.pop(0)):
             device, device_id, revert_val, revert_priority, modified_time, actuator = curtailed_iterate[item]
-            curtail = self.curtailment.get_device((device, actuator)).get_curtailment(device_id)
+            curtail = self.curtailment_container.get_device((device, actuator)).get_curtailment(device_id)
             curtail_point = curtail["point"]
-            curtailed_point = self.base_rpc_path(unit=device, point=curtail_point)
+            curtailed_point = self.base_rpc_path(path=curtail_point)
             revert_value = self.get_revert_value(device, revert_priority, revert_val)
 
             _log.debug("Returned revert value: {}".format(revert_value))
@@ -910,7 +952,7 @@ class ILCAgent(Agent):
                     _log.debug("Reverted point: {} - Result: {}".format(curtailed_point, result))
                 if currently_curtailed:
                     _log.debug("Removing from curtailed list: {} ".format(curtailed_iterate[item]))
-                    self.curtailment.get_device((device, actuator)).reset_curtail_status(device_id)
+                    self.curtailment_container.get_device((device, actuator)).reset_curtail_status(device_id)
                     index = curtailed_iterate.index(curtailed_iterate[item]) - index_counter
                     currently_curtailed.pop(index)
                     index_counter += 1
@@ -959,13 +1001,12 @@ class ILCAgent(Agent):
 
     def reset_all_devices(self):
         for device in self.scheduled_devices:
-            release_all_device = self.base_rpc_path(unit=device[0], point="")
             try:
-                release_all = self.vip.rpc.call(device[1], "revert_device", "ilc", release_all_device).get(timeout=10)
-                _log.debug("Revert device: {} with return value {}".format(release_all_device, release_all))
+                release_all = self.vip.rpc.call(device[1], "revert_device", "ilc", device[2]).get(timeout=10)
+                _log.debug("Revert device: {} with return value {}".format(device[2], release_all))
             except RemoteError as ex:
-                _log.warning("Failed revert all on device {} (RemoteError): {}".format(release_all_device, str(ex)))
-            result = self.vip.rpc.call(device[1], "request_cancel_schedule", self.agent_id, device[0]).get(timeout=10)
+                _log.warning("Failed revert all on device {} (RemoteError): {}".format(device[2], str(ex)))
+            result = self.vip.rpc.call(device[1], "request_cancel_schedule", self.agent_id, device[2]).get(timeout=10)
         self.scheduled_devices = set()
 
     def create_application_status(self, current_time_str, result):
@@ -1014,9 +1055,9 @@ class ILCAgent(Agent):
         :return:
         """
         try:
-            device_tokens = self.curtailment.devices[device_name].command_status.keys()
+            device_tokens = self.curtailment_container.devices[device_name].command_status.keys()
             for subdevice in device_tokens:
-                curtail = self.curtailment.get_device(device_name).get_curtailment(subdevice)
+                curtail = self.curtailment_container.get_device(device_name).get_curtailment(subdevice)
                 curtail_pt = curtail["point"]
                 device_update_topic = "/".join([self.ilc_topic, device_name[0], subdevice, curtail_pt])
                 previous_value = data[curtail_pt]

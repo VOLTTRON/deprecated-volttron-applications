@@ -69,51 +69,20 @@ from collections import defaultdict
 from sympy.parsing.sympy_parser import parse_expr
 from volttron.platform.agent.utils import setup_logging
 
+from .utils import parse_sympy, create_device_topic_map, fix_up_point_name
 
 setup_logging()
 _log = logging.getLogger(__name__)
 
 
-def parse_sympy(data, condition=False):
-    """
-    :param condition:
-    :param data:
-    :return:
-    """
-
-    def clean_text(text, rep={" ": ""}):
-        rep = dict((re.escape(k), v) for k, v in rep.iteritems())
-        pattern = re.compile("|".join(rep.keys()))
-        new_key = pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
-        return new_key
-
-    if isinstance(data, dict):
-        return_data = {}
-        for key, value in data.items():
-            new_key = clean_text(key)
-            return_data[new_key] = value
-
-    elif isinstance(data, list):
-        if condition:
-            return_data = ""
-            for item in data:
-                parsed_string = clean_text(item)
-                parsed_string = "(" + clean_text(item) + ")" if parsed_string not in ("&", "|") else parsed_string
-                return_data += parsed_string
-        else:
-            return_data = []
-            for item in data:
-                return_data.append(clean_text(item))
-    else:
-        return_data = clean_text(data)
-    return return_data
-
-
 class CurtailmentCluster(object):
     def __init__(self, cluster_config, actuator):
         self.devices = {}
+        self.device_topics = set()
         for device_name, device_config in cluster_config.items():
-            self.devices[device_name, actuator] = CurtailmentManager(device_config)
+            curtailment_manager = CurtailmentManager(device_config)
+            self.devices[device_name, actuator] = curtailment_manager
+            self.device_topics |= curtailment_manager.device_topics
 
     def get_all_on_devices(self):
         results = []
@@ -127,16 +96,21 @@ class CurtailmentContainer(object):
     def __init__(self):
         self.clusters = []
         self.devices = {}
+        self.device_topics = set()
 
     def add_curtailment_cluster(self, cluster):
         self.clusters.append(cluster)
         self.devices.update(cluster.devices)
+        self.device_topics |= cluster.device_topics
 
     def get_device_name_list(self):
         return self.devices.keys()
 
     def get_device(self, device_name):
         return self.devices[device_name]
+
+    def get_device_topic_set(self):
+        return self.device_topics
 
     def reset_curtail_count(self):
         for device in self.devices.itervalues():
@@ -154,87 +128,134 @@ class CurtailmentContainer(object):
             all_on_devices.extend(on_device)
         return all_on_devices
 
+    def ingest_data(self, data):
+        for device in self.devices.itervalues():
+            device.ingest_data(data)
 
-class CurtailmentManager(object):
-    def __init__(self, device_config):
-        self.conditional_curtailments = defaultdict(list)
-        self.command_status = {}
-        self.device_status_args = {}
-        self.condition = {}
-        self.points = {}
-        self.expr = {}
-        self.currently_curtailed = {}
-        self.curtail_count = {}
-        self.default_curtailment = {}
 
-        for device_id, curtail_config in device_config.items():
-            default_curtailment = curtail_config.pop('curtail')
-            conditional_curtailment = curtail_config.pop('conditional_curtail', [])
+class DeviceStatus(object):
+    def __init__(self, device_status_args=[], condition="", default_device=""):
+        self.current_device_values = {}
+        device_status_args = parse_sympy(device_status_args)
 
-            for settings in conditional_curtailment:
-                conditional_curtailment = ConditionalCurtailment(**settings)
-                self.conditional_curtailments[device_id].append(conditional_curtailment)
-            self.default_curtailment[device_id] = CurtailmentSetting(**default_curtailment)
+        self.device_topic_map, self.device_topics = create_device_topic_map(device_status_args, default_device)
 
-            device_status_dict = curtail_config.pop('device_status')
-            device_status_args = parse_sympy(device_status_dict['device_status_args'])
-            condition = device_status_dict['condition']
-
-            self.device_status_args[device_id] = device_status_args
-            self.condition[device_id] = parse_sympy(condition, condition=True)
-            self.points[device_id] = symbols(device_status_args)
-            self.expr[device_id] = parse_expr(self.condition[device_id])
-
-            self.command_status[device_id] = False
-            self.curtail_count[device_id] = 0.0
-            self.currently_curtailed[device_id] = False
+        _log.debug("Device topic map: {}".format(self.device_topic_map))
+        
+        # self.device_status_args = device_status_args
+        self.condition = parse_sympy(condition, condition=True)
+        self.expr = parse_expr(self.condition)
+        self.command_status = False
 
     def ingest_data(self, data):
-        for device_id, conditional_curtailment in self.conditional_curtailments.items():
-            for conditional_curtail_instance in conditional_curtailment:
-                conditional_curtail_instance.ingest_data(data)
+        for topic, point in self.device_topic_map.iteritems():
+            if topic in data:
+                self.current_device_values[point] = data[topic]
+        _log.debug("DEVICE_STATUS current device values: {}".format(self.current_device_values))
+        # bail if we are missing values.
+        if len(self.current_device_values) < len(self.device_topic_map):
+            return
 
-        for device_id in self.command_status:
-            conditional_points = []
-            for item in self.device_status_args[device_id]:
-                conditional_points.append((item, data[item]))
-            conditional_value = False
-            if conditional_points:
-                conditional_value = self.expr[device_id].subs(conditional_points)
-            _log.debug('{} (device status) evaluated to {}'.format(self.condition[device_id], conditional_value))
-            try:
-                self.command_status[device_id] = bool(conditional_value)
-            except TypeError:
-                self.command_status[device_id] = False
+        conditional_points = self.current_device_values.items()
+        conditional_value = False
+        if conditional_points:
+            conditional_value = self.expr.subs(conditional_points)
+        _log.debug('{} (device status) evaluated to {}'.format(self.condition, conditional_value))
+        try:
+            self.command_status = bool(conditional_value)
+        except TypeError:
+            self.command_status = False
 
-    def get_curtailment(self, device_id):
-        curtailment = self.default_curtailment[device_id].get_curtailment_dict()
+class Curtailment(object):
+    def __init__(self, curtail_config, default_device=""):
+        self.device_topics = set()
 
-        for conditional_curtailment in self.conditional_curtailments[device_id]:
+        device_topic = curtail_config.pop("device_topic", default_device)
+        self.device_topics.add(device_topic)
+
+        self.conditional_curtailments = []
+        curtailment_settings = curtail_config.pop('curtail_settings', [])
+        if isinstance(curtailment_settings, dict):
+            curtailment_settings = [curtailment_settings]
+
+        for settings in curtailment_settings:
+            conditional_curtailment = CurtailmentSetting(default_device=device_topic, **settings)
+            self.device_topics |= conditional_curtailment.device_topics
+            self.conditional_curtailments.append(conditional_curtailment)
+
+        self.device_status = DeviceStatus(default_device=device_topic, **curtail_config.pop('device_status', {}))
+        self.device_topics |= self.device_status.device_topics
+        self.curtail_count = 0.0
+        self.currently_curtailed = False
+
+    def ingest_data(self, data):
+        for conditional_curtailment in self.conditional_curtailments:
+            conditional_curtailment.ingest_data(data)
+        self.device_status.ingest_data(data)
+
+    def get_curtailment(self):
+        for conditional_curtailment in self.conditional_curtailments:
             if conditional_curtailment.check_condition():
-                curtailment = conditional_curtailment.get_curtailment()
-                break
+                return conditional_curtailment.get_curtailment()
 
-        return curtailment
+        return None
+
+    def get_point_device(self):
+        for conditional_curtailment in self.conditional_curtailments:
+            if conditional_curtailment.check_condition():
+                return conditional_curtailment.get_point_device()
+
+        return None
 
     def reset_curtail_count(self):
-        for device_id in self.curtail_count:
-            self.curtail_count[device_id] = 0.0
+        self.curtail_count = 0.0
+
+    def increment_curtail(self):
+        self.currently_curtailed = True
+        self.curtail_count += 1.0
+
+    def reset_curtail_status(self):
+        self.currently_curtailed = False
+
+
+class CurtailmentManager(object):
+    def __init__(self, device_config, default_device=""):
+        self.device_topics = set()
+        self.curtailments = {}
+
+        for device_id, curtail_config in device_config.items():
+            curtailments = Curtailment(curtail_config, default_device)
+            self.curtailments[device_id] = curtailments
+            self.device_topics |= curtailments.device_topics
+
+    def ingest_data(self, data):
+        for curtailment in self.curtailments.itervalues():
+            curtailment.ingest_data(data)
+
+    def get_curtailment(self, device_id):
+        return self.curtailments[device_id].get_curtailment()
+
+    def get_point_device(self, device_id):
+        return self.curtailments[device_id].get_point_device()
+
+    def reset_curtail_count(self):
+        for curtailment in self.curtailments.itervalues():
+            curtailment.reset_curtail_count()
 
     def increment_curtail(self, device_id):
-        self.currently_curtailed[device_id] = True
-        self.curtail_count[device_id] += 1.0
+        self.curtailments[device_id].increment_curtail()
 
     def reset_curtail_status(self, device_id):
-        self.currently_curtailed[device_id] = False
+        self.curtailments[device_id].reset_curtail_status()
 
     def get_on_commands(self):
-        return [command for command, state in self.command_status.iteritems() if state]
+        return [command for command, curtailment in self.curtailments.iteritems() if curtailment.device_status.command_status]
 
 
 class CurtailmentSetting(object):
     def __init__(self, point=None, value=None, load=None, offset=None, maximum=None, minimum=None,
-                 revert_priority=None, equation=None, curtailment_method=None):
+                 revert_priority=None, equation=None, curtailment_method=None,
+                 condition="", conditional_args=[], default_device=""):
         if curtailment_method is None:
             raise ValueError("Missing 'curtailment_method' configuration parameter!")
         if point is None:
@@ -242,7 +263,7 @@ class CurtailmentSetting(object):
         if load is None:
             raise ValueError("Missing device 'load' estimation configuration parameter!")
 
-        self.point = point
+        self.point, self.point_device = fix_up_point_name(point, default_device)
         self.curtailment_method = curtailment_method
         self.value = value
 
@@ -253,7 +274,6 @@ class CurtailmentSetting(object):
 
         if self.curtailment_method.lower() == 'equation':
             self.equation_args = parse_sympy(equation['equation_args'])
-            self.points = symbols(self.equation_args)
             self.curtail_value_formula = parse_expr(parse_sympy(equation['operation']))
             self.maximum = equation['maximum']
             self.minimum = equation['minimum']
@@ -271,7 +291,25 @@ class CurtailmentSetting(object):
         else:
             self.load = load
 
-    def get_curtailment_dict(self):
+        # self.conditional_args = []
+        self.conditional_expr = None
+        self.conditional_curtail = None
+        self.device_topic_map, self.device_topics = {}, set()
+        self.current_device_values = {}
+
+        if conditional_args and condition:
+            # self.conditional_args = parse_sympy(conditional_args)
+            self.conditional_expr = parse_sympy(condition, condition=True)
+            self.conditional_curtail = parse_expr(self.conditional_expr)
+
+            self.device_topic_map, self.device_topics = create_device_topic_map(conditional_args, default_device)
+        self.device_topics.add(self.point_device)
+        self.conditional_points = []
+
+    def get_point_device(self):
+        return self.point_device
+
+    def get_curtailment(self):
         if self.curtailment_method.lower() == 'equation':
             return {
                 'point': self.point,
@@ -304,19 +342,11 @@ class CurtailmentSetting(object):
                 'minimum': self.minimum
             }
 
-
-class ConditionalCurtailment(object):
-    def __init__(self, condition=None, conditional_args=None, **kwargs):
-        if None in (condition, conditional_args):
-            raise ValueError('Missing parameter')
-        self.conditional_args = parse_sympy(conditional_args)
-        self.points = symbols(self.conditional_args)
-        self.conditional_expr = parse_sympy(condition, condition=True)
-        self.conditional_curtail = parse_expr(self.conditional_expr)
-        self.curtailment = CurtailmentSetting(**kwargs)
-        self.conditional_points = []
-
     def check_condition(self):
+        # If we don't have a condition then we are always true.
+        if self.conditional_expr is None:
+            return True
+
         if self.conditional_points:
             value = self.conditional_curtail.subs(self.conditional_points)
             _log.debug('{} (conditional_curtail) evaluated to {}'.format(self.conditional_expr, value))
@@ -325,10 +355,12 @@ class ConditionalCurtailment(object):
         return value
 
     def ingest_data(self, data):
-        point_list = []
-        for point in self.conditional_args:
-            point_list.append((point, data[point]))
-        self.conditional_points = point_list
+        for topic, point in self.device_topic_map.iteritems():
+            if topic in data:
+                self.current_device_values[point] = data[topic]
 
-    def get_curtailment(self):
-        return self.curtailment.get_curtailment_dict()
+        # bail if we are missing values.
+        if len(self.current_device_values) < len(self.device_topic_map):
+            return
+
+        self.conditional_points = self.current_device_values.items()

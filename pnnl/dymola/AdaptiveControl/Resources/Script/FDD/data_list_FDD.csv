@@ -1,0 +1,11 @@
+AHU.mixingBox.port_Ret.m_flow,mRet
+AHU.mixingBox.port_Fre.m_flow,mFre
+AHU.mixingBox.port_Sup.m_flow,mMix
+AHU.realExpression6.y,Tfre
+AHU.realExpression3.y,Tmix
+AHU.realExpression5.y,Tdiscool
+AHU.realExpression4.y,Tdisheat
+Overwrite_Ret.y,Tzone
+AHU.cooling_Coil.yVal,yCooVal
+AHU.heating_Coil.yVal,yHeaVal
+AHU.mixingBox.y,yMixBox

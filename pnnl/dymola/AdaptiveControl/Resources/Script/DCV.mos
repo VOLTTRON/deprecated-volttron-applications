@@ -1,0 +1,7 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.BaseClasses.Example.Co2_Demand_Control_Ventilation", stopTime=100, method="dassl", resultFile="Co2_Demand_Control_Ventilation");
+
+createPlot(id=1, position={0, 0, 1376, 701}, y=fill("", 0), range={0.0, 100.0, 0.0005, 0.0013}, grid=true);
+plotExpression(apply(Co2_Demand_Control_Ventilation[end].ramp.y), false, "Co2 Concentration", 1);
+plotExpression(apply(Co2_Demand_Control_Ventilation[end].co2_Demand_Control_Ventilation.CO2Set), false, "CO2 Set Point", 1);
+createPlot(id=1, position={0, 0, 1376, 348}, y={"co2_Demand_Control_Ventilation.Vmax", "co2_Demand_Control_Ventilation.Vmin", 
+"co2_Demand_Control_Ventilation.V_flow_min"}, range={0.0, 100.0, 0.25, 0.7}, grid=true, subPlot=2, colors={{238,46,47}, {0,140,72}, {28,108,200}});

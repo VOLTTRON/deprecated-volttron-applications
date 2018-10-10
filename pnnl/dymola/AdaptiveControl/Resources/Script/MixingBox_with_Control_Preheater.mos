@@ -1,0 +1,6 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Air_Handling_Unit.MixingBox.Example.MixingBox_with_Control_Preheater", stopTime=2500, method="dassl", resultFile="MixingBox_with_Control_Preheater");
+createPlot(id=1, position={0, 0, 1376, 741}, y={"mixingBox_control.u_m", "mixingBox_control.u_s"}, range={0.0, 2500.0, 0.0, 25.0}, grid=true, colors={{28,108,200}, {238,46,47}});
+createPlot(id=1, position={0, 0, 1376, 181}, y={"mixingBox_control.y"}, range={0.0, 2500.0, 0.2, 1.2}, grid=true, subPlot=2, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1376, 182}, y={"ramp.y"}, range={0.0, 2500.0, -10.0, 30.0}, grid=true, subPlot=3, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1376, 181}, y={"mixingBox.heating_coil_control.u_m", "mixingBox.heating_coil_control.u_s"}, range={0.0, 2500.0, 270.0, 300.0}, grid=true, subPlot=4, colors={{28,108,200}, {238,46,47}});
+

@@ -1,0 +1,5 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.BaseClasses.Example.Reset_request2", stopTime=100, method="dassl", resultFile="Reset_request2");
+
+createPlot(id=1, position={0, 0, 1376, 701}, y={"sine.y", "SetPoi.y"}, range={0.0, 100.0, -0.2, 1.2000000000000002}, grid=true, colors={{28,108,200}, {238,46,47}});
+createPlot(id=1, position={0, 0, 1376, 348}, y={"reset_request2.NumReq"}, range={0.0, 100.0, -0.5, 3.5}, grid=true, subPlot=2, colors={{28,108,200}});
+

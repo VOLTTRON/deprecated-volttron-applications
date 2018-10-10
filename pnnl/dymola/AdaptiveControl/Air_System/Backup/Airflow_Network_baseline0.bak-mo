@@ -1,0 +1,882 @@
+within AdaptiveControl.Air_System.Backup;
+model Airflow_Network_baseline0
+
+  import AdaptiveControl.PNNL_building_system;
+
+  replaceable package MediumAir = Modelica.Media.Interfaces.PartialMedium "Air medium";
+  replaceable package MediumWat = Modelica.Media.Interfaces.PartialMedium "Water medium";
+
+  parameter Modelica.SIunits.Temperature T_Set_Hig "The high temperature set point";
+  parameter Modelica.SIunits.Temperature T_Set_Low "The low temperature set point";
+
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.MixingVolumes.MixingVolume rooVol1(
+    energyDynamics=Modelica.Fluid.Types.Dynamics.FixedInitial,
+    redeclare each package Medium = MediumAir,
+    nPorts=3,
+    m_flow_nominal=10.92*1.2,
+    final T_start=297.15,
+    V=2532.32*2.7*2)      "Volume of air in the room" annotation (Placement(transformation(extent={{41,-74},{61,-94}})));
+  Modelica.Thermal.HeatTransfer.Sources.PrescribedHeatFlow QSou1
+    "Heat source of the room"
+    annotation (Placement(transformation(extent={{22,-90},{34,-78}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.TemperatureTwoPort TSen1(
+      redeclare package Medium = MediumAir, m_flow_nominal=10.92*1.2)
+    "Temperature of condenser water leaving the cooling tower" annotation (
+      Placement(transformation(extent={{-10,-10},{10,10}}, origin={76,-60})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res2(
+    redeclare package Medium = MediumAir,
+    m_flow_nominal=10.92*1.2,
+    dp_nominal=9.2) annotation (Placement(transformation(
+        extent={{8,-8},{-8,8}},
+        rotation=180,
+        origin={-50,-60})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res3(
+    redeclare package Medium = MediumAir,
+    m_flow_nominal=18.3*1.2,
+    dp_nominal=45.8) annotation (Placement(transformation(
+        extent={{-8,-8},{8,8}},
+        rotation=90,
+        origin={-78,-90})));
+  AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.VAV_terminal_PI_SingleMax
+                                           vAV_terminal_PI1(
+    v_nominal=1,
+    risTim=120,
+    ti=120,
+    k=1,
+    damper(vavDam(y_start=1)),
+    redeclare package Medium_Air = MediumAir,
+    redeclare package Medium_Water = MediumWat,
+    dp_hea_air_nominal(displayUnit="Pa") = 0,
+    dp_hea_water_nominal(displayUnit="Pa") = 1000,
+    y_min=0.3,
+    m_flow_nominal=10.92*1.2,
+    dp_nominal(displayUnit="Pa") = 298,
+    TAir_a_nominal=288.15,
+    TAir_b_nominal=298.15,
+    TWater_a_nominal=333.15,
+    TWater_b_nominal=328.15,
+    TCooSet=297.05,
+    THeaSet=294.25)                 annotation (Placement(transformation(extent={{-18,-80},
+            {18,-40}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res4(
+    redeclare package Medium = MediumAir,
+    dp_nominal=45.8,
+    m_flow_nominal=7.37*1.2) annotation (Placement(transformation(
+        extent={{-8,-8},{8,8}},
+        rotation=90,
+        origin={-78,-42})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.MixingVolumes.MixingVolume rooVol2(
+    energyDynamics=Modelica.Fluid.Types.Dynamics.FixedInitial,
+    redeclare each package Medium = MediumAir,
+    nPorts=3,
+    m_flow_nominal=2.25*1.2,
+    final T_start=297.15,
+    V=201.98*2.7*2)       "Volume of air in the room"
+    annotation (Placement(transformation(extent={{-193,-36},{-173,-56}})));
+  Modelica.Thermal.HeatTransfer.Sources.PrescribedHeatFlow QSou2
+    "Heat source of the room"
+    annotation (Placement(transformation(extent={{-212,-52},{-200,-40}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.TemperatureTwoPort TSen2(
+      redeclare package Medium = MediumAir, m_flow_nominal=2.25*1.2)
+    "Temperature of condenser water leaving the cooling tower" annotation (
+      Placement(transformation(extent={{10,-10},{-10,10}}, origin={-210,-16})));
+  AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.VAV_terminal_PI_SingleMax
+                                           vAV_terminal_PI2(
+    v_nominal=1,
+    risTim=120,
+    ti=120,
+    k=1,
+    damper(vavDam(y_start=1)),
+    redeclare package Medium_Air = MediumAir,
+    redeclare package Medium_Water = MediumWat,
+    dp_hea_air_nominal(displayUnit="Pa") = 0,
+    dp_hea_water_nominal(displayUnit="Pa") = 1000,
+    y_min=0.3,
+    m_flow_nominal=2.25*1.2,
+    dp_nominal(displayUnit="Pa") = 200,
+    TAir_a_nominal=288.15,
+    TAir_b_nominal=298.15,
+    TWater_a_nominal=333.15,
+    TWater_b_nominal=328.15,
+    TCooSet=297.05,
+    THeaSet=294.25)                 annotation (Placement(transformation(extent={{-132,
+            -32},{-168,8}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.TemperatureTwoPort TSen3(
+      redeclare package Medium = MediumAir, m_flow_nominal=18.3*1.2)
+    "Temperature of condenser water leaving the cooling tower" annotation (
+      Placement(transformation(extent={{10,-10},{-10,10}}, origin={-8,-162})));
+  Modelica.Blocks.Sources.Constant const1(k=T_Set_Hig)
+                                         annotation (Placement(transformation(extent={{-64,-2},
+            {-72,6}})));
+  Modelica.Blocks.Sources.Constant const2(k=T_Set_Low)
+                                         annotation (Placement(transformation(extent={{-64,-14},
+            {-72,-6}})));
+  Modelica.Blocks.Sources.Constant const3(k=T_Set_Hig)
+                                         annotation (Placement(transformation(extent={{-54,-44},
+            {-46,-36}})));
+  Modelica.Blocks.Sources.Constant const4(k=T_Set_Low)
+                                         annotation (Placement(transformation(extent={{-54,-80},
+            {-46,-72}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT sinWat(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    T=273.15 + 60,
+    p(displayUnit="Pa") = 1000,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{-104,-78},{-124,-58}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT souWat(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    p(displayUnit="Pa") = 2000,
+    T=273.15 + 60,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{-178,-78},{-158,-58}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT souWat1(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    p(displayUnit="Pa") = 2000,
+    T=273.15 + 60,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{20,-122},{0,-102}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT sinWat1(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    T=273.15 + 60,
+    p(displayUnit="Pa") = 1000,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{-40,-122},{-20,-102}})));
+  AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.VAV_terminal_PI_SingleMax
+                                           vAV_terminal_PI3(
+    v_nominal=1,
+    risTim=120,
+    ti=120,
+    k=1,
+    damper(vavDam(y_start=1)),
+    redeclare package Medium_Air = MediumAir,
+    redeclare package Medium_Water = MediumWat,
+    dp_hea_air_nominal(displayUnit="Pa") = 0,
+    dp_hea_water_nominal(displayUnit="Pa") = 1000,
+    y_min=0.3,
+    m_flow_nominal=1.49*1.2,
+    dp_nominal(displayUnit="Pa") = 100,
+    TAir_a_nominal=288.15,
+    TAir_b_nominal=298.15,
+    TWater_a_nominal=333.15,
+    TWater_b_nominal=328.15,
+    TCooSet=297.05,
+    THeaSet=294.25)                 annotation (Placement(transformation(extent={{-48,54},
+            {-12,94}})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res1(
+    redeclare package Medium = MediumAir,
+    m_flow_nominal=1.49*1.2,
+    dp_nominal=115.6) annotation (Placement(transformation(
+        extent={{-8,-8},{8,8}},
+        rotation=90,
+        origin={-78,50})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.MixingVolumes.MixingVolume rooVol3(
+    energyDynamics=Modelica.Fluid.Types.Dynamics.FixedInitial,
+    redeclare each package Medium = MediumAir,
+    nPorts=3,
+    m_flow_nominal=1.49*1.2,
+    final T_start=297.15,
+    V=313.42*2.7*2)
+                  "Volume of air in the room"
+    annotation (Placement(transformation(extent={{55,56},{75,36}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.TemperatureTwoPort TSen4(
+      redeclare package Medium = MediumAir, m_flow_nominal=1.49*1.2)
+    "Temperature of condenser water leaving the cooling tower" annotation (
+      Placement(transformation(extent={{-10,-10},{10,10}}, origin={88,74})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT souWat2(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    p(displayUnit="Pa") = 2000,
+    T=273.15 + 60,
+    nPorts=1) annotation (Placement(transformation(extent={{-6,32},{-26,52}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT sinWat2(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    T=273.15 + 60,
+    p(displayUnit="Pa") = 1000,
+    nPorts=1) annotation (Placement(transformation(extent={{-68,32},{-48,52}})));
+  Modelica.Blocks.Sources.Constant const5(k=T_Set_Hig)
+                                         annotation (Placement(transformation(extent={{-148,92},
+            {-140,100}})));
+  Modelica.Blocks.Sources.Constant const6(k=T_Set_Low)
+                                         annotation (Placement(transformation(extent={{-148,78},
+            {-140,86}})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res5(
+    redeclare package Medium = MediumAir,
+    m_flow_nominal=2.25*1.2,
+    dp_nominal=61.4) annotation (Placement(transformation(
+        extent={{-8,-8},{8,8}},
+        rotation=180,
+        origin={-106,-14})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res6(
+    redeclare package Medium = MediumAir,
+    dp_nominal=45.8,
+    m_flow_nominal=5.13*1.2) annotation (Placement(transformation(
+        extent={{-8,-8},{8,8}},
+        rotation=90,
+        origin={-78,14})));
+  Modelica.Thermal.HeatTransfer.Sources.PrescribedHeatFlow QSou3
+    "Heat source of the room"
+    annotation (Placement(transformation(extent={{34,40},{46,52}})));
+  AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.VAV_terminal_PI_SingleMax
+                                           vAV_terminal_PI4(
+    v_nominal=1,
+    risTim=120,
+    ti=120,
+    k=1,
+    damper(vavDam(y_start=1)),
+    redeclare package Medium_Air = MediumAir,
+    redeclare package Medium_Water = MediumWat,
+    dp_hea_air_nominal(displayUnit="Pa") = 0,
+    dp_hea_water_nominal(displayUnit="Pa") = 1000,
+    y_min=0.3,
+    m_flow_nominal=1.9*1.2,
+    dp_nominal(displayUnit="Pa") = 149,
+    TAir_a_nominal=288.15,
+    TAir_b_nominal=298.15,
+    TWater_a_nominal=333.15,
+    TWater_b_nominal=328.15,
+    TCooSet=297.05,
+    THeaSet=294.25)                 annotation (Placement(transformation(extent={{210,-38},
+            {246,2}})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res7(
+    redeclare package Medium = MediumAir,
+    dp_nominal=20.8,
+    m_flow_nominal=1.9*1.2) annotation (Placement(transformation(
+        extent={{8,-8},{-8,8}},
+        rotation=180,
+        origin={184,24})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res8(
+    redeclare package Medium = MediumAir,
+    dp_nominal=45.8,
+    m_flow_nominal=3.64*1.2) annotation (Placement(transformation(
+        extent={{8,-8},{-8,8}},
+        rotation=180,
+        origin={42,24})));
+  AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.VAV_terminal_PI_SingleMax
+                                           vAV_terminal_PI5(
+    v_nominal=1,
+    risTim=120,
+    ti=120,
+    k=1,
+    damper(vavDam(y_start=1)),
+    redeclare package Medium_Air = MediumAir,
+    redeclare package Medium_Water = MediumWat,
+    dp_hea_air_nominal(displayUnit="Pa") = 0,
+    dp_hea_water_nominal(displayUnit="Pa") = 1000,
+    y_min=0.3,
+    m_flow_nominal=1.73*1.2,
+    dp_nominal(displayUnit="Pa") = 124,
+    TAir_a_nominal=288.15,
+    TAir_b_nominal=298.15,
+    TWater_a_nominal=333.15,
+    TWater_b_nominal=328.15,
+    TCooSet=297.05,
+    THeaSet=294.25)                 annotation (Placement(transformation(extent={{22,-230},
+            {-14,-190}})));
+AdaptiveControl.PNNL_building_system.Buildings.Fluid.FixedResistances.FixedResistanceDpM res9(
+    redeclare package Medium = MediumAir,
+    dp_nominal=45.8,
+    m_flow_nominal=1.73*1.2) annotation (Placement(transformation(
+        extent={{8,-8},{-8,8}},
+        rotation=90,
+        origin={142,-72})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT sinWat3(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    T=273.15 + 60,
+    p(displayUnit="Pa") = 1000,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{188,-78},{208,-58}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT souWat3(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    p(displayUnit="Pa") = 2000,
+    T=273.15 + 60,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{262,-78},{242,-58}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.MixingVolumes.MixingVolume rooVol4(
+    energyDynamics=Modelica.Fluid.Types.Dynamics.FixedInitial,
+    redeclare each package Medium = MediumAir,
+    nPorts=3,
+    m_flow_nominal=1.9*1.2,
+    final T_start=297.15,
+    V=201.98*2.7*2)
+                  "Volume of air in the room"
+    annotation (Placement(transformation(extent={{271,-34},{291,-54}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.TemperatureTwoPort TSen5(
+      redeclare package Medium = MediumAir, m_flow_nominal=1.9*1.2)
+    "Temperature of condenser water leaving the cooling tower" annotation (
+      Placement(transformation(extent={{-10,-10},{10,10}}, origin={302,-18})));
+  Modelica.Thermal.HeatTransfer.Sources.PrescribedHeatFlow QSou4
+    "Heat source of the room"
+    annotation (Placement(transformation(extent={{256,-50},{268,-38}})));
+  Modelica.Blocks.Sources.Constant const7(k=T_Set_Hig)
+                                         annotation (Placement(transformation(extent={{156,38},
+            {164,46}})));
+  Modelica.Blocks.Sources.Constant const8(k=T_Set_Low)
+                                         annotation (Placement(transformation(extent={{156,10},
+            {164,18}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.MixingVolumes.MixingVolume rooVol5(
+    energyDynamics=Modelica.Fluid.Types.Dynamics.FixedInitial,
+    redeclare each package Medium = MediumAir,
+    nPorts=3,
+    m_flow_nominal=1.73*1.2,
+    final T_start=297.15,
+    V=313.42*2.7*2)
+                  "Volume of air in the room"
+    annotation (Placement(transformation(extent={{-55,-224},{-35,-244}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.TemperatureTwoPort TSen6(
+      redeclare package Medium = MediumAir, m_flow_nominal=1.73*1.2)
+    "Temperature of condenser water leaving the cooling tower" annotation (
+      Placement(transformation(extent={{10,-10},{-10,10}}, origin={-100,-210})));
+  Modelica.Thermal.HeatTransfer.Sources.PrescribedHeatFlow QSou5
+    "Heat source of the room"
+    annotation (Placement(transformation(extent={{-82,-240},{-70,-228}})));
+  Modelica.Blocks.Sources.Constant const9(k=T_Set_Low)
+                                         annotation (Placement(transformation(extent={{66,-222},
+            {58,-214}})));
+  Modelica.Blocks.Sources.Constant const10(k=T_Set_Hig)
+                                         annotation (Placement(transformation(extent={{66,-194},
+            {58,-186}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT souWat4(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    p(displayUnit="Pa") = 2000,
+    T=273.15 + 60,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{-24,-278},{-4,-258}})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT sinWat4(
+    use_T_in=false,
+    redeclare package Medium = MediumWat,
+    T=273.15 + 60,
+    p(displayUnit="Pa") = 1000,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{46,-278},{26,-258}})));
+  CoSimulation.MixedAirHeatGain_user           mixedAirHeatGain(redeclare
+      package Medium = MediumAir)
+    annotation (Placement(transformation(extent={{164,74},{144,94}})));
+  CoSimulation.MixedAirHeatGain_user           mixedAirHeatGain1(redeclare
+      package Medium = MediumAir)
+    annotation (Placement(transformation(extent={{-20,-138},{0,-118}})));
+  Modelica.Blocks.Math.Add add(k2=-1)
+    annotation (Placement(transformation(extent={{70,-128},{50,-108}})));
+  CoSimulation.MixedAirHeatGain_user           mixedAirHeatGain2(redeclare
+      package Medium = MediumAir)
+    annotation (Placement(transformation(extent={{-212,18},{-192,38}})));
+  Modelica.Blocks.Math.Add add1(
+                               k2=-1)
+    annotation (Placement(transformation(extent={{10,-10},{-10,10}},
+        rotation=-90,
+        origin={-218,-84})));
+  Modelica.Blocks.Math.Add add2(
+                               k2=-1)
+    annotation (Placement(transformation(extent={{52,-10},{32,10}})));
+  CoSimulation.MixedAirHeatGain_user           mixedAirHeatGain3(redeclare
+      package Medium = MediumAir)
+    annotation (Placement(transformation(extent={{310,-106},{290,-86}})));
+  Modelica.Blocks.Math.Add add3(
+                               k2=-1)
+    annotation (Placement(transformation(extent={{10,-10},{-10,10}},
+        rotation=-90,
+        origin={232,-100})));
+  CoSimulation.MixedAirHeatGain_user           mixedAirHeatGain4(redeclare
+      package Medium = MediumAir)
+    annotation (Placement(transformation(extent={{-6,-234},{-26,-214}})));
+  Modelica.Blocks.Math.Add add4(
+                               k2=-1)
+    annotation (Placement(transformation(extent={{10,-10},{-10,10}},
+        rotation=-90,
+        origin={-116,-256})));
+  Modelica.Blocks.Interfaces.RealInput Sensible_Cooling_Load[5]
+    "Connector of Real input signal 1"
+    annotation (Placement(transformation(extent={{420,-262},{380,-222}})));
+  Modelica.Blocks.Interfaces.RealInput Heating_Load[5]
+    "Connector of Real input signal 1"
+    annotation (Placement(transformation(extent={{426,42},{386,82}})));
+  Modelica.Blocks.Interfaces.RealInput Latent_Cooling_Load[5]
+    "Connector of Real input signal 1"
+    annotation (Placement(transformation(extent={{424,-116},{384,-76}})));
+  Modelica.Fluid.Interfaces.FluidPort_a port_Air_a(redeclare package Medium = MediumAir)
+    "Fluid connector a (positive design flow direction is from port_a to port_b)"
+    annotation (Placement(transformation(extent={{-330,50},{-310,70}})));
+  Modelica.Fluid.Interfaces.FluidPort_b port_Air_b(redeclare package Medium = MediumAir)
+    "Fluid connector b (positive design flow direction is from port_a to port_b)"
+    annotation (Placement(transformation(extent={{-330,-250},{-310,-230}})));
+  Modelica.Blocks.Interfaces.RealOutput T[5] "Temperature of the passing fluid"
+    annotation (Placement(transformation(
+        extent={{-10,-10},{10,10}},
+        rotation=90,
+        origin={0,150})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sensors.RelativePressure
+                                                           dp(redeclare package
+      Medium = MediumAir) "Pressure difference over return fan"
+    annotation (Placement(transformation(
+        extent={{-10,10},{10,-10}},
+        rotation=90,
+        origin={138,42})));
+  AdaptiveControl.PNNL_building_system.Buildings.Fluid.Sources.Boundary_pT sinAir(
+    use_T_in=false,
+    redeclare package Medium = MediumAir,
+    p(displayUnit="Pa") = 101325,
+    nPorts=1)
+    annotation (Placement(transformation(extent={{220,88},{200,108}})));
+  Modelica.Blocks.Interfaces.RealOutput p "Relative pressure of port_a minus port_b"
+    annotation (Placement(transformation(extent={{-320,-92},{-340,-72}})));
+  Modelica.Blocks.Sources.Constant const16(k=0.3)
+                                         annotation (Placement(transformation(extent={{-110,62},
+            {-102,70}})));
+  Modelica.Blocks.Sources.Constant const11(k=0.3)
+                                         annotation (Placement(transformation(extent={{80,-250},
+            {72,-242}})));
+  Modelica.Blocks.Sources.Constant const12(k=0.3)
+                                         annotation (Placement(transformation(extent={{-110,
+            -40},{-118,-32}})));
+  Modelica.Blocks.Sources.Constant const13(k=0.3)
+                                         annotation (Placement(transformation(extent={{-60,
+            -106},{-52,-98}})));
+  Modelica.Blocks.Sources.Constant const14(k=0.3)
+                                         annotation (Placement(transformation(extent={{180,-32},
+            {188,-24}})));
+equation
+
+  connect(QSou1.port, rooVol1.heatPort) annotation (Line(
+      points={{34,-84},{34,-84},{41,-84}},
+      color={191,0,0},
+      pattern=LinePattern.Dash));
+  connect(vAV_terminal_PI1.port_a, res2.port_b) annotation (Line(
+      points={{-18,-60},{-18,-60},{-42,-60}},
+      color={0,127,255},
+      thickness=0.5));
+  connect(TSen1.T, vAV_terminal_PI1.T) annotation (Line(
+      points={{76,-49},{76,-30},{-36,-30},{-36,-48},{-19.8,-48}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(vAV_terminal_PI1.port_b, rooVol1.ports[1]) annotation (Line(
+      points={{18,-60},{48.3333,-60},{48.3333,-74}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen1.port_a, rooVol1.ports[2]) annotation (Line(
+      points={{66,-60},{60,-60},{51,-60},{51,-74}},
+      color={0,127,255},
+      thickness=1));
+  connect(res3.port_b, res2.port_a) annotation (Line(
+      points={{-78,-82},{-78,-60},{-58,-60}},
+      color={0,127,255},
+      thickness=1));
+  connect(res4.port_a, res2.port_a) annotation (Line(
+      points={{-78,-50},{-78,-60},{-58,-60}},
+      color={0,127,255},
+      thickness=1));
+
+  connect(QSou2.port,rooVol2. heatPort) annotation (Line(
+      points={{-200,-46},{-200,-46},{-193,-46}},
+      color={191,0,0},
+      pattern=LinePattern.Dash));
+  connect(TSen2.T,vAV_terminal_PI2. T) annotation (Line(
+      points={{-210,-5},{-210,12},{-84,12},{-84,-4},{-130.2,-4},{-130.2,0}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen2.port_a, rooVol2.ports[1]) annotation (Line(
+      points={{-200,-16},{-186,-16},{-185.667,-16},{-185.667,-36}},
+      color={0,127,255},
+      thickness=1));
+  connect(vAV_terminal_PI2.port_b, rooVol2.ports[2]) annotation (Line(
+      points={{-168,-12},{-168,-16},{-183,-16},{-183,-36}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen2.port_b, TSen1.port_b) annotation (Line(
+      points={{-220,-16},{-232,-16},{-232,-140},{86,-140},{86,-60}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen3.port_a, TSen1.port_b) annotation (Line(
+      points={{2,-162},{86,-162},{86,-60}},
+      color={0,127,255},
+      thickness=1));
+  connect(const1.y, vAV_terminal_PI2.TMax) annotation (Line(
+      points={{-72.4,2},{-96,2},{-96,6},{-130.2,6}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const2.y, vAV_terminal_PI2.TMin) annotation (Line(
+      points={{-72.4,-10},{-96,-10},{-96,-6},{-130.2,-6}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const3.y, vAV_terminal_PI1.TMax) annotation (Line(
+      points={{-45.6,-40},{-32,-40},{-32,-42},{-19.8,-42}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const4.y, vAV_terminal_PI1.TMin) annotation (Line(
+      points={{-45.6,-76},{-40,-76},{-36,-76},{-36,-54},{-19.8,-54}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(sinWat.ports[1], vAV_terminal_PI2.port_b_HotWater) annotation (Line(
+      points={{-124,-68},{-135.6,-68},{-135.6,-32}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(souWat.ports[1], vAV_terminal_PI2.port_a_HotWater) annotation (Line(
+      points={{-158,-68},{-146.4,-68},{-146.4,-32}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(souWat1.ports[1], vAV_terminal_PI1.port_a_HotWater) annotation (Line(
+      points={{0,-112},{0,-112},{-4,-112},{-4,-80},{-3.6,-80}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(sinWat1.ports[1], vAV_terminal_PI1.port_b_HotWater) annotation (Line(
+      points={{-20,-112},{-14.4,-112},{-14.4,-80}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(res1.port_b, vAV_terminal_PI3.port_a) annotation (Line(
+      points={{-78,58},{-80,58},{-80,70},{-80,74},{-48,74}},
+      color={0,127,255},
+      thickness=1));
+  connect(vAV_terminal_PI3.port_b, rooVol3.ports[1]) annotation (Line(
+      points={{-12,74},{-2,74},{64,74},{64,56},{62.3333,56}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen4.port_a, rooVol3.ports[2]) annotation (Line(
+      points={{78,74},{78,74},{65,74},{65,56}},
+      color={0,127,255},
+      thickness=1));
+  connect(souWat2.ports[1], vAV_terminal_PI3.port_a_HotWater) annotation (Line(
+      points={{-26,42},{-33.6,42},{-33.6,54}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(sinWat2.ports[1], vAV_terminal_PI3.port_b_HotWater) annotation (Line(
+      points={{-48,42},{-44.4,42},{-44.4,54}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(TSen4.port_b, TSen1.port_b) annotation (Line(
+      points={{98,74},{112,74},{112,110},{-232,110},{-232,-140},{86,-140},{86,
+          -60}},
+      color={0,127,255},
+      thickness=1));
+  connect(const5.y, vAV_terminal_PI3.TMax) annotation (Line(
+      points={{-139.6,96},{-64,96},{-64,92},{-49.8,92}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const6.y, vAV_terminal_PI3.TMin) annotation (Line(
+      points={{-139.6,82},{-64,82},{-64,80},{-49.8,80}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen4.T, vAV_terminal_PI3.T) annotation (Line(
+      points={{88,85},{88,85},{88,102},{-56,102},{-56,86},{-49.8,86}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(res4.port_b, res5.port_a) annotation (Line(
+      points={{-78,-34},{-78,-14},{-98,-14}},
+      color={0,127,255},
+      thickness=1));
+  connect(res5.port_b, vAV_terminal_PI2.port_a) annotation (Line(
+      points={{-114,-14},{-124,-14},{-124,-12},{-132,-12}},
+      color={0,127,255},
+      thickness=1));
+  connect(res1.port_a, res6.port_b) annotation (Line(
+      points={{-78,42},{-78,22}},
+      color={0,127,255},
+      thickness=1));
+  connect(res6.port_a, res5.port_a) annotation (Line(
+      points={{-78,6},{-78,-14},{-98,-14}},
+      color={0,127,255},
+      thickness=1));
+  connect(QSou3.port, rooVol3.heatPort)
+    annotation (Line(points={{46,46},{55,46}}, color={191,0,0}));
+  connect(res7.port_b, vAV_terminal_PI4.port_a) annotation (Line(
+      points={{192,24},{204,24},{204,-18},{210,-18}},
+      color={0,127,255},
+      thickness=1));
+  connect(res8.port_a, res6.port_b) annotation (Line(
+      points={{34,24},{-78,24},{-78,22}},
+      color={0,127,255},
+      thickness=1));
+  connect(res8.port_b, res7.port_a) annotation (Line(
+      points={{50,24},{176,24}},
+      color={0,127,255},
+      thickness=1));
+  connect(res9.port_a, res7.port_a) annotation (Line(
+      points={{142,-64},{142,24},{176,24}},
+      color={0,127,255},
+      thickness=1));
+  connect(res9.port_b, vAV_terminal_PI5.port_a) annotation (Line(
+      points={{142,-80},{142,-80},{142,-210},{22,-210}},
+      color={0,127,255},
+      thickness=1));
+  connect(sinWat3.ports[1], vAV_terminal_PI4.port_b_HotWater) annotation (Line(
+      points={{208,-68},{217.6,-68},{217.6,-38},{213.6,-38}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(souWat3.ports[1], vAV_terminal_PI4.port_a_HotWater) annotation (Line(
+      points={{242,-68},{224.4,-68},{224.4,-38}},
+      color={0,140,72},
+      thickness=0.5));
+  connect(rooVol4.ports[1], vAV_terminal_PI4.port_b) annotation (Line(
+      points={{278.333,-34},{278,-34},{278,-20},{278,-18},{246,-18}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen5.port_a, rooVol4.ports[2]) annotation (Line(
+      points={{292,-18},{281,-18},{281,-34}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen5.port_b, TSen1.port_b) annotation (Line(
+      points={{312,-18},{314,-18},{314,110},{-232,110},{-232,-140},{86,-140},{
+          86,-60}},
+      color={0,127,255},
+      thickness=1));
+  connect(QSou4.port, rooVol4.heatPort)
+    annotation (Line(points={{268,-44},{268,-44},{271,-44}}, color={191,0,0}));
+  connect(TSen5.T, vAV_terminal_PI4.T) annotation (Line(
+      points={{302,-7},{302,56},{198,56},{198,-6},{208.2,-6}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const7.y, vAV_terminal_PI4.TMax) annotation (Line(
+      points={{164.4,42},{164.4,0},{208.2,0}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const8.y, vAV_terminal_PI4.TMin) annotation (Line(
+      points={{164.4,14},{182,14},{198,14},{198,-12},{208.2,-12}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen6.port_a, rooVol5.ports[1]) annotation (Line(
+      points={{-90,-210},{-68,-210},{-47.6667,-210},{-47.6667,-224}},
+      color={0,127,255},
+      thickness=1));
+  connect(vAV_terminal_PI5.port_b, rooVol5.ports[2]) annotation (Line(
+      points={{-14,-210},{-45,-210},{-45,-224}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen6.port_b, TSen1.port_b) annotation (Line(
+      points={{-110,-210},{-232,-210},{-232,-140},{86,-140},{86,-60}},
+      color={0,127,255},
+      thickness=1));
+  connect(QSou5.port, rooVol5.heatPort)
+    annotation (Line(points={{-70,-234},{-55,-234}}, color={191,0,0}));
+  connect(const9.y, vAV_terminal_PI5.TMin) annotation (Line(
+      points={{57.6,-218},{50,-218},{42,-218},{42,-204},{23.8,-204}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const10.y, vAV_terminal_PI5.TMax) annotation (Line(
+      points={{57.6,-190},{40,-190},{40,-192},{23.8,-192}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen6.T, vAV_terminal_PI5.T) annotation (Line(
+      points={{-100,-199},{-100,-182},{82,-182},{82,-198},{23.8,-198}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(souWat4.ports[1], vAV_terminal_PI5.port_a_HotWater) annotation (Line(
+      points={{-4,-268},{0,-268},{7.6,-268},{7.6,-230}},
+      color={0,127,255},
+      thickness=0.5));
+  connect(sinWat4.ports[1], vAV_terminal_PI5.port_b_HotWater) annotation (Line(
+      points={{26,-268},{22,-268},{18.4,-268},{18.4,-230}},
+      color={0,127,255},
+      thickness=0.5));
+  connect(mixedAirHeatGain1.QLat_flow, rooVol1.ports[3]) annotation (Line(
+        points={{0,-134},{30,-134},{30,-74},{53.6667,-74}},   color={0,127,255}));
+
+  connect(add.y, QSou1.Q_flow) annotation (Line(
+      points={{49,-118},{28,-118},{28,-92},{8,-92},{8,-84},{22,-84}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain2.QLat_flow, rooVol2.ports[3]) annotation (Line(
+        points={{-192,22},{-190,22},{-190,-36},{-180.333,-36}}, color={0,127,
+          255}));
+  connect(add1.y, QSou2.Q_flow) annotation (Line(
+      points={{-218,-73},{-226,-73},{-226,-46},{-212,-46}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain.QLat_flow, rooVol3.ports[3]) annotation (Line(points={{144,78},
+          {124,78},{124,56},{67.6667,56}},          color={0,127,255}));
+  connect(add2.y, QSou3.Q_flow) annotation (Line(
+      points={{31,0},{20,0},{12,0},{12,46},{34,46}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain3.QLat_flow, rooVol4.ports[3]) annotation (Line(
+        points={{290,-102},{326,-102},{326,-34},{283.667,-34}},
+                                                              color={0,127,255}));
+  connect(add3.y, QSou4.Q_flow) annotation (Line(
+      points={{232,-89},{232,-89},{232,-44},{256,-44}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain4.QLat_flow, rooVol5.ports[3]) annotation (Line(
+        points={{-26,-230},{-26,-230},{-26,-228},{-26,-224},{-42.3333,-224}},
+                                                                 color={0,127,
+          255}));
+  connect(add4.y, QSou5.Q_flow) annotation (Line(
+      points={{-116,-245},{-116,-245},{-116,-246},{-116,-234},{-84,-234},{-82,-234}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add4.u1, Sensible_Cooling_Load[5]) annotation (Line(
+      points={{-110,-268},{-110,-268},{-110,-300},{-110,-302},{342,-302},{342,-226},
+          {400,-226}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add3.u1, Sensible_Cooling_Load[4]) annotation (Line(
+      points={{238,-112},{238,-112},{238,-234},{400,-234}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add2.u1, Sensible_Cooling_Load[3]) annotation (Line(
+      points={{54,6},{126,6},{126,-242},{400,-242}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add1.u1, Sensible_Cooling_Load[2]) annotation (Line(
+      points={{-212,-96},{-212,-96},{-212,-290},{336,-290},{336,-250},{400,-250}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+
+  connect(add.u1, Sensible_Cooling_Load[1]) annotation (Line(
+      points={{72,-112},{110,-112},{110,-258},{400,-258}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add4.u2, Heating_Load[5]) annotation (Line(
+      points={{-122,-268},{-122,-268},{-122,-284},{334,-284},{334,78},{406,78}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+
+  connect(add3.u2, Heating_Load[4]) annotation (Line(
+      points={{226,-112},{226,70},{406,70}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add2.u2, Heating_Load[3]) annotation (Line(
+      points={{54,-6},{94,-6},{156,-6},{156,62},{406,62}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add1.u2, Heating_Load[2]) annotation (Line(
+      points={{-224,-96},{-224,-96},{-224,-166},{-224,-182},{224,-182},{224,54},{406,54}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(add.u2, Heating_Load[1]) annotation (Line(
+      points={{72,-124},{98,-124},{98,46},{406,46}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain1.q_flow, Latent_Cooling_Load[1]) annotation (Line(
+      points={{-22,-128},{-34,-128},{-46,-128},{-46,-144},{358,-144},{358,-112},{404,-112}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain2.q_flow, Latent_Cooling_Load[2]) annotation (Line(
+      points={{-214,28},{-222,28},{-222,58},{342,58},{342,-104},{404,-104}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain.q_flow, Latent_Cooling_Load[3]) annotation (Line(
+      points={{166,84},{352,84},{352,-96},{404,-96}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain3.q_flow, Latent_Cooling_Load[4]) annotation (Line(
+      points={{312,-96},{334,-96},{334,-88},{404,-88}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(mixedAirHeatGain4.q_flow, Latent_Cooling_Load[5]) annotation (Line(
+      points={{-4,-224},{134,-224},{260,-224},{260,-80},{404,-80}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(res3.port_a, port_Air_a) annotation (Line(
+      points={{-78,-98},{-78,-98},{-78,-118},{-78,-120},{-298,-120},{-298,60},{-320,
+          60}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen3.port_b, port_Air_b) annotation (Line(
+      points={{-18,-162},{-160,-162},{-298,-162},{-298,-240},{-320,-240}},
+      color={0,127,255},
+      thickness=1));
+  connect(TSen1.T, T[1])
+    annotation (Line(
+      points={{76,-49},{76,-49},{76,-30},{0,-30},{0,142}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen2.T, T[2])
+    annotation (Line(
+      points={{-210,-5},{-210,-5},{-210,14},{-210,4},{0,4},{0,146}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen4.T, T[3]) annotation (Line(
+      points={{88,85},{88,102},{0,102},{0,150}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(TSen5.T, T[4]) annotation (Line(points={{302,-7},{302,-7},{302,96},{302,116},{0,116},{0,154}}, color={0,0,127}));
+  connect(TSen6.T, T[5]) annotation (Line(
+      points={{-100,-199},{-98,-199},{-98,-32},{2,-32},{2,158},{0,158}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(dp.port_a, res7.port_a)
+    annotation (Line(
+      points={{138,32},{140,32},{140,26},{142,26},{142,24},{176,24}},
+      color={0,127,255},
+      thickness=1));
+  connect(dp.port_b, sinAir.ports[1])
+    annotation (Line(
+      points={{138,52},{138,52},{138,98},{200,98}},
+      color={0,127,255},
+      thickness=1));
+  connect(dp.p_rel, p) annotation (Line(
+      points={{129,42},{128,42},{128,96},{128,110},{-280,110},{-280,-82},{-330,-82}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const16.y, vAV_terminal_PI3.MinFloRat) annotation (Line(
+      points={{-101.6,66},{-62,66},{-62,62},{-49.8,62}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const11.y, vAV_terminal_PI5.MinFloRat) annotation (Line(
+      points={{71.6,-246},{34,-246},{34,-222},{23.8,-222}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const12.y, vAV_terminal_PI2.MinFloRat) annotation (Line(
+      points={{-118.4,-36},{-124,-36},{-124,-24},{-130.2,-24}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  connect(const13.y, vAV_terminal_PI1.MinFloRat) annotation (Line(
+      points={{-51.6,-102},{-44,-102},{-44,-84},{-28,-84},{-28,-72},{-19.8,-72}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+
+  connect(const14.y, vAV_terminal_PI4.MinFloRat) annotation (Line(
+      points={{188.4,-28},{198,-28},{198,-30},{208.2,-30}},
+      color={0,0,127},
+      pattern=LinePattern.Dash));
+  annotation (Diagram(coordinateSystem(preserveAspectRatio=false, extent={{-320,
+            -320},{380,140}}), graphics={
+        Rectangle(
+          extent={{-260,120},{320,-276}},
+          lineColor={0,255,255},
+          lineThickness=1,
+          fillColor={255,255,255},
+          fillPattern=FillPattern.Solid),
+        Rectangle(
+          extent={{-100,-26},{166,-186}},
+          lineColor={0,255,255},
+          lineThickness=1,
+          fillColor={255,255,255},
+          fillPattern=FillPattern.Solid),
+        Line(
+          points={{-260,118},{-100,-26}},
+          color={0,255,255},
+          thickness=1),
+        Line(
+          points={{-100,-186},{-258,-278}},
+          color={0,255,255},
+          thickness=1),
+        Line(
+          points={{166,-26},{320,118}},
+          color={0,255,255},
+          thickness=1),
+        Line(
+          points={{166,-186},{320,-278}},
+          color={0,255,255},
+          thickness=1)}),
+    experiment(
+      StartTime=1.296e+007,
+      StopTime=2.592e+007,
+      __Dymola_NumberOfIntervals=21600),
+    __Dymola_Commands(file="modelica://PNNL_building_system/Resources/Scripts/Air_side_system/Terminal/Examples/Dampers_Pre_Independent.mos"
+        "Simulate and plot"),
+    __Dymola_experimentSetupOutput,
+    Icon(coordinateSystem(extent={{-320,-300},{380,100}}), graphics={Bitmap(
+          extent={{-300,-280},{374,52}},
+         fileName="modelica://AdaptiveControl/Resources/Images/AirflowNetwork.jpg"),
+                                 Text(
+          extent={{-111,-305},{226,-418}},
+          lineColor={0,0,255},
+          fillPattern=FillPattern.HorizontalCylinder,
+          fillColor={0,127,255},
+          textString="%name")}));
+end Airflow_Network_baseline0;

@@ -1,0 +1,4 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Air_Handling_Unit.MixingBox.Example.MixingBox_with_Control", stopTime=2000, method="dassl", resultFile="MixingBox_with_Control");
+createPlot(id=1, position={0, 0, 1376, 741}, y={"mixingBox.senTem.T", "mixingBox_control.u_s"}, range={0.0, 2000.0, 4.0, 28.0}, grid=true, colors={{28,108,200}, {238,46,47}});
+createPlot(id=1, position={0, 0, 1376, 368}, y={"step.y"}, range={0.0, 2000.0, 288.1, 289.20000000000005}, grid=true, subPlot=2, colors={{28,108,200}});
+

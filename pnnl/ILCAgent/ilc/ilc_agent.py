@@ -2,7 +2,7 @@
 -*- coding: utf-8 -*- {{{
 vim: set fenc=utf-8 ft=python sw=4 ts=4 sts=4 et:
 
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2018, Battelle Memorial Institute
 All rights reserved.
 
 1.  Battelle Memorial Institute (hereinafter Battelle) hereby grants
@@ -84,7 +84,7 @@ from ilc.curtailment_handler import CurtailmentCluster, CurtailmentContainer
 from ilc.criteria_handler import CriteriaContainer, CriteriaCluster, parse_sympy
 
 
-__version__ = "1.0.4"
+__version__ = "2.0.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -167,10 +167,6 @@ class ILCAgent(Agent):
             self.curtailment_container.add_curtailment_cluster(curtailment_cluster)
         _log.debug("CURTAILMENT_CONTAINER: {}".format(self.curtailment_container.devices.keys()))
         _log.debug("CRITERIA_CONTAINER: {}".format(self.criteria_container.devices.keys()))
-        self.base_device_topic = topics.DEVICES_VALUE(campus=campus,
-                                                      building=building,
-                                                      unit=None,
-                                                      path="", point=None)
 
         self.base_rpc_path = topics.RPC_DEVICE_PATH(campus="",
                                                     building="",
@@ -178,7 +174,6 @@ class ILCAgent(Agent):
                                                     path=None,
                                                     point="")
         self.device_topic_list = []
-        # self.device_topic_map = {}
         all_devices = self.curtailment_container.get_device_topic_set()
         for device_name in all_devices:
             device_topic = topics.DEVICES_VALUE(campus="",
@@ -188,7 +183,6 @@ class ILCAgent(Agent):
                                                 point="all")
 
             self.device_topic_list.append(device_topic)
-            # self.device_topic_map[device_topic] = device_name
 
         power_token = config["power_meter"]
         power_meter = power_token["device"]
@@ -247,7 +241,7 @@ class ILCAgent(Agent):
         self.stagger_release_time = float(config.get("curtailment_break", 15.0))
         self.stagger_release = config.get("stagger_release", False)
         self.stagger_off_time = config.get("stagger_off_time", True)
-        need_actuator_schedule = config.get("need_actuator_schedule", False)
+        self.need_actuator_schedule = config.get("need_actuator_schedule", False)
 
         self.running_ahp = False
         self.next_curtail_confirm = None
@@ -366,24 +360,6 @@ class ILCAgent(Agent):
             return
 
         _log.info("Data Received for {}".format(topic))
-        # topic of form:  devices/campus/building/device
-        # device_name = self.device_topic_map[topic]
-        # data = message[0]
-        # meta = message[1]
-        # now = parser.parse(headers["Date"])
-        # current_time_str = format_timestamp(now)
-        # parsed_data = parse_sympy(data)
-        #
-        # subdevices = self.curtailment_container.get_device(device_name).command_status.keys()
-        # for subdevice in subdevices:
-        #     status = self.curtailment_container.get_device(device_name).currently_curtailed[subdevice]
-        #     _log.debug("Device: {} -- subdevice: {} -- status: {}".format(device_name, subdevice, status))
-        #     self.criteria_container.get_device(device_name[0]).criteria_status(subdevice, status)
-        #
-        # self.criteria_container.get_device(device_name[0]).ingest_data(now, parsed_data)
-        # self.curtailment_container.get_device(device_name).ingest_data(parsed_data)
-        # self.create_device_status_publish(current_time_str, device_name, data, topic, meta)
-        # # self.create_curtailment_publish(current_time_str, device_name, meta)
         self.sync_status()
 
         now = parse_timestamp_string(header[headers.TIMESTAMP])
@@ -728,13 +704,16 @@ class ILCAgent(Agent):
             try:
                 if self.kill_signal_received:
                     break
-                result = self.vip.rpc.call(device_actuator, "request_new_schedule",
-                                           self.agent_id, curtailed_device, "HIGH", schedule_request).get(timeout=5)
+                if self.need_actuator_schedule:
+                    result = self.vip.rpc.call(device_actuator, "request_new_schedule",
+                                               self.agent_id, curtailed_device, "HIGH", schedule_request).get(timeout=5)
+                else:
+                    result = None
             except RemoteError as ex:
                 _log.warning("Failed to schedule device {} (RemoteError): {}".format(device, str(ex)))
                 continue
 
-            if result["result"] == "FAILURE":
+            if result is not None and result["result"] == "FAILURE":
                 _log.warn("Failed to schedule device (unavailable) " + device)
                 already_handled[device] = False
             else:

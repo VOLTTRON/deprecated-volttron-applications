@@ -2,7 +2,7 @@
 -*- coding: utf-8 -*- {{{
 vim: set fenc=utf-8 ft=python sw=4 ts=4 sts=4 et:
 
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2018, Battelle Memorial Institute
 All rights reserved.
 
 1.  Battelle Memorial Institute (hereinafter Battelle) hereby grants

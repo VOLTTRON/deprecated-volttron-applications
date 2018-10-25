@@ -2,7 +2,7 @@
 -*- coding: utf-8 -*- {{{
 vim: set fenc=utf-8 ft=python sw=4 ts=4 sts=4 et:
 
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2018, Battelle Memorial Institute
 All rights reserved.
 
 1.  Battelle Memorial Institute (hereinafter Battelle) hereby grants
@@ -62,7 +62,6 @@ BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 }}}
 """
-import re
 import abc
 from sympy import symbols
 from sympy.core import numbers
@@ -71,9 +70,7 @@ from collections import deque
 import logging
 from datetime import timedelta as td
 from volttron.platform.agent.utils import setup_logging
-from .ilc_matrices import (extract_criteria, calc_column_sums, normalize_matrix,
-                              validate_input, build_score, input_matrix)
-
+from .ilc_matrices import (build_score, input_matrix)
 
 from .utils import parse_sympy, create_device_topic_map, fix_up_point_name
 

@@ -14,7 +14,3 @@ Requirements for running the agent:
 
 	2. Edit the sunspecinverter.config according to the inverter settings. 
 
-Launching the agent:
-	
-	cd volttron/services/core
-	bash SunspecInverter/launch.sh

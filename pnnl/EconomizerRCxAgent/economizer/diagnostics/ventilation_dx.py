@@ -159,6 +159,7 @@ class ExcessOA(object):
         avg_oaf = max(0.0, min(100.0, avg_oaf))
         thresholds = zip(self.excess_damper_threshold.items(), self.excess_oaf_threshold.items())
         for (key, damper_thr), (key2, oaf_thr) in thresholds:
+            energy = None
             if avg_damper > damper_thr:
                 msg = "{}: The OAD should be at the minimum but is significantly higher.".format(ECON4)
                 # color_code = "RED"
@@ -183,7 +184,8 @@ class ExcessOA(object):
                 energy = 0.0
 
             dx_result.log(msg)
-            energy_impact.update({key: energy})
+            if energy is not None:
+                energy_impact.update({key: energy})
             diagnostic_msg.update({key: result})
 
         dx_table = {

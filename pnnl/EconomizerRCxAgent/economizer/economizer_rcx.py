@@ -91,7 +91,8 @@ def create_table_key(table_name, timestamp):
 def data_builder(value_tuple, point_name):
     value_list = []
     for item in value_tuple:
-        value_list.append(item[1])
+        if item[1] is not None:
+            value_list.append(item[1])
     return value_list
 
 
@@ -327,7 +328,7 @@ class Application(AbstractDrivenAgent):
             missing_data.append(self.oad_sig_name)
         if not cooling_data:
             missing_data.append(self.cool_call_name)
-        if not fan_status_data and not fan_sp_data:
+        if not fan_status_data or not fan_sp_data:
             missing_data.append(self.fan_status_name)
         if missing_data:
             dx_result.log("Missing data from publish: {}".format(missing_data))

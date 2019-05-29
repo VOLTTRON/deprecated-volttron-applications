@@ -54,7 +54,7 @@ import logging
 import sys
 import gevent
 from collections import defaultdict
-from datetime import datetime as dt, timedelta as td
+from datetime import timedelta as td
 from dateutil.parser import parse
 
 from volttron.platform.agent import utils
@@ -89,52 +89,21 @@ def driven_agent(config_path, **kwargs):
     config = utils.load_config(config_path)
     arguments = config.get("arguments")
 
-    actuation_mode = True if config.get("actuation_mode", "PASSIVE") == "ACTIVE" else False
-    actuator_lock_required = config.get("require_actuator_lock", False)
-
-    campus = config["device"].get("campus", "")
-    building = config["device"].get("building", "")
+    application = config.get("application")
     analysis_name = config.get("analysis_name", "analysis_name")
-    publish_base = "/".join([analysis_name, campus, building])
-    application_name = config.get("pretty_name", analysis_name)
+    # application_name = config.get("pretty_name", analysis_name)
     arguments.update({"analysis_name": analysis_name})
 
-    device_config = config["device"]["unit"]
-    multiple_devices = isinstance(device_config, dict)
-    command_devices = device_config.keys()
-    device_topic_dict = {}
-    device_topic_list = []
-    subdevices_list = []
-
+    actuation_mode = True if config.get("actuation_mode", "PASSIVE") == "ACTIVE" else False
+    actuator_lock_required = config.get("require_actuator_lock", False)
     interval = config.get("interval", 60)
     vip_destination = config.get("vip_destination", None)
     timezone = config.get("local_timezone", "US/Pacific")
-
-    for device_name in device_config:
-        device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name, path="", point="all")
-
-        device_topic_dict.update({device_topic: device_name})
-        device_topic_list.append(device_name)
-        if multiple_devices:
-            for subdevice in device_config[device_name]["subdevices"]:
-                subdevices_list.append(subdevice)
-                subdevice_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name,
-                                                       path=subdevice, point="all")
-
-                subdevice_name = device_name + "/" + subdevice
-                device_topic_dict.update({subdevice_topic: subdevice_name})
-                device_topic_list.append(subdevice_name)
-
-    base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus, building=building, unit=None, path="", point=None)
-
     device_lock_duration = config.get("device_lock_duration", 10.0)
     conversion_map = config.get("conversion_map")
-    missing_data_threshold = config.get("missing_data_threshold", 15.0)/100.0
-    map_names = {}
-    for key, value in conversion_map.items():
-        map_names[key.lower() if isinstance(key, str) else key] = value
+    missing_data_threshold = config.get("missing_data_threshold", 90.0)
 
-    application = config.get("application")
+    device = config["device"]
     validation_error = ""
     if not application:
         validation_error = "Invalid application specified in config\n"
@@ -157,33 +126,272 @@ def driven_agent(config_path, **kwargs):
         """Agent listens to message bus device and runs when data is published.
         """
 
-        def __init__(self, **kwargs):
+        def __init__(self,
+                     device,
+                     actuation_mode=False,
+                     actuator_lock_required=False,
+                     interval=60,
+                     vip_destination=None,
+                     timezone="US/Pacific",
+                     device_lock_duration=10.0,
+                     conversion_map=None,
+                     missing_data_threshold=90.0,
+                     **kwargs):
             """
             Initializes agent
             :param kwargs: Any driver specific parameters"""
 
             super(DrivenAgent, self).__init__(**kwargs)
 
+            self.sites_config_list = []
+            self.device_topic_dict = {}
+            self.site_topic_dict = {}
+
+            self.default_config = {
+                "device": device,
+                "actuation_mode": actuation_mode,
+                "actuator_lock_required": actuator_lock_required,
+                "interval": interval,
+                "vip_destination": vip_destination,
+                "timezone": timezone,
+                "device_lock_duration": device_lock_duration,
+                "conversion_map": conversion_map,
+                "missing_data_threshold": missing_data_threshold
+            }
+            self.vip.config.set_default("config", self.default_config)
+            self.vip.config.subscribe(self.configure_main, actions=["NEW", "UPDATE"], pattern="config")
+            self.vip.config.subscribe(self.update_driver, actions=["NEW", "UPDATE"], pattern="devices/*")
+            self.vip.config.subscribe(self.remove_driver, actions="DELETE", pattern="devices/*")
+
             # master is where we copy from to get a poppable list of
             # subdevices that should be present before we run the analysis.
-            self.master_devices = device_topic_list
-            self.needed_devices = []
-            self.device_values = self.master_devices[:]
-            self.initialize_devices()
             self.received_input_datetime = None
 
             self._header_written = False
             self.file_creation_set = set()
+            self.initialize_time = None
+
+        def configure_main(self, config_name, action, contents):
+            config = self.default_config.copy()
+            config.update(contents)
+            _log.info("configure_main with {}".format(config))
+
+            self.unsubscribe_from_all_devices()
+
+            self.actuation_mode = True if config.get("actuation_mode", "PASSIVE") == "ACTIVE" else False
+            self.actuator_lock_required = config.get("require_actuator_lock", False)
+            self.interval = config.get("interval", 60)
+            self.vip_destination = config.get("vip_destination", None)
+            self.timezone = config.get("local_timezone", "US/Pacific")
+            self.device_lock_duration = config.get("device_lock_duration", 10.0)
+            self.conversion_map = config.get("conversion_map")
+            self.missing_data_threshold = config.get("missing_data_threshold", 50.0)/100.0
 
             self.actuation_vip = self.vip.rpc
-            self.initialize_time = None
-            if vip_destination:
-                self.agent = setup_remote_actuation(vip_destination)
+            if self.vip_destination:
+                self.agent = setup_remote_actuation(self.vip_destination)
                 self.actuation_vip = self.agent.vip.rpc
 
+            self.map_names = {}
+            if self.conversion_map:
+                for key, value in self.conversion_map.items():
+                    self.map_names[key.lower() if isinstance(key, str) else key] = value
+
+            _log.info("--- actuation_mode {}".format(self.actuation_mode))
+            _log.info("--- require_actuator_lock {}".format(self.actuator_lock_required))
+            _log.info("--- interval {}".format(self.interval))
+            _log.info("--- vip_destination {}".format(self.vip_destination))
+            _log.info("--- local_timezone {}".format(self.timezone))
+            _log.info("--- device_lock_duration {}".format(self.device_lock_duration))
+            _log.info("--- missing_data_threshold {}".format(self.missing_data_threshold))
+            _log.info("--- conversion_map {}".format(self.conversion_map))
+            _log.info("--- map_names {}".format(self.map_names))
+
+            self.sites = config["device"]
+            if not isinstance(self.sites, list):
+                self.sites = [self.sites]
+
+            self.sites_config_list = []
+            self.site_topic_dict = {}
+            self.device_topic_dict = {}
+
+            for site in self.sites:
+                campus = site.get("campus", "")
+                building = site.get("building", "")
+                site_name = "/".join([campus, building])
+                publish_base = "/".join([analysis_name, campus, building])
+
+                device_config = site["unit"]
+                multiple_devices = isinstance(device_config, dict)
+                command_devices = device_config.keys()
+                site_device_topic_dict = {}
+                device_topic_list = []
+                subdevices_list = []
+
+                base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus, building=building, unit=None,
+                                                            path="", point=None)
+
+                site_dict = {
+                    'site_name': site_name,
+                    'publish_base': publish_base,
+                    'multiple_devices': multiple_devices,
+                    'device_topic_dict': site_device_topic_dict,
+                    'device_topic_list': device_topic_list,
+                    'subdevices_list': subdevices_list,
+                    'command_devices': command_devices,
+                    'base_actuator_path': base_actuator_path
+                }
+                if 'point_mapping' in site:
+                    site_dict['point_mapping'] = site['point_mapping']
+                self.sites_config_list.append(site_dict)
+
+                for device_name in device_config:
+                    device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name,
+                                                        path="", point="all")
+
+                    self.site_topic_dict.update({device_topic: site_dict})
+                    self.device_topic_dict.update({device_topic: device_name})
+                    site_device_topic_dict.update({device_topic: device_name})
+                    device_topic_list.append(device_name)
+                    _log.info("device_topic_list topic {} -> device {}".format(device_topic, device_name))
+                    if multiple_devices:
+                        for subdevice in device_config[device_name]["subdevices"]:
+                            if subdevice not in subdevices_list:
+                                subdevices_list.append(subdevice)
+                            subdevice_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name,
+                                                                   path=subdevice, point="all")
+
+                            subdevice_name = device_name + "/" + subdevice
+                            self.site_topic_dict.update({subdevice_topic: site_dict})
+                            self.device_topic_dict.update({subdevice_topic: subdevice_name})
+                            site_device_topic_dict.update({subdevice_topic: subdevice_name})
+                            device_topic_list.append(subdevice_name)
+                            _log.info("device_topic_list topic {} -> subdev {}".format(subdevice_topic, subdevice_name))
+                _log.info("-- Site config {}".format(site_dict))
+
+            self.initialize_devices()
+            self.subscribe_to_all_devices()
+
+        def derive_device_topic(self, config_name):
+            _, topic = config_name.split('/', 1)
+            # remove any #prefix from the config name which is only used to differentiate config keys
+            return topic.split('#', 1)[0]
+
+        def derive_device_unit(self, config_name, contents):
+            if 'unit' in contents:
+                return contents['unit']
+            _, topic = config_name.split('/', 1)
+            if '#' in topic:
+                return topic.split('#', 1)[1]
+            return None
+
+        def update_driver(self, config_name, action, contents):
+            topic = self.derive_device_topic(config_name)
+            topic_split = topic.split('/', 2)
+            if len(topic_split) > 1:
+                campus = topic_split[0]
+                building = topic_split[1]
+            if len(topic_split) > 2:
+                unit = topic_split[2]
+            else:
+                unit = ""
+            site_name = "/".join([campus, building])
+            publish_base = "/".join([analysis_name, campus, building])
+            command_devices = []
+            site_device_topic_dict = {}
+            device_topic_list = []
+            subdevices_list = []
+
+            base_actuator_path = topics.RPC_DEVICE_PATH(campus=campus, building=building, unit=None,
+                                                        path="", point=None)
+
+            site_dict = {
+                'site_name': site_name,
+                'publish_base': publish_base,
+                'multiple_devices': False,
+                'device_topic_dict': site_device_topic_dict,
+                'device_topic_list': device_topic_list,
+                'subdevices_list': subdevices_list,
+                'command_devices': command_devices,
+                'base_actuator_path': base_actuator_path
+            }
+            if 'point_mapping' in contents:
+                site_dict['point_mapping'] = contents['point_mapping']
+            if not unit:
+                # lookup the subdevices from point_mapping
+                for point in contents['point_mapping'].keys():
+                    # remove the point name to get the subdevice
+                    subdevice_name = point.rsplit('/', 1)[0]
+                    sd_split = subdevice_name.rsplit('/', 1)
+                    device_name = sd_split[0]
+                    subdevice = ''
+                    if len(sd_split) > 1:
+                        subdevice = sd_split[1]
+                    if subdevice not in subdevices_list:
+                        subdevices_list.append(subdevice)
+                        command_devices.append(subdevice)
+                    subdevice_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=device_name,
+                                                           path=subdevice, point="all")
+                    self.site_topic_dict.update({subdevice_topic: site_dict})
+                    self.device_topic_dict.update({subdevice_topic: subdevice_name})
+                    site_device_topic_dict.update({subdevice_topic: subdevice_name})
+                    device_topic_list.append(subdevice_name)
+                    _log.info("device_topic_list topic {} -> subdev {}".format(subdevice_topic, subdevice_name))
+
+            self.sites_config_list.append(site_dict)
+            device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=unit,
+                                                path="", point="all")
+
+            if device_topic in self.device_topic_dict:
+                self.unsubscribe_from_device(device_topic)
+
+            self.site_topic_dict.update({device_topic: site_dict})
+            if unit:
+                self.device_topic_dict.update({device_topic: unit})
+                site_device_topic_dict.update({device_topic: unit})
+                device_topic_list.append(unit)
+                command_devices.append(unit)
+
+            # overrides the publishing unit topic, which is needed for split topics
+            override_unit = self.derive_device_unit(config_name, contents)
+            if override_unit:
+                del command_devices[:]
+                command_devices.append(override_unit)
+
+            _log.info("device_topic_list topic {} -> device {}".format(device_topic, unit))
+            self.initialize_device(site_dict)
+            _log.info("-- Site config {}".format(site_dict))
+            for dt in site_device_topic_dict.keys():
+                self.subscribe_to_device(dt)
+
+        def remove_driver(self, config_name, action, contents):
+            topic = self.derive_device_topic(config_name)
+            topic_split = topic.split('/', 2)
+            if len(topic_split) > 1:
+                campus = topic_split[0]
+                building = topic_split[1]
+            if len(topic_split) > 2:
+                unit = topic_split[2]
+            else:
+                unit = ""
+            device_topic = topics.DEVICES_VALUE(campus=campus, building=building, unit=unit,
+                                                path="", point="all")
+
+            self.site_topic_dict.pop(device_topic, None)
+            self.device_topic_dict.pop(device_topic, None)
+            self.unsubscribe_from_device(device_topic)
+
         def initialize_devices(self):
-            self.needed_devices = self.master_devices[:]
-            self.device_values = {}
+            for site in self.sites_config_list:
+                self.initialize_device(site)
+
+        def initialize_device(self, site):
+            _log.info("initialize_device {}".format(site))
+            site['needed_devices'] = site['device_topic_list'][:]
+            if 'device_values' in site:
+                site['device_values'].clear()
+            else:
+                site['device_values'] = {}
 
         @Core.receiver("onstart")
         def startup(self, sender, **kwargs):
@@ -194,11 +402,25 @@ def driven_agent(config_path, **kwargs):
             :param kwargs: Any driver specific parameters
             :type sender: str
             """
-            for device in device_topic_dict:
-                _log.info("Subscribing to " + device)
-                self.vip.pubsub.subscribe(peer="pubsub", prefix=device, callback=self.on_analysis_message)
+            pass
 
-        def _should_run_now(self):
+        def unsubscribe_from_device(self, device):
+            _log.info("Unsubscribing to " + device)
+            self.vip.pubsub.unsubscribe(peer="pubsub", prefix=device, callback=self.on_analysis_message)
+
+        def unsubscribe_from_all_devices(self):
+            for device in self.device_topic_dict:
+                self.unsubscribe_from_device(device)
+
+        def subscribe_to_device(self, device):
+            _log.info("Subscribing to " + device)
+            self.vip.pubsub.subscribe(peer="pubsub", prefix=device, callback=self.on_analysis_message)
+
+        def subscribe_to_all_devices(self):
+            for device in self.device_topic_dict:
+                self.subscribe_to_device(device)
+
+        def _should_run_now(self, topic):
             """
             Checks if messages from all the devices are received
                 before running application
@@ -206,26 +428,61 @@ def driven_agent(config_path, **kwargs):
             :rtype: boolean
             """
             # Assumes the unit/all values will have values.
-            if not self.device_values.keys():
+            _log.info("_should_run_now topic {} ".format(topic))
+            site = self.site_topic_dict[topic]
+            device_values = site['device_values']
+            _log.info("_should_run_now check device_values {} ".format(device_values))
+            if not device_values.keys():
+                _log.info("_should_run_now FALSE")
                 return False
-            return not self.needed_devices
+            needed_devices = site['needed_devices']
+            _log.info("_should_run_now check needed_devices {} ".format(needed_devices))
+            return not needed_devices
 
         def aggregate_subdevice(self, device_data, topic):
             """
             Aggregates device and subdevice data for application
             :returns: True or False based on if device data is needed.
             :rtype: boolean"""
+            result = True
             tagged_device_data = {}
-            device_tag = device_topic_dict[topic]
-            _log.debug("Current device to aggregate: {}".format(device_tag))
-            if device_tag not in self.needed_devices:
-                return False
+            device_tag = self.device_topic_dict[topic]
+            site = self.site_topic_dict[topic]
+            needed_devices = site['needed_devices']
+            device_values = site['device_values']
+            _log.info("Current device to aggregate: topic {} device: {}".format(topic, device_tag))
+            if device_tag not in needed_devices:
+                result = False
+            # optional eg: 'SomeFanSpeed' -> 'supply_fan_speed'
+            mappings = site.get('point_mapping', {})
+            _log.info("--- device_data -> {}".format(device_data))
+            _log.info("--- mappings -> {}".format(mappings))
             for key, value in device_data.items():
-                device_data_tag = "&".join([key, device_tag])
+                # weird ... bug
+                if key.endswith(device_tag):
+                    _log.warning("--- weird entry in device_data ? {} -> {}".format(key, value))
+                    _log.warning("--- device_tag ? {}".format(device_tag))
+                    key = key[:-len(device_tag)-1]
+
+                # here do the mapping between the actual device topic
+                # and the APP expected topic names
+                k = key
+                if key in mappings:
+                    k = mappings[key]
+                else:
+                    long_key = '/'.join([device_tag, key])
+                    if long_key in mappings:
+                        k = mappings[long_key]
+
+                device_data_tag = "&".join([k, device_tag])
                 tagged_device_data[device_data_tag] = value
-            self.device_values.update(tagged_device_data)
-            self.needed_devices.remove(device_tag)
-            return True
+            _log.info("--- tagged_device_data -> {}".format(tagged_device_data))
+            device_values.update(tagged_device_data)
+            _log.info("--- device_values -> {}".format(device_values))
+            if device_tag in needed_devices:
+                needed_devices.remove(device_tag)
+                _log.info("--- needed_devices removed [{}] -> {}".format(device_tag, needed_devices))
+            return result
 
         def on_analysis_message(self, peer, sender, bus, topic, headers, message):
             """
@@ -245,19 +502,31 @@ def driven_agent(config_path, **kwargs):
             :type headers: dict
             :type message: dict
             """
+            _log.info("on_analysis_message: from device {} topic -> {}".format(sender, topic))
+            _log.info("on_analysis_message: {} -> {}".format(headers, message))
+            site = self.site_topic_dict.get(topic)
+            if not site:
+                _log.error("No Site configured for topic: {}".format(topic))
+                return
+
+            needed_devices = site['needed_devices']
+            device_values = site['device_values']
+            master_devices = site['device_topic_list']
+
             timestamp = parse(headers.get("Date"))
             missing_but_running = False
-            if self.initialize_time is None and len(self.master_devices) > 1:
-                self.initialize_time = find_reinitialize_time(timestamp)
+            if self.initialize_time is None and len(master_devices) > 1:
+                self.initialize_time = self.find_reinitialize_time(timestamp)
 
             if self.initialize_time is not None and timestamp < self.initialize_time:
-                if len(self.master_devices) > 1:
+                if len(master_devices) > 1:
+                    _log.info("on_analysis_message: waiting until initialize_time: {}".format(self.initialize_time))
                     return
 
-            to_zone = dateutil.tz.gettz(timezone)
+            to_zone = dateutil.tz.gettz(self.timezone)
             timestamp = timestamp.astimezone(to_zone)
             self.received_input_datetime = timestamp
-            _log.debug("Current time of publish: {}".format(timestamp))
+            _log.info("on_analysis_message: Current time of publish: {}".format(timestamp))
 
             device_data = message[0]
             if isinstance(device_data, list):
@@ -265,35 +534,39 @@ def driven_agent(config_path, **kwargs):
 
             device_needed = self.aggregate_subdevice(device_data, topic)
             if not device_needed:
-                fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
-                if fraction_missing > missing_data_threshold:
-                    _log.error("Device values already present, reinitializing at publish: {}".format(timestamp))
-                    self.initialize_devices()
+                fraction_missing = float(len(needed_devices)) / len(master_devices)
+                _log.warning("on_analysis_message: No device_needed: {} fraction_missing = {}".format(topic, fraction_missing))
+                if fraction_missing > self.missing_data_threshold:
+                    _log.error("on_analysis_message: Device values already present, reinitializing at publish: {}".format(timestamp))
+                    self.initialize_device(site)
                     device_needed = self.aggregate_subdevice(device_data, topic)
                     return
                 missing_but_running = True
-                _log.warning("Device already present. Using available data for diagnostic.: {}".format(timestamp))
-                _log.warning("Device  already present - topic: {}".format(topic))
-                _log.warning("All devices: {}".format(self.master_devices))
-                _log.warning("Needed devices: {}".format(self.needed_devices))
+                _log.warning("on_analysis_message: Device already present. Using available data for diagnostic.: {}".format(timestamp))
+                _log.warning("on_analysis_message: Device already present - topic: {}".format(topic))
+                _log.warning("on_analysis_message: All devices: {}".format(master_devices))
+                _log.warning("on_analysis_message: Needed devices: {}".format(needed_devices))
 
-            if self._should_run_now() or missing_but_running:
+            srn = self._should_run_now(topic)
+            _log.info("on_analysis_message: _should_run_now {} or {}".format(srn, missing_but_running))
+            if srn or missing_but_running:
                 field_names = {}
-                for point, data in self.device_values.items():
+                _log.info("on_analysis_message: Running for topic {}".format(topic))
+                for point, data in device_values.items():
+                    _log.info("on_analysis_message: --- point, data: {} -> {}".format(point, data))
                     field_names[point] = data
                 if not converter.initialized and conversion_map is not None:
-                    converter.setup_conversion_map(map_names, field_names)
+                    converter.setup_conversion_map(self.map_names, field_names)
 
-                device_data = converter.process_row(field_names)
-                results = app_instance.run(timestamp, device_data)
-                self.process_results(results)
-                self.initialize_devices()
+                results = app_instance.run(timestamp, converter.process_row(field_names))
+                self.process_results(site, results)
+                self.initialize_device(site)
                 if missing_but_running:
                     device_needed = self.aggregate_subdevice(device_data, topic)
             else:
-                _log.info("Still need {} before running.".format(self.needed_devices))
+                _log.info("on_analysis_message: Still need {} before running.".format(needed_devices))
 
-        def process_results(self, results):
+        def process_results(self, site, results):
             """
             Runs driven application with converted data. Calls appropriate
                 methods to process commands, log and table_data in results.
@@ -305,24 +578,24 @@ def driven_agent(config_path, **kwargs):
             """
             _log.info("Processing Results!")
             actuator_error = False
-            if actuation_mode:
-                if results.devices and actuator_lock_required:
-                    actuator_error = self.actuator_request(results.devices)
-                elif results.commands and actuator_lock_required:
-                    actuator_error = self.actuator_request(command_devices)
+            if self.actuation_mode:
+                if results.devices and self.actuator_lock_required:
+                    actuator_error = self.actuator_request(site, results.devices)
+                elif results.commands and self.actuator_lock_required:
+                    actuator_error = self.actuator_request(site, site['command_devices'])
                 if not actuator_error:
-                    results = self.actuator_set(results)
+                    results = self.actuator_set(site, results)
             for log in results.log_messages:
                 _log.info("LOG: {}".format(log))
             for key, value in results.table_output.items():
                 _log.info("TABLE: {}->{}".format(key, value))
-            #if output_file_prefix is not None:
+            # if output_file_prefix is not None:
             #   results = self.create_file_output(results)
             if len(results.table_output.keys()):
-                results = self.publish_analysis_results(results)
+                results = self.publish_analysis_results(site, results)
             return results
 
-        def publish_analysis_results(self, results):
+        def publish_analysis_results(self, site, results):
             """
             Publish table_data in analysis results to the message bus for
                 capture by the data historian.
@@ -345,10 +618,10 @@ def driven_agent(config_path, **kwargs):
                 headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
                 for entry in analysis_table:
                     for point, result in entry.items():
-                        for device in command_devices:
-                            publish_topic = "/".join([publish_base, device, point])
+                        for device in site['command_devices']:
+                            publish_topic = "/".join([site['publish_base'], device, point])
                             analysis_topic = topics.RECORD(subtopic=publish_topic)
-                            datatype = str(type(value))
+                            # datatype = str(type(value))
                             to_publish[analysis_topic] = result
 
                 for result_topic, result in to_publish.items():
@@ -388,7 +661,7 @@ def driven_agent(config_path, **kwargs):
                     file_to_write.close()
             return results
 
-        def actuator_request(self, command_equip):
+        def actuator_request(self, site, command_equip):
             """
             Calls the actuator"s request_new_schedule method to get
                     device schedule
@@ -407,10 +680,10 @@ def driven_agent(config_path, **kwargs):
 
             _now = get_aware_utc_now()
             str_now = format_timestamp(_now)
-            _end = _now + td(minutes=device_lock_duration)
+            _end = _now + td(minutes=self.device_lock_duration)
             str_end = format_timestamp(_end)
             for device in command_equip:
-                actuation_device = base_actuator_path(unit=device, point="")
+                actuation_device = site['base_actuator_path'](unit=device, point="")
                 schedule_request = [[actuation_device, str_now, str_end]]
                 try:
                     _log.info("Make Request {} for start {} and end {}".format(actuation_device, str_now, str_end))
@@ -431,7 +704,7 @@ def driven_agent(config_path, **kwargs):
 
             return request_error
 
-        def actuator_set(self, results):
+        def actuator_set(self, site, results):
             """
             Calls the actuator"s set_point method to set point on device
 
@@ -441,11 +714,11 @@ def driven_agent(config_path, **kwargs):
 
             def make_actuator_set(device, point_value_dict):
                 for point, new_value in point_value_dict.items():
-                    point_path = base_actuator_path(unit=device, point=point)
+                    point_path = site['base_actuator_path'](unit=device, point=point)
                     try:
                         _log.info("Set point {} to {}".format(point_path, new_value))
-                        result = self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path,
-                                                         new_value).get(timeout=15)
+                        self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path,
+                                                new_value).get(timeout=15)
                     except RemoteError as ex:
                         _log.warning("Failed to set {} to {}: {}".format(point_path, new_value, str(ex)))
                         continue
@@ -453,19 +726,19 @@ def driven_agent(config_path, **kwargs):
             for device, point_value_dict in results.devices.items():
                 make_actuator_set(device, point_value_dict)
 
-            for device in command_devices:
+            for device in site['command_devices']:
                 make_actuator_set(device, results.commands)
             return results
 
-    def find_reinitialize_time(current_time):
-        midnight = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        seconds_from_midnight = (current_time - midnight).total_seconds()
-        offset = seconds_from_midnight % interval
-        previous_in_seconds = seconds_from_midnight - offset
-        next_in_seconds = previous_in_seconds + interval
-        from_midnight = td(seconds=next_in_seconds)
-        _log.debug("Start of next scrape interval: {}".format(midnight + from_midnight))
-        return midnight + from_midnight
+        def find_reinitialize_time(self, current_time):
+            midnight = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            seconds_from_midnight = (current_time - midnight).total_seconds()
+            offset = seconds_from_midnight % self.interval
+            previous_in_seconds = seconds_from_midnight - offset
+            next_in_seconds = previous_in_seconds + self.interval
+            from_midnight = td(seconds=next_in_seconds)
+            _log.debug("Start of next scrape interval: {}".format(midnight + from_midnight))
+            return midnight + from_midnight
 
     def setup_remote_actuation(vip_destination):
         event = gevent.event.Event()
@@ -475,7 +748,18 @@ def driven_agent(config_path, **kwargs):
         return agent
 
     DrivenAgent.__name__ = "DrivenLoggerAgent"
-    return DrivenAgent(**kwargs)
+    return DrivenAgent(
+        device,
+        actuation_mode,
+        actuator_lock_required,
+        interval,
+        vip_destination,
+        timezone,
+        device_lock_duration,
+        conversion_map,
+        missing_data_threshold,
+        **kwargs
+        )
 
 
 def _get_class(kls):

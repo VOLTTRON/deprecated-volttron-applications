@@ -482,7 +482,8 @@ def _get_class(kls):
     """Get driven application information."""
     parts = kls.split(".")
     module = ".".join(parts[:-1])
-    main_mod = __import__(module)
+    from . import airside_aircx
+    main_mod = airside_aircx #__import__(module)
     for comp in parts[1:]:
         main_mod = getattr(main_mod, comp)
     return main_mod

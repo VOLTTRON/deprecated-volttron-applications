@@ -53,12 +53,15 @@ import datetime
 from datetime import timedelta as td
 import logging
 import sys
+import os
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.driven import Results, AbstractDrivenAgent
 from volttron.platform.agent.utils import (setup_logging)
-from diagnostics.temperature_sensor_dx import TempSensorDx
-from diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
-from diagnostics.ventilation_dx import ExcessOA, InsufficientOA
+
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '/diagnostics/'))
+from .diagnostics.temperature_sensor_dx import TempSensorDx
+from .diagnostics.economizer_dx import EconCorrectlyOn, EconCorrectlyOff
+from .diagnostics.ventilation_dx import ExcessOA, InsufficientOA
 
 __version__ = "1.0.8"
 
@@ -519,3 +522,26 @@ class Application(AbstractDrivenAgent):
         else:
             self.sensor_limit = None
         return sensor_limit
+
+    def output_format(cls, input_object):
+        """
+        The output object takes the resulting input object as a argument
+        so that it may give correct topics to it's outputs if needed.
+
+        output schema description
+            {TableName1: {name1:OutputDescriptor1, name2:OutputDescriptor2,...},....}
+
+            eg: {'OAT': {'Timestamp':OutputDescriptor('timestamp', 'foo/bar/timestamp'),'OAT':OutputDescriptor('OutdoorAirTemperature', 'foo/bar/oat')},
+                'Sensor': {'SomeValue':OutputDescriptor('integer', 'some_output/value'),
+                'SomeOtherValue':OutputDescriptor('boolean', 'some_output/value),
+                'SomeString':OutputDescriptor('string', 'some_output/string)}}
+
+        Should always call the parent class output_format and update the dictionary returned from
+        the parent.
+
+        result = super().output_format(input_object)
+        my_output = {...}
+        result.update(my_output)
+        return result
+        """
+        return {}

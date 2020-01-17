@@ -17,7 +17,7 @@
             }
         }
     },
-    "analysis_name": "AirsideAIRCx"
+    "analysis_name": "AirsideAIRCx",
     "mode": "PASSIVE",
     "arguments": {
         "point_mapping": {

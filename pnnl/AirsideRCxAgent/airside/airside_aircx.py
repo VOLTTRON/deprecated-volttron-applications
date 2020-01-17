@@ -53,13 +53,15 @@ under Contract DE-AC05-76RL01830
 from datetime import timedelta as td
 import sys
 import logging
+import os
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.agent.driven import Results, AbstractDrivenAgent
-from diagnostics.sat_aircx import SupplyTempAIRCx
-from diagnostics.stcpr_aircx import DuctStaticAIRCx
-from diagnostics.schedule_reset_aircx import SchedResetAIRCx
-from diagnostics.common import pre_conditions
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), '/diagnostics/'))
+from .diagnostics.sat_aircx import SupplyTempAIRCx
+from .diagnostics.stcpr_aircx import DuctStaticAIRCx
+from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
+from .diagnostics.common import pre_conditions
 
 FAN_OFF = -99.3
 DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
@@ -460,3 +462,22 @@ class Application(AbstractDrivenAgent):
         self.warm_up_start = None
         self.warm_up_flag = True
         self.unit_status = None
+
+    def output_format(cls, input_object):
+        """
+        The output object takes the resulting input object as a argument
+        so that it may give correct topics to it's outputs if needed.
+        output schema description
+            {TableName1: {name1:OutputDescriptor1, name2:OutputDescriptor2,...},....}
+            eg: {'OAT': {'Timestamp':OutputDescriptor('timestamp', 'foo/bar/timestamp'),'OAT':OutputDescriptor('OutdoorAirTemperature', 'foo/bar/oat')},
+                'Sensor': {'SomeValue':OutputDescriptor('integer', 'some_output/value'),
+                'SomeOtherValue':OutputDescriptor('boolean', 'some_output/value),
+                'SomeString':OutputDescriptor('string', 'some_output/string)}}
+        Should always call the parent class output_format and update the dictionary returned from
+        the parent.
+        result = super().output_format(input_object)
+        my_output = {...}
+        result.update(my_output)
+        return result
+        """
+        return {}

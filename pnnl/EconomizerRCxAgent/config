@@ -3,8 +3,8 @@
     "application": "economizer.economizer_rcx.Application",
 
     "device": {
-        "campus": "campus1",
-        "building": "building1",
+        "campus": "campus",
+        "building": "building",
         "unit": {
             "rtu4": {
                 "subdevices": []
@@ -16,16 +16,18 @@
     "mode": "PASSIVE",
 
     "arguments": {
+
         "point_mapping": {
         
-            "supply_fan_status": "SupplyFanStatus",
-            "outdoor_air_temperature": "OutdoorAirTemperature",
-            "return_air_temperature": "ReturnAirTemperature",
-            "mixed_air_temperature": "MixedAirTemperature",
-            "outdoor_damper_signal": "OutdoorDamperSignal",
-            "cool_call": "CoolingValvePosition",
+            "supply_fan_status": "FanStatus",
+            "outdoor_air_temperature": "OutsideAirTemp",
+            "return_air_temperature": "ReturnAirTemp",
+            "mixed_air_temperature": "MixedAirTemp",
+            "outdoor_damper_signal": "Damper",
+            "cool_call": "CompressorStatus",
             "supply_fan_speed": "SupplyFanSpeed"
         },
+            "device_type": "rtu",
             "data_window": 1,
             "no_required_data": 1,
             "open_damper_time": 0,

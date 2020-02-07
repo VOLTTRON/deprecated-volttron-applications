@@ -433,7 +433,7 @@ class EIEvent(APIView):
         # IS THIS A REQUEST EVENT?
         if request.data.oadrSignedObject.oadrRequestEvent is not None:
             try:
-                ven_id = request.data.oadrSignedObject.oadrRequestEvent.venID
+                ven_id = request.data.oadrSignedObject.oadrRequestEvent.eiRequestEvent.venID
 
                 site_events = SiteEvent.objects.filter(site__ven_id=ven_id,
                                                        dr_event__scheduled_notification_time__lt=timezone.now()) \

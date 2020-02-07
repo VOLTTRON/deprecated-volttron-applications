@@ -1,0 +1,9 @@
+<LogEvent xmlns="urn:ieee:std:2030.5:ns">
+    <createdDateTime>1514934000</createdDateTime>
+    <details>Over-Current-Alarm</details>
+    <functionSet>11</functionSet>
+    <logEventCode>0</logEventCode>
+    <logEventID>1</logEventID>
+    <logEventPEN>40732</logEventPEN>
+    <profileID>2</profileID>
+</LogEvent>

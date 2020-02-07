@@ -1,0 +1,13 @@
+<EndDeviceList href="/sep2/edev" subscribable="1" pollRate="86400" all="1" results="1"
+xmlns="urn:ieee:std:2030.5:ns">
+    <EndDevice href="/sep2/edev/1">
+        <DERListLink href="/sep2/edev/1/der" all="0"/>
+        <lFDI>12a4a4b406ad102e7421019135ffa2805235a21c</lFDI>
+        <LogEventListLink href="/sep2/edev/1/log" all="0"/>
+        <sFDI>050044792964</sFDI>
+        <changedTime>1514836800</changedTime>
+        <enabled>1</enabled>
+        <FunctionSetAssignmentsListLink href="/sep2/edev/1/fsa" all="1"/>
+        <RegistrationLink href="/sep2/edev/1/rg"/>
+    </EndDevice>
+</EndDeviceList>

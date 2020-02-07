@@ -1,0 +1,19 @@
+<MirrorUsagePoint xmlns="urn:ieee:std:2030.5:ns">
+    <mRID>5509D69F8B3535950000000000009182</mRID>
+    <description>DER [Inverter A]</description>
+    <roleFlags>49</roleFlags>
+    <serviceCategoryKind>0</serviceCategoryKind >
+    <status>1</status>
+    <deviceLFDI>12a4a4b406ad102e7421019135ffa2805235a21c</deviceLFDI>
+    <MirrorMeterReading>
+        <mRID>5509D69F8B3535950001000000009182</mRID>
+        <description>Real Power(W) Set</description>
+        <ReadingType>
+            <accumulationBehavior>4</accumulationBehavior>
+            <dataQualifier>2</dataQualifier>
+            <intervalLength>300</intervalLength>
+            <powerOfTenMultiplier>0</powerOfTenMultiplier>
+            <uom>38</uom>
+        </ReadingType>
+    </MirrorMeterReading>
+</MirrorUsagePoint>

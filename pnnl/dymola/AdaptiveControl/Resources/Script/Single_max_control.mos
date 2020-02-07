@@ -1,0 +1,8 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.BaseClasses.Example.Single_Max", stopTime=100, method="dassl", resultFile="Single_Max");
+createPlot(id=1, position={0, 0, 1376, 701}, y=fill("", 0), range={0.0, 100.0, 285.0, 310.0}, grid=true);
+plotExpression(apply(Single_Max[end].ramp.y), false, "Zone Temperature", 1);
+plotExpression(apply(Single_Max[end].TMin.y), false, "TMin", 1);
+plotExpression(apply(Single_Max[end].TMax.y), false, "TMax", 1);
+createPlot(id=1, position={0, 0, 1376, 348}, y=fill("", 0), range={0.0, 100.0, -0.2, 1.2000000000000002}, grid=true, subPlot=2);
+plotExpression(apply(Single_Max[end].single_Max_Control.yDam), false, "Damper Position", 1);
+plotExpression(apply(Single_Max[end].single_Max_Control.yVal), false, "Reheat Valve Poistion", 1);

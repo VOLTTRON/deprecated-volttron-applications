@@ -1,0 +1,6 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Air_Handling_Unit.Fan.Example.Constant_Speed_Fan", stopTime=50, method="dassl", resultFile="Constant_Speed_Fan");
+createPlot(id=1, position={0, 0, 1242, 701}, y={"yRam.y"}, range={0.0, 56.0, -0.5, 1.5}, grid=true, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1242, 171}, y={"constant_Speed_Fan.PFan"}, range={0.0, 54.0, -2000.0, 6000.0}, grid=true, subPlot=2, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1242, 172}, y={"constant_Speed_Fan.On"}, range={0.0, 54.0, -0.5, 1.5}, grid=true, subPlot=3, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1242, 171}, y={"constant_Speed_Fan.fan.port_a.m_flow", "vavDam.m_flow_nominal"}, range={0.0, 54.0, -50.0, 100.0}, grid=true, subPlot=4, colors={{28,108,200}, {238,46,47}});
+

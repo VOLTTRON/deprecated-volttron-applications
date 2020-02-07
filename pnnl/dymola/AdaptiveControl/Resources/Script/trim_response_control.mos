@@ -1,0 +1,5 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Terminal.BaseClasses.Example.Trim_response", stopTime=3600, method="dassl", resultFile="Trim_response");
+
+createPlot(id=1, position={0, 0, 1376, 701}, y={"trim_response.I", "pulse.y"}, range={0.0, 3600.0, -5.0, 25.0}, grid=true, colors={{238,46,47}, {28,108,200}});
+createPlot(id=1, position={0, 0, 1376, 231}, y={"trim_response.uniDel1.y"}, range={0.0, 3600.0, 0.9, 1.6}, grid=true, subPlot=2, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1376, 230}, y={"trim_response.SetPoi"}, range={0.0, 3600.0, 1.25, 1.55}, grid=true, subPlot=3, colors={{28,108,200}});

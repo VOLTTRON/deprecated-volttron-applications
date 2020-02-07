@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This is file 'modelDescription.xml' for input 'wholebuilding.idf'. -->
+<fmiModelDescription  fmiVersion="1.0"
+  modelName="wholebuilding.idf"
+  modelIdentifier="wholebuilding"
+  guid="be70f6b37853948ec28a10ae6aafc70a"
+  description="Automatically generated from EnergyPlus input file wholebuilding.idf"
+  generationTool="idf-to-fmu-export-prep-win.exe"
+  generationDateAndTime="2017-03-20T17:58:04Z"
+  variableNamingConvention="flat"
+  numberOfContinuousStates="0"
+  numberOfEventIndicators="0">
+  <!-- Note guid is an md5 checksum of the IDF file. -->
+  <!-- Exposed model variables. -->
+  <ModelVariables>
+    <!-- Note valueReferences are (1, 2, 3...) for causality="input" (to E+). -->
+    <!-- Note valueReferences are (100001, 100002, 100003...) for "output" (from E+). -->
+    <!-- Note the order of valueReferences should match the order of elements in file 'variables.cfg'. -->
+    <ScalarVariable  name="Temp1"  valueReference="1"
+      variability="continuous"  causality="input"
+      description="IDF line 6049">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp2"  valueReference="2"
+      variability="continuous"  causality="input"
+      description="IDF line 6055">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp3"  valueReference="3"
+      variability="continuous"  causality="input"
+      description="IDF line 6061">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp4"  valueReference="4"
+      variability="continuous"  causality="input"
+      description="IDF line 6067">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp5"  valueReference="5"
+      variability="continuous"  causality="input"
+      description="IDF line 6073">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp1_top"  valueReference="6"
+      variability="continuous"  causality="input"
+      description="IDF line 6079">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp2_top"  valueReference="7"
+      variability="continuous"  causality="input"
+      description="IDF line 6085">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp3_top"  valueReference="8"
+      variability="continuous"  causality="input"
+      description="IDF line 6091">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp4_top"  valueReference="9"
+      variability="continuous"  causality="input"
+      description="IDF line 6097">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp5_top"  valueReference="10"
+      variability="continuous"  causality="input"
+      description="IDF line 6103">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp1_bot"  valueReference="11"
+      variability="continuous"  causality="input"
+      description="IDF line 6109">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp2_bot"  valueReference="12"
+      variability="continuous"  causality="input"
+      description="IDF line 6115">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp3_bot"  valueReference="13"
+      variability="continuous"  causality="input"
+      description="IDF line 6121">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp4_bot"  valueReference="14"
+      variability="continuous"  causality="input"
+      description="IDF line 6127">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Temp5_bot"  valueReference="15"
+      variability="continuous"  causality="input"
+      description="IDF line 6133">
+      <Real  start="23.9"/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_Sensible_COOLING_LOAD"  valueReference="100001"
+      variability="continuous"  causality="output"
+      description="IDF line 5731">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_Latent_COOLING_LOAD"  valueReference="100002"
+      variability="continuous"  causality="output"
+      description="IDF line 5736">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_HEATING_LOAD"  valueReference="100003"
+      variability="continuous"  causality="output"
+      description="IDF line 5741">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_top_Sensible_COOLING_LOAD"  valueReference="100004"
+      variability="continuous"  causality="output"
+      description="IDF line 5746">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_top_Latent_COOLING_LOAD"  valueReference="100005"
+      variability="continuous"  causality="output"
+      description="IDF line 5751">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_top_HEATING_LOAD"  valueReference="100006"
+      variability="continuous"  causality="output"
+      description="IDF line 5756">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_bot_Sensible_COOLING_LOAD"  valueReference="100007"
+      variability="continuous"  causality="output"
+      description="IDF line 5761">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_bot_Latent_COOLING_LOAD"  valueReference="100008"
+      variability="continuous"  causality="output"
+      description="IDF line 5766">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_bot_HEATING_LOAD"  valueReference="100009"
+      variability="continuous"  causality="output"
+      description="IDF line 5771">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_Sensible_COOLING_LOAD"  valueReference="100010"
+      variability="continuous"  causality="output"
+      description="IDF line 5776">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_Latent_COOLING_LOAD"  valueReference="100011"
+      variability="continuous"  causality="output"
+      description="IDF line 5781">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_HEATING_LOAD"  valueReference="100012"
+      variability="continuous"  causality="output"
+      description="IDF line 5786">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_top_Sensible_COOLING_LOAD"  valueReference="100013"
+      variability="continuous"  causality="output"
+      description="IDF line 5791">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_top_Latent_COOLING_LOAD"  valueReference="100014"
+      variability="continuous"  causality="output"
+      description="IDF line 5796">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_top_HEATING_LOAD"  valueReference="100015"
+      variability="continuous"  causality="output"
+      description="IDF line 5801">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_bot_Sensible_COOLING_LOAD"  valueReference="100016"
+      variability="continuous"  causality="output"
+      description="IDF line 5806">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_bot_Latent_COOLING_LOAD"  valueReference="100017"
+      variability="continuous"  causality="output"
+      description="IDF line 5811">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_bot_HEATING_LOAD"  valueReference="100018"
+      variability="continuous"  causality="output"
+      description="IDF line 5816">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_Sensible_COOLING_LOAD"  valueReference="100019"
+      variability="continuous"  causality="output"
+      description="IDF line 5821">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_Latent_COOLING_LOAD"  valueReference="100020"
+      variability="continuous"  causality="output"
+      description="IDF line 5826">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_HEATING_LOAD"  valueReference="100021"
+      variability="continuous"  causality="output"
+      description="IDF line 5831">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_top_Sensible_COOLING_LOAD"  valueReference="100022"
+      variability="continuous"  causality="output"
+      description="IDF line 5836">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_top_Latent_COOLING_LOAD"  valueReference="100023"
+      variability="continuous"  causality="output"
+      description="IDF line 5841">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_top_HEATING_LOAD"  valueReference="100024"
+      variability="continuous"  causality="output"
+      description="IDF line 5846">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_bot_Sensible_COOLING_LOAD"  valueReference="100025"
+      variability="continuous"  causality="output"
+      description="IDF line 5851">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_bot_Latent_COOLING_LOAD"  valueReference="100026"
+      variability="continuous"  causality="output"
+      description="IDF line 5856">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_bot_HEATING_LOAD"  valueReference="100027"
+      variability="continuous"  causality="output"
+      description="IDF line 5861">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_Sensible_COOLING_LOAD"  valueReference="100028"
+      variability="continuous"  causality="output"
+      description="IDF line 5866">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_Latent_COOLING_LOAD"  valueReference="100029"
+      variability="continuous"  causality="output"
+      description="IDF line 5871">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_HEATING_LOAD"  valueReference="100030"
+      variability="continuous"  causality="output"
+      description="IDF line 5876">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_top_Sensible_COOLING_LOAD"  valueReference="100031"
+      variability="continuous"  causality="output"
+      description="IDF line 5881">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_top_Latent_COOLING_LOAD"  valueReference="100032"
+      variability="continuous"  causality="output"
+      description="IDF line 5886">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_top_HEATING_LOAD"  valueReference="100033"
+      variability="continuous"  causality="output"
+      description="IDF line 5891">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_bot_Sensible_COOLING_LOAD"  valueReference="100034"
+      variability="continuous"  causality="output"
+      description="IDF line 5896">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_bot_Latent_COOLING_LOAD"  valueReference="100035"
+      variability="continuous"  causality="output"
+      description="IDF line 5901">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_bot_HEATING_LOAD"  valueReference="100036"
+      variability="continuous"  causality="output"
+      description="IDF line 5906">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_Sensible_COOLING_LOAD"  valueReference="100037"
+      variability="continuous"  causality="output"
+      description="IDF line 5911">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_Latent_COOLING_LOAD"  valueReference="100038"
+      variability="continuous"  causality="output"
+      description="IDF line 5916">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_HEATING_LOAD"  valueReference="100039"
+      variability="continuous"  causality="output"
+      description="IDF line 5921">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_top_Sensible_COOLING_LOAD"  valueReference="100040"
+      variability="continuous"  causality="output"
+      description="IDF line 5926">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_top_Latent_COOLING_LOAD"  valueReference="100041"
+      variability="continuous"  causality="output"
+      description="IDF line 5931">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_top_HEATING_LOAD"  valueReference="100042"
+      variability="continuous"  causality="output"
+      description="IDF line 5936">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_bot_Sensible_COOLING_LOAD"  valueReference="100043"
+      variability="continuous"  causality="output"
+      description="IDF line 5941">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_bot_Latent_COOLING_LOAD"  valueReference="100044"
+      variability="continuous"  causality="output"
+      description="IDF line 5946">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_bot_HEATING_LOAD"  valueReference="100045"
+      variability="continuous"  causality="output"
+      description="IDF line 5951">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_People"  valueReference="100046"
+      variability="continuous"  causality="output"
+      description="IDF line 5956">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_People"  valueReference="100047"
+      variability="continuous"  causality="output"
+      description="IDF line 5961">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_People"  valueReference="100048"
+      variability="continuous"  causality="output"
+      description="IDF line 5966">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_People"  valueReference="100049"
+      variability="continuous"  causality="output"
+      description="IDF line 5971">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_People"  valueReference="100050"
+      variability="continuous"  causality="output"
+      description="IDF line 5976">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_top_People"  valueReference="100051"
+      variability="continuous"  causality="output"
+      description="IDF line 5981">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_top_People"  valueReference="100052"
+      variability="continuous"  causality="output"
+      description="IDF line 5986">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_top_People"  valueReference="100053"
+      variability="continuous"  causality="output"
+      description="IDF line 5991">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_top_People"  valueReference="100054"
+      variability="continuous"  causality="output"
+      description="IDF line 5996">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_top_People"  valueReference="100055"
+      variability="continuous"  causality="output"
+      description="IDF line 6001">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone1_bot_People"  valueReference="100056"
+      variability="continuous"  causality="output"
+      description="IDF line 6006">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone2_bot_People"  valueReference="100057"
+      variability="continuous"  causality="output"
+      description="IDF line 6011">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone3_bot_People"  valueReference="100058"
+      variability="continuous"  causality="output"
+      description="IDF line 6016">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone4_bot_People"  valueReference="100059"
+      variability="continuous"  causality="output"
+      description="IDF line 6021">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Zone5_bot_People"  valueReference="100060"
+      variability="continuous"  causality="output"
+      description="IDF line 6026">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Outdoor_Temperature"  valueReference="100061"
+      variability="continuous"  causality="output"
+      description="IDF line 6031">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Outdoor_Humidity"  valueReference="100062"
+      variability="continuous"  causality="output"
+      description="IDF line 6036">
+      <Real/>
+    </ScalarVariable>
+    <ScalarVariable  name="Wetbulb"  valueReference="100063"
+      variability="continuous"  causality="output"
+      description="IDF line 6041">
+      <Real/>
+    </ScalarVariable>
+  </ModelVariables>
+  <!-- Implementation details for co-simulation. -->
+  <Implementation>
+    <!-- EnergyPlus provided as tool (as opposed to source code or DLL). -->
+    <CoSimulation_Tool>
+      <Capabilities
+        canHandleVariableCommunicationStepSize="false"
+        canHandleEvents="false"
+        canRejectSteps="false"
+        canInterpolateInputs="false"
+        maxOutputDerivativeOrder="0"
+        canRunAsynchronuously="false"
+        canSignalEvents="false"
+        canBeInstantiatedOnlyOncePerProcess="false"
+        canNotUseMemoryManagementFunctions="true"/>
+      <Model
+        entryPoint="fmu://resources/wholebuilding.idf"
+        manualStart="false"
+        type="text/plain">
+        <File  file="fmu://resources/variables.cfg"/>
+        <File  file="fmu://resources/Chicago.epw"/>
+      </Model>
+    </CoSimulation_Tool>
+  </Implementation>
+</fmiModelDescription>

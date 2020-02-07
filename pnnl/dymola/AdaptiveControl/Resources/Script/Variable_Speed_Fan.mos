@@ -1,0 +1,4 @@
+simulateModel("AdaptiveControl.PNNL_building_system.Air_Side_System.Air_Handling_Unit.Fan.Example.Variable_Speed_Fan", stopTime=60, method="dassl", resultFile="Variable_Speed_Fan");
+createPlot(id=1, position={0, 0, 1242, 701}, y={"yRam.y"}, range={0.0, 64.0, -0.2, 1.2000000000000002}, grid=true, colors={{28,108,200}});
+createPlot(id=1, position={0, 0, 1242, 348}, y={"vavDam.m_flow_nominal", "vavDam.port_a.m_flow"}, range={0.0, 64.0, -10.0, 70.0}, grid=true, subPlot=2, colors={{28,108,200}, {238,46,47}});
+

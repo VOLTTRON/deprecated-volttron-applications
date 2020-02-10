@@ -34,8 +34,8 @@
                     "data_collection_interval": 20,
                     "analysis": {
                         "rule_list": ["Abs(MixedAirTemperature - DischargeAirTemperature) > 6"],
-                        "inconclusive_conditions_list": []
-                        "points": ["MixedAirTemperature", "DischargeAirTemperature"]
+                        "inconclusive_conditions_list": ["Abs(ReturnAirTemperature - OutdoorAirTemperature) > 6"]
+                        "points": ["MixedAirTemperature", "DischargeAirTemperature", "ReturnAirTemperature", "OutdoorAirTemperature"]
                     }
                 },
                 {
@@ -51,8 +51,8 @@
                     "data_collection_interval": 20,
                     "analysis": {
                         "rule_list": ["Abs(MixedAirTemperature - DischargeAirTemperature) > 6"],
-                        "inconclusive_conditions_list": []
-                        "points": ["MixedAirTemperature", "DischargeAirTemperature"]
+                        "inconclusive_conditions_list": ["Abs(ReturnAirTemperature - OutdoorAirTemperature) > 6"]
+                        "points": ["MixedAirTemperature", "DischargeAirTemperature", "ReturnAirTemperature", "OutdoorAirTemperature"]
                     }
                 }
             ]

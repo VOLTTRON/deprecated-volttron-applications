@@ -1,0 +1,41 @@
+{
+  "file_path": "data2.csv",
+
+  "ts": "ts",
+  "consumption": "kw",
+  "oat": "oat",
+  "event_flag": "event_flag",
+  "hp1_status": "hp1_status",
+  "hp2_status": "hp2_status",
+  "hw1_status": "hw1_status",
+  "hw2_status": "hw2_status",
+  "poolpump_status": "poolpump_status",
+  "roomtemp1": "roomtemp1",
+  "roomtemp2": "roomtemp2",
+  "event_flag": "event_flag",
+
+  "event_date": "2013-08-10",
+  "start_time": "13:00",
+  "end_time": "16:00",
+
+  "plots": {
+    "plot1": {
+      "y": "Whole house consumption (kw/kwh)",
+      "x": "Hour of day",
+      "diff": "sum"
+    },
+    "plot2": {
+      "y": "Temperature (F)",
+      "x": "Hour of day",
+      "diff": "avg"
+    },
+    "plot3": {
+      "y": "Run time (hours)",
+      "x": "",
+      "diff": "sum"
+    }
+  },
+
+  "baseline_method": "all",
+  "adjustment": true
+}

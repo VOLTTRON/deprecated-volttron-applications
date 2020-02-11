@@ -205,10 +205,8 @@ class MV:
 
         event_names = ["Baseline", "Event Day", "Event Diff"]
         event_values = [event_baseline, event_event, event_diff]
-        fig, axes = plt.subplots(nrows=1, ncols=2)
         ax = plt.subplot(121)
-        fig.tight_layout()
-        plt.subplots_adjust(bottom=0.15)
+
         ax.bar(wholeday_names, wholeday_values)
         ax.set_xlabel(" ".join([self.plot3_config["x"], self.event_date_str]))
         ax.set_ylabel(self.plot3_config["y"])
@@ -217,9 +215,10 @@ class MV:
         ax.bar(event_names, event_values)
         ax.set_xlabel(" ".join([self.plot3_config["x"], self.event_date_str]))
         ax.set_ylabel(self.plot3_config["y"])
-
+        plt.tight_layout()
         # Save & exit
-        plt.savefig(f"plot3_{device_col}.png" )
+        plt.savefig(f"plot3_{device_col}.png")
+
         plt.close()
 
     def run(self):

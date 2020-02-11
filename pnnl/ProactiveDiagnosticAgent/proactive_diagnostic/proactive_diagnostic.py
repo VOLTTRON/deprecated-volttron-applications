@@ -54,7 +54,7 @@ import sys
 from datetime import datetime as dt
 from collections import defaultdict
 import gevent
-from sympy import symbols
+from sympy import symbols, simplify
 from sympy.parsing.sympy_parser import parse_expr
 
 from volttron.platform.agent import utils
@@ -71,7 +71,6 @@ __version__ = "1.0"
 
 setup_logging()
 LOG = logging.getLogger(__name__)
-
 
 class Diagnostic(object):
     """The ProactiveDiagnostics class can be configured to instantiate
@@ -228,11 +227,11 @@ class Diagnostic(object):
             rule_data.append((key, mean(value)))
         # Support for multi-condition fault detection
         if self.check_inconclusive_diagnostic_conditions(inconclusive_list,
-                                                         data):
+                                                         rule_data):
             self.evaluations.append(-1)
             return
 
-        results = [rule.subs(rule_data) for rule in rule_list]
+        results = self.convert_sympy_boolean([rule.subs(rule_data) for rule in rule_list])
         # Verify that all items in results evalute to True or False.
         # Incorrectly named points or improper sympy syntax could
         # result in this occurring
@@ -249,12 +248,11 @@ class Diagnostic(object):
         self.evaluations.append(result)
         LOG.debug("Analysis result : %s", result)
 
-    @staticmethod
-    def check_inconclusive_diagnostic_conditions(inconclusive_list, data):
+    def check_inconclusive_diagnostic_conditions(self, inconclusive_list, data):
         if not inconclusive_list:
             return False
 
-        inconclusive_results = [con.subs(data) for con in inconclusive_list]
+        inconclusive_results = self.convert_sympy_boolean([con.subs(data) for con in inconclusive_list])
         if not all(isinstance(evaluation, bool) for evaluation in inconclusive_results):
             LOG.warning("Inconclusive checks did not produce True or False.")
             LOG.warning("Check sympy syntax in the analysis dict for "
@@ -264,6 +262,10 @@ class Diagnostic(object):
             return True
         if True in inconclusive_results:
             return True
+
+    def convert_sympy_boolean(self, eval_list):
+        bool_map = {'sympy.logic.boolalg.BooleanTrue': True, 'sympy.logic.boolalg.BooleanFalse': False}
+        return [bool_map[i] if i in bool_map else i for i in eval_list]
 
     def report(self):
         """ Report result of diagnostic analysis and publish

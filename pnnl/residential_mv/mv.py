@@ -1,7 +1,7 @@
 from os.path import dirname, abspath, join
 import pandas as pd
 import sqlite3
-import math
+import sys
 import matplotlib.pyplot as plt
 import json
 from datetime import timedelta
@@ -12,40 +12,62 @@ class MV:
     """
     Residential MV for demand response.  Baseline is calculated using 10 day average power.
     """
-    def __init__(self, json_config_file):
+    def __init__(self, config):
         # read config file
         # path to data file
-        self.file_path = config["file_path"]
-        # header for timestamp column in csv
-        self.ts_col = config["ts"]
-        # header for power (demand) column in csv
-        self.consumption_col = config["consumption"]
-        # header for outdoor-air temperature column in csv
-        self.oat_col = config["oat"]
-        # header for heat pump status signal column in csv
-        self.hp1_status_col = config["hp1_status"]
-        self.hp2_status_col = config["hp2_status"]
-        # header for heat pump status signal column in csv
-        self.hw1_status_col = config["hw1_status"]
-        self.hw2_status_col = config["hw2_status"]
-        self.poolpump_status_col = config["poolpump_status"]
-        self.roomtemp1_col = config["roomtemp1"]
-        self.roomtemp2_col = config["roomtemp2"]
-        # column header for flag for dr event in csv file
-        self.event_flag_col = config["event_flag"]
-        self.event_date_str = config["event_date"]
-        self.event_date = parser.parse(config["event_date"])
-        self.event_start = parser.parse(config["event_date"] + " " + config["start_time"])
-        self.event_end = parser.parse(config["event_date"] + " " + config["end_time"])
-        # baseline_method "all" keeps last 10 days including weekends
-        # baseline_method "weekday" removes weekends
-        self.baseline_method = config["baseline_method"]
-        self.adjustment = config["adjustment"]
+        try:
+            self.file_path = config["file_path"]
+            # header for timestamp column in csv
+            self.ts_col = config["ts"]
+            # header for power (demand) column in csv
+            self.consumption_col = config["consumption"]
+            # header for outdoor-air temperature column in csv
+            self.oat_col = config["oat"]
+            # header for heat pump status signal column in csv
+            self.hp1_status_col = config["hp1_status"]
+            self.hp2_status_col = config["hp2_status"]
+            # header for heat pump status signal column in csv
+            self.hw1_status_col = config["hw1_status"]
+            self.hw2_status_col = config["hw2_status"]
+            self.poolpump_status_col = config["poolpump_status"]
+            self.roomtemp1_col = config["roomtemp1"]
+            self.roomtemp2_col = config["roomtemp2"]
+            # column header for flag for dr event in csv file
+            self.event_flag_col = config["event_flag"]
+            self.event_date_str = config["event_date"]
+            self.event_date = parser.parse(config["event_date"])
+            self.event_start = parser.parse(config["event_date"] + " " + config["start_time"])
+            self.event_end = parser.parse(config["event_date"] + " " + config["end_time"])
+            # baseline_method "all" keeps last 10 days including weekends
+            # baseline_method "weekday" removes weekends
+            self.baseline_method = config["baseline_method"]
+            self.adjustment = config["adjustment"]
 
-        # configuration parameters for each plot
-        self.plot1_config = config["plots"]["plot1"]
-        self.plot2_config = config["plots"]["plot2"]
-        self.plot3_config = config["plots"]["plot3"]
+            # configuration parameters for each plot
+            self.plot1_config = config["plots"]["plot1"]
+            self.plot2_config = config["plots"]["plot2"]
+            self.plot3_config = config["plots"]["plot3"]
+        except KeyError as ex:
+            print("Missing key in configuration file: %s", ex)
+            sys.exit()
+
+    def check_data(self, df, *args):
+        """
+        Check to verify that the power data and room temperature data is present in
+        csv file.  Allows for the creation of plot1 and plot2.
+        Args:
+            df: input data from csv file
+
+        Returns:
+
+        """
+        column_headers = df.columns
+        print("Checking input data, all data headers: {}".format(column_headers))
+        for column in args:
+            if column not in column_headers:
+                print("Missing or mis-configured column: {}".format(column))
+                return False
+        return True
 
     def get_data(self):
         """
@@ -53,7 +75,18 @@ class MV:
         Returns:
 
         """
-        df = pd.read_csv(self.file_path)
+        try:
+            df = pd.read_csv(self.file_path)
+        except FileNotFoundError as ex:
+            print("Data file not found, check file path in config: {}".format(ex))
+            sys.exit()
+
+        data_check = self.check_data(df, self.ts_col,
+                                     self.consumption_col, self.event_flag_col)
+        if not data_check:
+            print("Cannot Create create baseline for plots!")
+            sys.exit()
+
         df[self.ts_col] = pd.to_datetime(df[self.ts_col])
         df = df.resample("60min", on=self.ts_col).mean()
 
@@ -123,7 +156,7 @@ class MV:
         ax.axvline(x=self.event_start.hour, linewidth=2, color='r', ls='dotted')
         ax.axvline(x=self.event_end.hour, linewidth=2, color='r', ls='dotted')
 
-        # Calculate wholed ay and event difference for hourly average power
+        # Calculate whole day and event difference for hourly average power
         event_sum_diff = 0
         for hr in range(self.event_start.hour, self.event_end.hour):
             event_sum_diff += df_baseline.at[hr, self.consumption_col] - df_event.at[hr, self.consumption_col]
@@ -235,9 +268,24 @@ class MV:
 
         # Create MV plots
         self.plot1(df_baseline, df_event)
+        data_check = self.check_data(df_event, self.roomtemp1_col)
+
+        if not data_check:
+            print("Cannot create temperature plots!")
+            sys.exit()
+
         self.plot2(df_baseline, df_event)
 
         # Plot ONLY IF the column has data
+        data_check = self.check_data(df_event,
+                                     self.hp1_status_col,
+                                     self.hp2_status_col,
+                                     self.hw1_status_col,
+                                     self.hw2_status_col)
+        if not data_check:
+            print("Cannot create device status plots!")
+            sys.exit()
+
         if self.hp1_status_col in df_baseline.columns:
             self.plot3(df_baseline, df_event, self.hp1_status_col)
         if self.hp2_status_col in df_baseline.columns:

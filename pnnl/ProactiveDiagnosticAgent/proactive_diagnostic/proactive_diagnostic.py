@@ -54,7 +54,8 @@ import sys
 from datetime import datetime as dt
 from collections import defaultdict
 import gevent
-from sympy import symbols, simplify
+from sympy import symbols
+from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 from sympy.parsing.sympy_parser import parse_expr
 
 from volttron.platform.agent import utils
@@ -110,7 +111,7 @@ class Diagnostic(object):
         # can evaluate to True for a positive fault detection.
         self.fault_condition = config.get("fault_condition", "all")
         self.evaluations = []
-        self.analysis_topic = "/".join(["record", self.parent.base_rpc_path, self.name])
+        self.analysis_topic = "/".join(["record", "device", self.name])
         self.analysis_message = {
             "result": None
         }
@@ -150,8 +151,7 @@ class Diagnostic(object):
                             self.parent.actuator,
                             "get_point",
                             "proactive",
-                            point_to_set,
-                            external_platform=self.remote).get(timeout=5)
+                            point_to_set).get(timeout=5)
                         revert_action[point_to_set] = value
                     else:
                         LOG.debug("Using release to write None!")
@@ -165,8 +165,7 @@ class Diagnostic(object):
                             "proactive",
                             point_to_set,
                             value,
-                            priority=8,
-                            external_platform=self.remote).get(timeout=5)
+                            priority=8).get(timeout=5)
                         LOG.debug("Actuator %s"
                                   "result %s", point_to_set, result)
                     except RemoteError as ex:
@@ -218,20 +217,21 @@ class Diagnostic(object):
                     value = self.vip.rpc.call(
                         self.parent.actuator,
                         "get_point",
-                        point_to_get,
-                        external_platform=self.remote).get(timeout=5)
+                        point_to_get).get(timeout=5)
                     data[operation_arg].append(value)
             gevent.sleep(data_collection_interval)
         rule_data = []
         for key, value in data.items():
             rule_data.append((key, mean(value)))
+        LOG.debug("INCONCLUSIVE : {}".format(rule_data))
         # Support for multi-condition fault detection
         if self.check_inconclusive_diagnostic_conditions(inconclusive_list,
                                                          rule_data):
-            self.evaluations.append(-1)
-            return
+                self.evaluations.append(-1)
+                return
 
         results = self.convert_sympy_boolean([rule.subs(rule_data) for rule in rule_list])
+        LOG.debug("RESULTS : {}".format(type(results[0])))
         # Verify that all items in results evalute to True or False.
         # Incorrectly named points or improper sympy syntax could
         # result in this occurring
@@ -251,10 +251,14 @@ class Diagnostic(object):
     def check_inconclusive_diagnostic_conditions(self, inconclusive_list, data):
         if not inconclusive_list:
             return False
+        LOG.debug("INCONCLUSIVE : {}".format(inconclusive_list))
 
-        inconclusive_results = self.convert_sympy_boolean([con.subs(data) for con in inconclusive_list])
+        inconclusive_results = [con.subs(data) for con in inconclusive_list]
+        LOG.debug("INCONCLUSIVE : {}".format(inconclusive_list))
+        inconclusive_results = self.convert_sympy_boolean(inconclusive_results)
+        LOG.debug("INCONCLUSIVE : {}".format(inconclusive_results))
         if not all(isinstance(evaluation, bool) for evaluation in inconclusive_results):
-            LOG.warning("Inconclusive checks did not produce True or False.")
+            LOG.warning("Inconclusive checks did not produce True or False {}".format(type(inconclusive_list[0])))
             LOG.warning("Check sympy syntax in the analysis dict for "
                         "inconclusive_conditions_list.  Verify "
                         "that data is available in the VOLTTRON"
@@ -264,8 +268,15 @@ class Diagnostic(object):
             return True
 
     def convert_sympy_boolean(self, eval_list):
-        bool_map = {'sympy.logic.boolalg.BooleanTrue': True, 'sympy.logic.boolalg.BooleanFalse': False}
-        return [bool_map[i] if i in bool_map else i for i in eval_list]
+        converted_list = []
+        for item in eval_list:
+            if isinstance(item, BooleanTrue):
+                converted_list.append(True)
+            elif isinstance(item, BooleanFalse):
+                converted_list.append(False)
+            else:
+                converted_list.append(item)
+        return converted_list
 
     def report(self):
         """ Report result of diagnostic analysis and publish
@@ -323,8 +334,7 @@ class Diagnostic(object):
                     "set_point",
                     "proactive",
                     point_to_set,
-                    value, priority=8,
-                    external_platform=self.remote).get(timeout=5)
+                    value, priority=8).get(timeout=5)
                 LOG.debug("Actuator %s"
                           "result %s", point_to_set, result)
             except RemoteError as ex:

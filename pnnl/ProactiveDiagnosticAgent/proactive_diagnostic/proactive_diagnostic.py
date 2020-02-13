@@ -278,9 +278,7 @@ class Diagnostic:
                         "that data is available in the VOLTTRON "
                         "driver for that device/point")
             return True
-        if False in inconclusive_results:
-            return True
-        return False
+        return False in inconclusive_results
 
     def report(self):
         """ Report result of diagnostic analysis and publish
@@ -447,9 +445,10 @@ class ProactiveDiagnostics(Agent):
             self.base_rpc_path = []
             self.device_topics_list = []
             if not device_list:
-                LOG.error("Configuration ERROR: no device_list "
-                          "configured for diagnostic!")
-                sys.exit()
+                LOG.warning("Configuration ERROR: no device_list "
+                            "configured for diagnostic!")
+                LOG.warning("Check configuration and update "
+                            "device_list!")
 
             for device in device_list:
                 self.base_rpc_path.append(
@@ -461,9 +460,10 @@ class ProactiveDiagnostics(Agent):
 
             diagnostics = config.get("diagnostics", [])
             if not diagnostics:
-                LOG.debug("Configuration ERROR diagnostics"
-                          "information is configured!")
-                sys.exit()
+                LOG.warning("Configuration ERROR diagnostics"
+                            "information is configured!")
+                LOG.warning("Diagnostic cannot be performed, "
+                            "Update configuration!")
 
             self.diagnostics = diagnostics
             self.diagnostics_container = []
@@ -483,6 +483,9 @@ class ProactiveDiagnostics(Agent):
         :param: kwargs: empty
         :return: None
         """
+        # For each diagnostic instantiate a Diagnostic
+        # and pass it a configuration (diagnostic) and a reference to the
+        # ProactiveDiagnostic.
         for diagnostic in self.diagnostics:
             self.diagnostics_container.append(Diagnostic(diagnostic, self))
         for device in self.device_topics_list:
@@ -491,6 +494,7 @@ class ProactiveDiagnostics(Agent):
                                       prefix=device,
                                       callback=self.new_data,
                                       all_platforms=True)
+        # Using cron string in configuration schedule the diagnostics to run.
         self.core.schedule(cron(self.run_schedule), self.run_process)
 
     def run_process(self):
@@ -504,6 +508,7 @@ class ProactiveDiagnostics(Agent):
             LOG.debug("Prerequisites not met!")
         else:
             LOG.debug("Prerequisites met!")
+            # Call each Diagnostic instance run method.
             for diagnostic in self.diagnostics_container:
                 diagnostic.run()
 

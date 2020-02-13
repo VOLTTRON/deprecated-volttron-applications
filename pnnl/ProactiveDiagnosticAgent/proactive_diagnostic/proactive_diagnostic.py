@@ -51,7 +51,6 @@ under Contract DE-AC05-76RL01830
 """
 import logging
 import sys
-from datetime import datetime as dt
 from collections import defaultdict
 import gevent
 from sympy import symbols
@@ -59,7 +58,7 @@ from sympy.logic.boolalg import BooleanFalse, BooleanTrue
 from sympy.parsing.sympy_parser import parse_expr
 
 from volttron.platform.agent import utils
-from volttron.platform.agent.utils import format_timestamp
+from volttron.platform.agent.utils import format_timestamp, get_aware_utc_now
 from volttron.platform.scheduling import cron
 from volttron.platform.messaging import topics
 from volttron.platform.agent.math_utils import mean
@@ -73,7 +72,8 @@ __version__ = "1.0"
 setup_logging()
 LOG = logging.getLogger(__name__)
 
-class Diagnostic(object):
+
+class Diagnostic:
     """The ProactiveDiagnostics class can be configured to instantiate
     multiple Diagnostics. Each diagnostic potentially has multiple control
     steps each with fault detection rule(s) to evaluate.
@@ -111,14 +111,12 @@ class Diagnostic(object):
         # can evaluate to True for a positive fault detection.
         self.fault_condition = config.get("fault_condition", "all")
         self.evaluations = []
-        self.analysis_topic = "/".join(["record", "device", self.name])
+        self.analysis_topic = ["/".join(["record", device, self.name])
+                               for device in self.parent.base_rpc_path]
         self.analysis_message = {
             "result": None
         }
-        self.headers = {
-            "Date": format_timestamp(dt.now()),
-            "Timestamp": format_timestamp(dt.now())
-        }
+        self.headers = {}
 
     def run(self):
         """Main run method for each diagnostic in the ProactiveDiagnostics
@@ -166,7 +164,7 @@ class Diagnostic(object):
                             point_to_set,
                             value,
                             priority=8).get(timeout=5)
-                        LOG.debug("Actuator %s"
+                        LOG.debug("Actuator %s "
                                   "result %s", point_to_set, result)
                     except RemoteError as ex:
                         LOG.warning("Failed to set point %s"
@@ -223,20 +221,21 @@ class Diagnostic(object):
         rule_data = []
         for key, value in data.items():
             rule_data.append((key, mean(value)))
-        LOG.debug("INCONCLUSIVE : {}".format(rule_data))
+        LOG.debug("Diagnostic data : %s", rule_data)
         # Support for multi-condition fault detection
-        if self.check_inconclusive_diagnostic_conditions(inconclusive_list,
-                                                         rule_data):
-                self.evaluations.append(-1)
-                return
+        if self.inconclusive_diagnostic_check(inconclusive_list,
+                                              rule_data):
+            self.evaluations.append(-1)
+            return
 
-        results = self.convert_sympy_boolean([rule.subs(rule_data) for rule in rule_list])
-        LOG.debug("RESULTS : {}".format(type(results[0])))
+        results = [rule.subs(rule_data) for rule in rule_list]
+        LOG.debug("Results type : %s", type(results[0]))
         # Verify that all items in results evalute to True or False.
         # Incorrectly named points or improper sympy syntax could
         # result in this occurring
         # https://docs.sympy.org/latest/modules/parsing.html
-        if not all(isinstance(evaluation, bool) for evaluation in results):
+        if not all(isinstance(evaluation, (BooleanFalse, BooleanTrue))
+                   for evaluation in results):
             LOG.warning("Evaluation did not produce True or False "
                         "required for indicating fault/no-fault")
             LOG.warning("Check sympy syntax in the analysis rule_list "
@@ -244,39 +243,44 @@ class Diagnostic(object):
                         "driver for that device/point")
             result = False
         else:
-            result = False if False in results else True
+            result = False not in results
         self.evaluations.append(result)
         LOG.debug("Analysis result : %s", result)
 
-    def check_inconclusive_diagnostic_conditions(self, inconclusive_list, data):
+    @staticmethod
+    def inconclusive_diagnostic_check(inconclusive_list, data):
+        """Verify individual diagnostic prerequisites are met.
+
+        :param inconclusive_list: list of sympy expressions
+        :param data: list of key value pairs for data to evaluate
+        sympy expressions
+
+        :return: returns False if
+        """
+        # If this list is empty then there are no
+        # conditions that could lead to an inconclusive diagnostic
         if not inconclusive_list:
             return False
-        LOG.debug("INCONCLUSIVE : {}".format(inconclusive_list))
-
+        LOG.debug("Diagnostic prerequisites : %s", inconclusive_list)
+        # Evaluate each condition with the device data
         inconclusive_results = [con.subs(data) for con in inconclusive_list]
-        LOG.debug("INCONCLUSIVE : {}".format(inconclusive_list))
-        inconclusive_results = self.convert_sympy_boolean(inconclusive_results)
-        LOG.debug("INCONCLUSIVE : {}".format(inconclusive_results))
-        if not all(isinstance(evaluation, bool) for evaluation in inconclusive_results):
-            LOG.warning("Inconclusive checks did not produce True or False {}".format(type(inconclusive_list[0])))
+        LOG.debug("Evaluation of prerequisites : %s", inconclusive_results)
+        # Verify that all the conditions evaluated to booleans.
+        # A non-boolean value means there was a problem evaluating the
+        # sympy expression.
+        if not all(isinstance(evaluation, (BooleanFalse, BooleanTrue))
+                   for evaluation in inconclusive_results):
+            LOG.warning("Inconclusive checks did not produce "
+                        "True or False data type: %s",
+                        type(inconclusive_list[0]))
             LOG.warning("Check sympy syntax in the analysis dict for "
                         "inconclusive_conditions_list.  Verify "
-                        "that data is available in the VOLTTRON"
+                        "that data is available in the VOLTTRON "
                         "driver for that device/point")
             return True
-        if True in inconclusive_results:
+        if False in inconclusive_results:
             return True
-
-    def convert_sympy_boolean(self, eval_list):
-        converted_list = []
-        for item in eval_list:
-            if isinstance(item, BooleanTrue):
-                converted_list.append(True)
-            elif isinstance(item, BooleanFalse):
-                converted_list.append(False)
-            else:
-                converted_list.append(item)
-        return converted_list
+        return False
 
     def report(self):
         """ Report result of diagnostic analysis and publish
@@ -287,12 +291,20 @@ class Diagnostic(object):
         # Multiple control steps and analysis can occur for each diagnostic
         # if self.fault_condition == all then all steps must have a fault
         # condition for a fault to be reported.
-        self.headers = {"Date": format_timestamp(dt.now()), "Timestamp": format_timestamp(dt.now())}
+        self.headers = {
+            "Date": format_timestamp(get_aware_utc_now()),
+            "Timestamp": format_timestamp(get_aware_utc_now())
+        }
         if -1 in self.evaluations:
             LOG.debug("Diagnostic %s resulted in inconclusive result",
                       self.name)
-            analysis = {"Result": -1}
-            self.vip.pubsub.publish("pubsub", self.analysis_topic, headers=self.headers, message=analysis)
+            analysis = {"result": -1}
+            for publish_topic in self.analysis_topic:
+                self.vip.pubsub.publish("pubsub",
+                                        self.analysis_topic,
+                                        headers=self.headers,
+                                        message=analysis)
+            self.evaluations = []
             return
 
         if self.fault_condition == "all":
@@ -301,7 +313,7 @@ class Diagnostic(object):
                 analysis = {"Result": self.non_fault_code}
             else:
                 LOG.debug("%s - fault detected", self.name)
-                analysis = {"Result": self.fault_code}
+                analysis = {"result": self.fault_code}
         # Multiple control steps and analysis can occur for each diagnostic
         # if self.fault_condition == "any"" then any step where a
         # fault condition is detected will lead to reporting a fault.
@@ -314,7 +326,11 @@ class Diagnostic(object):
                 analysis = {"Result": self.non_fault_code}
 
         # Reinitialize evaluations list for use in next diagnostic run.
-        self.vip.pubsub.publish("pubsub", self.analysis_topic, headers=self.headers, message=analysis)
+        for publish_topic in self.analysis_topic:
+            self.vip.pubsub.publish("pubsub",
+                                    publish_topic,
+                                    headers=self.headers,
+                                    message=analysis)
         self.evaluations = []
 
     def restore(self, revert_action):
@@ -532,10 +548,10 @@ class ProactiveDiagnostics(Agent):
                                 "diagnostic prerequisites: %s", key)
                     return False
             for condition in self.prerequisites_expr_list:
-                evalutaion = condition.subs(avg_data)
-                prerequisite_eval_list.append(evalutaion)
+                evaluation = condition.subs(avg_data)
+                prerequisite_eval_list.append(evaluation)
                 LOG.debug("Prerequisite %s evaluation: %s",
-                          condition, evalutaion)
+                          condition, evaluation)
             if prerequisite_eval_list:
                 if False in prerequisite_eval_list:
                     return False

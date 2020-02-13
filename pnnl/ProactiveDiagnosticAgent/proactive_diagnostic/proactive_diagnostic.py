@@ -351,7 +351,7 @@ class Diagnostic:
                     "proactive",
                     point_to_set,
                     value, priority=8).get(timeout=5)
-                LOG.debug("Actuator %s"
+                LOG.debug("Actuator %s "
                           "result %s", point_to_set, result)
             except RemoteError as ex:
                 LOG.warning("Failed to revert point "
@@ -582,6 +582,8 @@ class ProactiveDiagnostics(Agent):
                 LOG.debug("Point %s - for device - %s added "
                           "to prerequisites array.", point, topic)
                 self.prerequisites_data_required[point].append(data[point])
+                # keep track of last 5 measurements for evaluation of
+                # diagnostic global prerequisites
                 self.prerequisites_data_required[point] = \
                     self.prerequisites_data_required[point][-5:]
                 LOG.debug("Prerequisite data %s.",

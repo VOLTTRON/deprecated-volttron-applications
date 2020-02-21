@@ -179,7 +179,11 @@ class Diagnostic:
             # diagnostics configuration.
             data_query_interval = \
                 int(diagnostic.get("data_collection_interval")/10)
-            self.analysis(diagnostic["analysis"], data_query_interval)
+            try:
+                self.analysis(diagnostic["analysis"], data_query_interval)
+            except KeyError as ex:
+                LOG.warning("Diagnostic name: %s -- analysis dictionary "
+                            "is missing for diagnostic - %s", self.name, ex)
         self.report()
         self.restore(revert_action)
 
@@ -203,6 +207,14 @@ class Diagnostic:
         # list of rules to evaluate for fault detection.
         rules = analysis_parameters.get("rule_list")
         inconclusive = analysis_parameters.get("inconclusive_conditions_list")
+        if rules is None or not rules:
+            LOG.warning("Diagnostic name: %s is missing rule to evaluate "
+                        "fault condition check configuration file!", self.name)
+            return
+        if not all(isinstance(rules, str)):
+            LOG.warning("Rule for diagnostic name %s must be a string, '"
+                        "fix configuration!", self.name)
+            return
         rule_list = [parse_expr(op) for op in rules]
         if inconclusive is not None and inconclusive:
             inconclusive_list = [parse_expr(op) for op in inconclusive]
@@ -230,7 +242,7 @@ class Diagnostic:
 
         results = [rule.subs(rule_data) for rule in rule_list]
         LOG.debug("Results type : %s", type(results[0]))
-        # Verify that all items in results evalute to True or False.
+        # Verify that all items in results evaluate to True or False.
         # Incorrectly named points or improper sympy syntax could
         # result in this occurring
         # https://docs.sympy.org/latest/modules/parsing.html
@@ -377,6 +389,7 @@ class ProactiveDiagnostics(Agent):
         file_config = utils.load_config(config_path)
         default_config = {
             "campus": "campus",
+            "actuator": "platform.actuator",
             "building": "building",
             "device": ["device"],
             "prerequisites": {},
@@ -388,7 +401,6 @@ class ProactiveDiagnostics(Agent):
         else:
             self.default_config = default_config
         self.run_schedule = None
-        self.actuator = "platform.actuator"
         self.revert_action = "release"
         self.base_rpc_path = []
         self.device_topics_list = []
@@ -452,8 +464,11 @@ class ProactiveDiagnostics(Agent):
 
             for device in device_list:
                 self.base_rpc_path.append(
-                    topics.RPC_DEVICE_PATH(campus=campus, building=building,
-                                           unit=device, path="", point=None))
+                    topics.RPC_DEVICE_PATH(campus=campus,
+                                           building=building,
+                                           unit=device,
+                                           path="",
+                                           point=None))
                 self.device_topics_list.append(topics.DEVICES_VALUE(
                     campus=campus, building=building,
                     unit=device, path="", point="all"))
@@ -461,7 +476,7 @@ class ProactiveDiagnostics(Agent):
             diagnostics = config.get("diagnostics", [])
             if not diagnostics:
                 LOG.warning("Configuration ERROR diagnostics"
-                            "information is configured!")
+                            "information is not configured!")
                 LOG.warning("Diagnostic cannot be performed, "
                             "Update configuration!")
 

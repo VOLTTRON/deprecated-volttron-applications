@@ -305,6 +305,7 @@ class Diagnostic:
             "Date": format_timestamp(get_aware_utc_now()),
             "Timestamp": format_timestamp(get_aware_utc_now())
         }
+        analysis = {}
         if -1 in self.evaluations:
             LOG.debug("Diagnostic %s resulted in inconclusive result",
                       self.name)
@@ -317,23 +318,23 @@ class Diagnostic:
             self.evaluations = []
             return
 
-        if self.fault_condition == "all":
+        if self.fault_condition == "any":
             if False in self.evaluations:
                 LOG.debug("%s - no fault detected", self.name)
-                analysis = {"Result": self.non_fault_code}
+                analysis = {"result": self.non_fault_code}
             else:
                 LOG.debug("%s - fault detected", self.name)
                 analysis = {"result": self.fault_code}
         # Multiple control steps and analysis can occur for each diagnostic
         # if self.fault_condition == "any"" then any step where a
         # fault condition is detected will lead to reporting a fault.
-        elif self.fault_condition == "any":
+        else:
             if True in self.evaluations:
                 LOG.debug("%s - fault detected", self.name)
-                analysis = {"Result": self.fault_code}
+                analysis = {"result": self.fault_code}
             else:
                 LOG.debug("%s - no fault detected", self.name)
-                analysis = {"Result": self.non_fault_code}
+                analysis = {"result": self.non_fault_code}
 
         # Reinitialize evaluations list for use in next diagnostic run.
         for publish_topic in self.analysis_topic:

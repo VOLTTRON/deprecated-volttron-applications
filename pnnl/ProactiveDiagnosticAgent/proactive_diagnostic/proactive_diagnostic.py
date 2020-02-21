@@ -211,7 +211,7 @@ class Diagnostic:
             LOG.warning("Diagnostic name: %s is missing rule to evaluate "
                         "fault condition check configuration file!", self.name)
             return
-        if not all(isinstance(rules, str)):
+        if not all(isinstance(rule, str) for rule in rules):
             LOG.warning("Rule for diagnostic name %s must be a string, '"
                         "fix configuration!", self.name)
             return

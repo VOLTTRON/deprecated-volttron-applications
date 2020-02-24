@@ -503,6 +503,7 @@ class ProactiveDiagnostics(Agent):
         # and pass it a configuration (diagnostic) and a reference to the
         # ProactiveDiagnostic.
         for diagnostic in self.diagnostics:
+            LOG.debug("Configure %s", diagnostic.get("name"))
             self.diagnostics_container.append(Diagnostic(diagnostic, self))
         for device in self.device_topics_list:
             LOG.debug("Subscribing to %s", device)

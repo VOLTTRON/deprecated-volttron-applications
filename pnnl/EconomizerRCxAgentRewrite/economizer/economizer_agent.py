@@ -13,6 +13,8 @@ from volttron.platform.agent.utils import (setup_logging, format_timestamp, get_
 from volttron.platform.vip.agent import Agent, Core
 from volttron.platform.jsonrpc import RemoteError
 
+from . import constants
+
 __version__ = "1.2.0"
 
 setup_logging()
@@ -29,18 +31,43 @@ class EconimizerAgent(Agent):
         self.building = ""
         self.agent_id = ""
         self.device_type = ""
-        self.econimizer_type = ""
+        self.economizer_type = ""
+        self.sensitivity = ""
+        self.analysis_name = ""
+        self.fan_status_name = ""
+        self.fan_sp_name = ""
+        self.oat_name = ""
+        self.rat_name = ""
+        self.mat_name = ""
+        self.oad_sig_name = ""
+        self.cool_call_name = ""
 
         #list attributes
         self.device_list = []
         self.units = []
+        self.arguments = []
+        self.point_mapping = []
+        self.damper_data = []
+        self.oat_data = []
+        self.mat_data = []
+        self.rat_data = []
+        self.cooling_data = []
+        self.fan_sp_data = []
+        self.fan_status_data = []
+        self.missing_data = []
 
         #int attributes
         self.data_window = 0
         self.no_required_data = 0
         self.open_damper_time = 0
+        self.fan_speed = 0
+
+        #bool attributes
+        self.constant_volume = False
 
         #float attributes
+        self.econ_hl_temp = 0.0
+        self.temp_band = 0.0
         self.oaf_temperature_threshold = 0.0
         self.oaf_econimizing_threshold = 0.0
         self.cooling_enabled_threshold = 0.0
@@ -64,8 +91,30 @@ class EconimizerAgent(Agent):
         self.rated_cfm = 0.0
         self.eer = 0.0
         self.temp_deadband = 0.0
+        self.oat = 0.0
+        self.rat = 0.0
+        self.mat = 0.0
+        self.oad = 0.0
 
+        # Precondition flags
+        self.oaf_condition = None
+        self.unit_status = None
+        self.sensor_limit = None
+        self.temp_sensor_problem = None
+
+        #diagnostics
+        self.temp_sensor_dx = None
+        self.econ_correctly_on = None
+        self.econ_correctly_off = None
+        self.excess_oa = None
+        self.insufficient_oa = None
+
+        #start reading all the class configs and check them
         self.read_config(config_path)
+        self.read_argument_config(config_path)
+        self.read_point_mapping()
+        self.configuration_value_check()
+        self.create_diagnostics()
 
 
     def read_config(self, config_path):
@@ -75,6 +124,7 @@ class EconimizerAgent(Agent):
         """
         config = utils.load_config(config_path)
         #get device, then the units underneath that
+        self.analysis_name = config.get("analysis_name", "analysis_name")
         self.device = config.get("device", {})
         if "campus" in self.device:
             self.campus = self.device["campus"]
@@ -92,6 +142,270 @@ class EconimizerAgent(Agent):
                 for sd in self.units[u]["subdevices"]:
                     self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all"))
 
+    def read_argument_config(self, config_path):
+        """read all the config arguments section"""
+        config = utils.load_config(config_path)
+        self.arguments = config.get("arguments", {})
+
+        self.econ_hl_temp = self.read_argument("econ_hl_temp", 65.0)
+        self.constant_volume = self.read_argument("constant_volume", False)
+        self.temp_band = self.read_argument("temp_band", 1.0)
+        self.oaf_temperature_threshold = self.read_argument("oaf_temperature_threshold", 5.0)
+        self.oaf_econimizing_threshold = self.read_argument("oaf_econimizing_threshold", 25.0)
+        self.cooling_enabled_threshold = self.read_argument("cooling_enabled_threshold", 5.0)
+        self.temp_difference_threshold = self.read_argument("temp_difference_threshold", 4.0)
+        self.mat_low_threshold = self.read_argument("mat_low_threshold", 50.0)
+        self.mat_high_threshold = self.read_argument("mat_high_threshold", 90.0)
+        self.rat_low_threshold = self.read_argument("rat_low_threshold", 50.0)
+        self.rat_high_threshold = self.read_argument("rat_high_threshold", 90.0)
+        self.oat_low_threshold = self.read_argument("oat_low_threshold", 30.0)
+        self.oat_high_threshold = self.read_argument("oat_high_threshold", 110.0)
+        self.oat_mat_check = self.read_argument("oat_mat_check", 5.0)
+        self.open_damper_threshold = self.read_argument("open_damper_threshold", 80.0)
+        self.minimum_damper_setpoint = self.read_argument("minimum_damper_setpoint", 20.0)
+        self.desired_oaf = self.read_argument("desired_oaf", 10.0)
+        self.low_supply_fan_threshold = self.read_argument("low_supply_fan_threshold", 15.0)
+        self.excess_damper_threshold = self.read_argument("excess_damper_threshold", 20.0)
+        self.excess_oaf_threshold = self.read_argument("excess_oaf_threshold", 20.0)
+        self.ventilation_oaf_threshold = self.read_argument("ventilation_oaf_threshold", 5.0)
+        self.insufficient_damper_threshold = self.read_argument("insufficient_damper_threshold", 15.0)
+        self.temp_damper_threshold = self.read_argument("temp_damper_threshold", 90.0)
+        self.rated_cfm = self.read_argument("rated_cfm", 6000.0)
+        self.eer = self.read_argument("eer", 10.0)
+        self.temp_deadband = self.read_argument("temp_deadband", 1.0)
+        self.data_window = td(minutes=self.read_argument("data_window", 30))
+        self.no_required_data = self.read_argument("no_requried_data", 15)
+        self.open_damper_time = td(minutes=self.read_argument("open_damper_time", 5))
+        self.device_type = self.read_argument("device_type", "rtu").lower()
+        self.economizer_type = self.read_argument("econimizer_type", "DDB").lower()
+        self.sensitivity = self.read_argument("sensitivity", "default")
+        self.point_mapping = self.read_argument("point_mapping", {})
+
+    def read_argument(self, config_key, default_value):
+        """Method that reads an argument from the config file and returns the value or returns the default value if key is not present in config file"""
+        return_value = default_value
+        if config_key in self.arguments:
+            return_value = self.arguments[config_key]
+        return return_value
+
+    def read_point_mapping(self):
+        """Method that reads the point mapping and sets the values"""
+        self.fan_status_name = self.get_point_mapping_or_none("supply_fan_status")
+        self.fan_sp_name = self.get_point_mapping_or_none("supply_fan_speed")
+        self.oat_name = self.get_point_mapping_or_none("outdoor_air_temperature")
+        self.rat_name = self.get_point_mapping_or_none("return_air_temperature")
+        self.mat_name = self.get_point_mapping_or_none("mixed_air_temperature")
+        self.oad_sig_name = self.get_point_mapping_or_none("outdoor_damper_signal")
+        self.cool_call_name = self.get_point_mapping_or_none("cool_call")
+
+    def get_point_mapping_or_none(self, name):
+        value = self.point_mapping.get(name, None)
+        if value:
+            value = value.lower()
+        return value
+
+    def configuration_value_check(self):
+        """Method goes through the configuration values and checks them for correctness.  Will error if values are not correct. Some may change based on specific settings"""
+        if self.sensitivity is not None and self.sensitivity == "custom":
+            self.oaf_temperature_threshold = max(5.0, min(self.oaf_temperature_threshold, 15.0))
+            self.cooling_enabled_threshold = max(5.0, min(self.cooling_enabled_threshold, 50.0))
+            self.temp_difference_threshold = max(2.0, min(self.temp_difference_threshold, 6.0))
+            self.mat_low_threshold = max(40.0, min(self.mat_low_threshold, 60.0))
+            self.mat_high_threshold = max(80.0, min(self.mat_high_threshold, 90.0))
+            self.rat_low_threshold = max(40.0, min(self.rat_low_threshold, 60.0))
+            self.rat_high_threshold = max(80.0, min(self.rat_high_threshold, 90.0))
+            self.oat_low_threshold = max(20.0, min(self.oat_low_threshold, 40.0))
+            self.oat_high_threshold = max(90.0, min(self.oat_high_threshold, 125.0))
+            self.open_damper_threshold = max(60.0, min(self.open_damper_threshold, 90.0))
+            self.minimum_damper_setpoint = max(0.0, min(self.minimum_damper_setpoint, 50.0))
+            self.desired_oaf = max(5.0, min(self.desired_oaf, 30.0))
+        else:
+            self.oaf_temperature_threshold = 5.0
+            self.cooling_enabled_threshold = 5.0
+            self.temp_difference_threshold = 4.0
+            self.mat_low_threshold = 50.0
+            self.mat_high_threshold = 90.0
+            self.rat_low_threshold = 50.0
+            self.rat_high_threshold = 90.0
+            self.oat_low_threshold = 30.0
+            self.oat_high_threshold = 110.0
+            self.open_damper_threshold = 80.0
+            self.minimum_damper_setpoint = 20.0
+            self.desired_oaf = 10.0
+
+        if self.economizer_type == "hl":
+            self.econ_hl_temp = max(50.0, min(self.econ_hl_temp, 75.0))
+        else:
+            self.econ_hl_temp = None
+        self.temp_band = max(0.5, min(self.temp_band, 10.0))
+        if self.device_type not in ("ahu", "rtu"):
+            _log.error('device_type must be specified as "AHU" or "RTU" in configuration file.')
+            sys.exit()
+
+        if self.economizer_type.lower() not in ("ddb", "hl"):
+            _log.error('economizer_type must be specified as "DDB" or "HL" in configuration file.')
+            sys.exit()
+
+        if self.fan_sp_name is None and self.fan_status_name is None:
+            _log.error("SupplyFanStatus or SupplyFanSpeed are required to verify AHU status.")
+            sys.exit()
+
+    def create_diagnostics(self):
+        """creates the diagnostic classes"""
+        self.temp_sensor_dx = None
+        self.econ_correctly_on = None
+        self.econ_correctly_off = None
+        self.excess_oa = None
+        self.insufficient_oa = None
+
+    def parse_data_message(self, message):
+        """Breaks down the passed VOLTTRON message"""
+        data_message = message[0]
+        #reset the data arrays on new message
+        self.fan_status_data = []
+        self.damper_data = []
+        self.oat_data = []
+        self.mat_data = []
+        self.rat_data = []
+        self.cooling_data = []
+        self.fan_sp_data = []
+        self.missing_data = []
+
+        _log.info("message is " + str(data_message))
+        for key in data_message:
+            value = data_message[key]
+            if value is None:
+                continue
+            if key == self.fan_status_name:
+                self.fan_status_data = value
+            elif key == self.oad_sig_name:
+                self.damper_data = value
+            elif key == self.oat_name:
+                self.oat_data = value
+            elif key == self.mat_name:
+                self.mat_data = value
+            elif key == self.rat_name:
+                self.rat_data = value
+            elif key == self.cool_call_name:
+                self.cooling_data = value
+            elif key == self.fan_sp_name:
+                self.fan_sp_data = value
+
+
+    def check_for_missing_data(self):
+        """Method that checks the parsed message results for any missing data"""
+        if not self.oat_data:
+            self.missing_data.append(self.oat_name)
+        if not self.rat_data:
+            self.missing_data.append(self.rat_name)
+        if not self.mat_data:
+            self.missing_data.append(self.mat_name)
+        if not self.damper_data:
+            self.missing_data.append(self.oad_sig_name)
+        if not self.cooling_data:
+            self.missing_data.append(self.cool_call_name)
+        if not self.fan_status_data and not self.fan_sp_data:
+            self.missing_data.append(self.fan_status_name)
+
+        if self.missing_data:
+            return True
+        return False
+
+    def check_fan_status(self, current_time):
+        """Check the status and speed of the fan"""
+        if self.fan_status_data:
+            supply_fan_status = int(max(self.fan_status_data))
+        else:
+            supply_fan_status = None
+
+        if self.fan_sp_data:
+            self.fan_speed = mean(self.fan_sp_data)
+        else:
+            self.fan_speed = None
+        if supply_fan_status is None:
+            if self.fan_speed > self.low_supply_fan_threshold:
+                supply_fan_status = 1
+            else:
+                supply_fan_status = 0
+
+        if not supply_fan_status:
+            if self.unit_status is None:
+                self.unit_status = current_time
+        else:
+            self.unit_status = None
+        return supply_fan_status
+
+    def check_temperature_condition(self, current_time):
+        """Ensure the OAT and RAT have minimum difference to allow for a conclusive diagnostic."""
+        if abs(self.oat - self.rat) < self.oaf_temperature_threshold:
+            if self.oaf_condition is None:
+                self.oaf_condition = current_time
+        else:
+            self.oaf_condition = None
+
+    def check_elapsed_time(self, current_time):
+        """Check on time since last message to see if it is in data window"""
+        if self.oaf_condition is not None:
+            elapsed_time = current_time - self.oaf_condition
+        else:
+            elapsed_time = td(minutes=0)
+        if elapsed_time >= self.data_window:
+            self.pre_conditions(current_time)
+            self.clear_all()
+
+    def clear_all(self):
+        """Reinitialize all data arrays for diagnostics."""
+        #self.econ1.clear_data()
+        #self.econ2.clear_data()
+        #self.econ2.clear_data()
+        #self.econ3.clear_data()
+        #self.econ4.clear_data()
+        #self.econ5.clear_data()
+        self.temp_sensor_problem = None
+        self.unit_status = None
+        self.oaf_condition = None
+        self.sensor_limit = None
+
+    def pre_conditions(self, current_time):
+        """Publish Pre conditions not met"""
+        dx_msg = {}
+        for sensitivity in self.sensitivity:
+            dx_msg[sensitivity] = constants.OAF
+
+        for diagnostic in constants.DX_LIST:
+            _log.info({diagnostic + constants.DX: dx_msg})
+
+    def sensor_limit_check(self, current_time):
+        """ Check temperature limits on sensors."""
+        sensor_limit = (False, None)
+        if self.oat < self.oat_low_threshold or self.oat > self.oat_high_threshold:
+            sensor_limit = (True, constants.OAT_LIMIT)
+        elif self.mat < self.mat_low_threshold or self.mat > self.mat_high_threshold:
+            sensor_limit = (True, constants.MAT_LIMIT)
+        elif self.rat < self.rat_low_threshold or self.rat > self.rat_high_threshold:
+            sensor_limit = (True, constants.RAT_LIMIT)
+
+        if sensor_limit[0]:
+            if self.sensor_limit is None:
+                self.sensor_limit = current_time
+        else:
+            self.sensor_limit = None
+        return sensor_limit
+
+    def determine_cooling_condition(self):
+        """Determine if the unit is in a cooling mode and if conditions are favorable for economizing."""
+        if self.device_type == "ahu":
+            clg_vlv_pos = mean(self.cooling_data)
+            cool_call = True if clg_vlv_pos > self.cooling_enabled_threshold else False
+        elif self.device_type == "rtu":
+            cool_call = int(max(self.cooling_data))
+
+        if self.economizer_type == "ddb":
+            econ_condition = (self.rat - self.oat) > self.temp_band
+        else:
+            econ_condition = (self.econ_hl_temp - self.oat) > self.temp_band
+
+        return econ_condition, cool_call
 
 
     @Core.receiver("onstart")
@@ -113,7 +427,51 @@ class EconimizerAgent(Agent):
         :param message:
         :return:
         """
+        current_time = parser.parse(headers["Date"])
         _log.info("Data Received for {}".format(topic))
+        self.parse_data_message(message)
+        missing_data = self.check_for_missing_data()
+        #want to do no further parsing if data is missing
+        if missing_data:
+            _log.info("Missing data from publish: {}".format(self.missing_data))
+            return
+
+        #check on fan status and speed
+        fan_status = self.check_fan_status(current_time)
+        if not fan_status:
+            _log.info("Supply fan is off: {}".format(current_time))
+            return
+        else:
+            _log.info("Supply fan is on: {}".format(current_time))
+
+        if self.fan_speed is None and self.constant_volume:
+            self.fan_speed = 100.0
+
+        self.oat = mean(self.oat_data)
+        self.rat = mean(self.rat_data)
+        self.mat = mean(self.mat_data)
+        self.oad = mean(self.oad_data)
+
+        #check on temperature condition
+        self.check_temperature_condition(current_time)
+        self.check_elapsed_time(current_time)
+
+        if self.oaf_condition:
+            _log.info("OAT and RAT readings are too close.")
+            return
+
+        limit_condition = self.sensor_limit_check(current_time)
+        #check to see if there was a temperature sensor out of bounds
+        if limit_condition[0]:
+            _log.info("Temperature sensor is outside of bounds: {} -- {}".format(limit_condition, self.sensor_limit))
+            return
+
+        self.temp_sensor_problem = self.temp_sensor_dx
+        econ_condition, cool_call = self.determine_cooling_condition()
+        _log.debug("Cool call: {} - Economizer status: {}".format(cool_call, econ_condition))
+
+
+
 
 
 
@@ -125,7 +483,7 @@ class EconimizerAgent(Agent):
 
 
 def main(argv=sys.argv):
-    """Main method called by the aip."""
+    """Main method called by the app."""
     try:
         utils.vip_main(EconimizerAgent)
     except Exception as exception:

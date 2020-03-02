@@ -1,6 +1,6 @@
 {
-    "campus": "PNNL",
-    "building": "3820A",
+    "campus": "campus",
+    "building": "building",
     "device": ["AHU1"],
     # all diagnostics in diagnostics array are run consecutively.
     # this is initiated based on a cron scheduling string - https://crontab.guru

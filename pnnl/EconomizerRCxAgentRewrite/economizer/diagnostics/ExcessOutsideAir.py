@@ -51,11 +51,11 @@ from .. import constants
 setup_logging()
 _log = logging.getLogger(__name__)
 
-class EconCorrectlyOff(object):
+class ExcessOutsideAir(object):
     """
-    Air-side HVAC economizer diagnostic for AHU/RTU systems.
-    EconCorrectlyOff uses metered data from a BAS or controller to diagnose
-    if an AHU/RTU is economizing when it should not.
+    Air-side HVAC ventilation diagnostic.
+    ExcessOutside Air uses metered data from a controller or
+    BAS to diagnose when an AHU/RTU is providing excess outdoor air.
     """
 
     def __init__(self):
@@ -63,60 +63,59 @@ class EconCorrectlyOff(object):
         self.oat_values = []
         self.rat_values = []
         self.mat_values = []
-        self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
-
-        # Initialize not_cooling and not_economizing flags
+        self.fan_spd_values = []
         self.economizing = None
 
+        # Application thresholds (Configurable)
+        self.cfm = None
+        self.eer = None
         self.max_dx_time = None
         self.data_window = None
         self.no_required_data = None
+        self.excess_oaf_threshold = None
         self.min_damper_sp = None
+        self.desired_oaf = None
         self.excess_damper_threshold = None
         self.economizing_dict = None
+        self.invalid_oaf_dict = None
         self.inconsistent_date = None
-        self.desired_oaf = None
-        self.analysis = None
-        self.cfm = None
-        self.eer = None
 
-        # Application result messages
-        self.alg_result_messages = \
-            ["The OAD should be at the minimum position but is significantly above this value.",
-             "No problems detected.",
-             "Inconclusive results, could not verify the status of the economizer."]
-
-    def set_class_values(self, data_window, no_required_data, minimum_damper_setpoint, desired_oaf, cfm, eer):
+    def set_class_values(self, data_window, no_required_data, min_damper_sp, desired_oaf, cfm, eer):
         """Set the values needed for doing the diagnostics"""
+        self.cfm = cfm
+        self.eer = eer
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.data_window = data_window
         self.no_required_data = no_required_data
-        self.min_damper_sp = minimum_damper_setpoint
-        self.excess_damper_threshold = {
-            'low': minimum_damper_setpoint*2.0,
-            'normal': minimum_damper_setpoint,
-            'high':  minimum_damper_setpoint*0.5
+        self.excess_oaf_threshold = {
+            'low': min_damper_sp*2.0 + 10.0,
+            'normal': min_damper_sp + 10.0,
+            'high': min_damper_sp*0.5 + 10.0
         }
-        self.economizing_dict = {key: 25.0 for key in self.excess_damper_threshold}
-        self.inconsistent_date = {key: 23.2 for key in self.excess_damper_threshold}
+        self.min_damper_sp = min_damper_sp
         self.desired_oaf = desired_oaf
-        self.cfm = cfm
-        self.eer = eer
+        self.excess_damper_threshold = {
+            'low': min_damper_sp*2.0,
+            'normal': min_damper_sp,
+            'high':  min_damper_sp*0.5
+        }
+        self.economizing_dict = {key: 36.0 for key in self.excess_damper_threshold}
+        self.invalid_oaf_dict = {key: 31.2 for key in self.excess_damper_threshold}
+        self.inconsistent_date = {key: 35.2 for key in self.excess_damper_threshold}
 
 
-    def economizer_off_algorithm(self, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
+    def excess_ouside_air_algorithm(self, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """"""
-
         economizing = self.economizer_conditions(econ_condition, cur_time)
-        if not economizing:
+        if economizing:
             return
 
-        self.oat_values.append(oat)
-        self.mat_values.append(mat)
-        self.rat_values.append(rat)
         self.oad_values.append(oad)
+        self.oat_values.append(oat)
+        self.rat_values.append(rat)
+        self.mat_values.append(mat)
         self.timestamp.append(cur_time)
 
         fan_sp = fan_sp / 100.0 if fan_sp is not None else 1.0
@@ -126,46 +125,70 @@ class EconCorrectlyOff(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 self.clear_data()
-                return
-            self.economizing_when_not_needed()
+            self.excess_oa()
 
 
     def economizer_conditions(self, econ_condition, cur_time):
         """"""
         if econ_condition:
-            _log.log("{}: economizing, for data {} --{}.".format(constants.ECON3, econ_condition, cur_time))
+            _log.log("{}: economizing at {} .".format(constants.ECON4, cur_time))
             if self.economizing is None:
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
-                _log.log("{}: economizing - reinitialize!".format(constants.ECON3))
+                _log.log("{}: economizing for data set, reinitialize.".format(constants.ECON4))
                 self.clear_data()
             return True
         else:
             self.economizing = None
         return False
 
-    def economizing_when_not_needed(self):
+    def excess_oa(self):
         """If the detected problems(s) are consistent then generate a fault message(s)."""
-        desired_oaf = self.desired_oaf / 100.0
+        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
+        avg_oaf = mean(oaf) * 100.0
         avg_damper = mean(self.oad_values)
+        desired_oaf = self.desired_oaf / 100.0
         diagnostic_msg = {}
         energy_impact = {}
-        for sensitivity, threshold in self.excess_damper_threshold.items():
-            if avg_damper > threshold:
-                msg = "{} - {}: {}".format(constants.ECON3, sensitivity, self.alg_result_messages[0])
-                # color_code = "RED"
-                result = 21.1
-                energy = self.energy_impact_calculation(desired_oaf)
-            else:
-                msg = "{} - {}: {}".format(constants.ECON3, sensitivity, self.alg_result_messages[1])
-                # color_code = "GREEN"
-                result = 20.0
-                energy = 0.0
+
+        if avg_oaf < 0 or avg_oaf > 125.0:
+            msg = ("{}: Inconclusive result, unexpected OAF value: {}".format(constants.ECON4, avg_oaf))
             _log.log(msg)
-            diagnostic_msg.update({sensitivity: result})
-            energy_impact.update({sensitivity: energy})
+            self.clear_data()
+            return
+
+        avg_oaf = max(0.0, min(100.0, avg_oaf))
+        thresholds = zip(self.excess_damper_threshold.items(), self.excess_oaf_threshold.items())
+        for (key, damper_thr), (key2, oaf_thr) in thresholds:
+            if avg_damper > damper_thr:
+                msg = "{}: The OAD should be at the minimum but is significantly higher.".format(constants.ECON4)
+                # color_code = "RED"
+                result = 32.1
+                if avg_oaf - self.desired_oaf > oaf_thr:
+                    msg = ("{}: The OAD should be at the minimum for ventilation "
+                           "but is significantly above that value. Excess outdoor air is "
+                           "being provided; This could significantly increase "
+                           "heating and cooling costs".format(constants.ECON4))
+                    energy = self.energy_impact_calculation(desired_oaf)
+                    result = 34.1
+            elif avg_oaf - self.desired_oaf > oaf_thr:
+                msg = ("{}: Excess outdoor air is being provided, this could "
+                       "increase heating and cooling energy consumption.".format(constants.ECON4))
+                # color_code = "RED"
+                energy = self.energy_impact_calculation(desired_oaf)
+                result = 33.1
+            else:
+                # color_code = "GREEN"
+                msg = ("{}: The calculated OAF is within configured limits.".format(constants.ECON4))
+                result = 30.0
+                energy = 0.0
+
+            _log.log(msg)
+            energy_impact.update({key: energy})
+            diagnostic_msg.update({key: result})
 
         self.clear_data()
+
 
     def energy_impact_calculation(self, desired_oaf):
         """"""
@@ -184,7 +207,7 @@ class EconCorrectlyOff(object):
 
     def clear_data(self):
         """
-        Reinitialize data arrays.
+        Reinitialize class insufficient_oa data.
         :return:
         """
         self.oad_values = []
@@ -193,6 +216,4 @@ class EconCorrectlyOff(object):
         self.mat_values = []
         self.fan_spd_values = []
         self.timestamp = []
-        self.not_economizing = None
-        self.not_cooling = None
-
+        self.economizing = None

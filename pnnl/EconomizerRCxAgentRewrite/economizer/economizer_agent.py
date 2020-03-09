@@ -10,8 +10,11 @@ from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
 
 from . import constants
+from . diagnostics.TemperatureSensor import TemperatureSensor
 from . diagnostics.EconCorrectlyOn import EconCorrectlyOn
 from . diagnostics.EconCorrectlyOff import EconCorrectlyOff
+from .diagnostics.ExcessOutsideAir import ExcessOutsideAir
+from .diagnostics.InsufficientOutsideAir import InsufficientOutsideAir
 
 __version__ = "1.2.0"
 
@@ -104,8 +107,8 @@ class EconomizerAgent(Agent):
         self.temp_sensor = None
         self.econ_correctly_on = None
         self.econ_correctly_off = None
-        self.excess_oa = None
-        self.insufficient_oa = None
+        self.excess_outside_air = None
+        self.insufficient_outside_air = None
 
         #start reading all the class configs and check them
         self.read_config(config_path)
@@ -248,13 +251,16 @@ class EconomizerAgent(Agent):
 
     def create_diagnostics(self):
         """creates the diagnostic classes"""
-        self.temp_sensor = None
+        self.temp_sensor = TemperatureSensor()
+        self.temp_sensor.set_class_values(self.data_window, self.no_required_data, self.temp_difference_threshold, self.open_damper_time, self.oat_mat_check, self.temp_damper_threshold)
         self.econ_correctly_on = EconCorrectlyOn()
         self.econ_correctly_on.set_class_values(self.open_damper_threshold, self.minimum_damper_setpoint, self.data_window, self.no_required_data, float(self.rated_cfm), self.eer)
         self.econ_correctly_off = EconCorrectlyOff()
         self.econ_correctly_off.set_class_values(self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
-        self.excess_oa = None
-        self.insufficient_oa = None
+        self.excess_outside_air = ExcessOutsideAir()
+        self.excess_outside_air.set_class_values(self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
+        self.insufficient_outside_air = InsufficientOutsideAir()
+        self.insufficient_outside_air.set_class_values(self.data_window, self.no_required_data, self.desired_oaf)
 
     def parse_data_message(self, message):
         """Breaks down the passed VOLTTRON message"""
@@ -361,11 +367,11 @@ class EconomizerAgent(Agent):
 
     def clear_diagnostics(self):
         """Clear the diagnositcs"""
-        #self.temp_sensor.clear_data()
+        self.temp_sensor.clear_data()
         self.econ_correctly_on.clear_data()
         self.econ_correctly_off.clear_data()
-        #self.excess_oa.clear_data()
-        #self.insufficient_oa.clear_data()
+        self.excess_outside_air.clear_data()
+        self.insufficient_outside_air.clear_data()
         pass
 
     def pre_conditions(self, message):
@@ -469,15 +475,15 @@ class EconomizerAgent(Agent):
             _log.info("Temperature sensor is outside of bounds: {} -- {}".format(limit_condition, self.sensor_limit))
             return
 
-        self.temp_sensor_problem = self.temp_sensor
+        self.temp_sensor_problem = self.temp_sensor.temperature_algorithm(self.oat, self.rat, self.mat, self.oad, current_time)
         econ_condition, cool_call = self.determine_cooling_condition()
         _log.debug("Cool call: {} - Economizer status: {}".format(cool_call, econ_condition))
 
         if self.temp_sensor_problem is not None and not self.temp_sensor_problem:
-            self.econ_correctly_on.economizer_algorithm(self.cool_call, self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
-            self.econ_correctly_off.economizer_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
-            self.excess_oa = None
-            self.insufficient_oa = None
+            self.econ_correctly_on.economizer_on_algorithm(self.cool_call, self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
+            self.econ_correctly_off.economizer_off_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
+            self.excess_outside_air.excess_ouside_air_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
+            self.insufficient_outside_air.insufficient_outside_air_algorithm(self.oat, self.rat, self.mat, current_time)
         elif self.temp_sensor_problem:
             self.pre_conditions(constants.TEMP_SENSOR)
             self.clear_diagnostics()

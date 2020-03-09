@@ -109,7 +109,7 @@ class EconCorrectlyOn(object):
         self.inconsistent_date = {key: 13.2 for key in self.oaf_economizing_threshold}
 
 
-    def economizer_algorithm(self, cooling_call, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
+    def economizer_on_algorithm(self, cooling_call, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """"""
 
         economizing = self.economizer_conditions(cooling_call, econ_condition, cur_time)

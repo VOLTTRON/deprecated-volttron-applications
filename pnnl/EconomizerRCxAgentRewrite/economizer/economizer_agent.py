@@ -1,29 +1,27 @@
-import os
+
 import sys
 import logging
-import math
-from datetime import timedelta as td, datetime as dt
+from datetime import timedelta as td
 from dateutil import parser
-import gevent
-import dateutil.tz
 from volttron.platform.agent import utils
 from volttron.platform.messaging import topics
 from volttron.platform.agent.math_utils import mean
-from volttron.platform.agent.utils import (setup_logging, format_timestamp, get_aware_utc_now)
+from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
-from volttron.platform.jsonrpc import RemoteError
 
 from . import constants
+from . diagnostics.EconCorrectlyOn import EconCorrectlyOn
+from . diagnostics.EconCorrectlyOff import EconCorrectlyOff
 
 __version__ = "1.2.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)
 
-class EconimizerAgent(Agent):
+class EconomizerAgent(Agent):
 
     def __init__(self, config_path, **kwargs):
-        super(EconimizerAgent, self).__init__(**kwargs)
+        super(EconomizerAgent, self).__init__(**kwargs)
 
         #list of class attributes.  Default values will be filled in from reading config file
         #string attributes
@@ -69,7 +67,7 @@ class EconimizerAgent(Agent):
         self.econ_hl_temp = 0.0
         self.temp_band = 0.0
         self.oaf_temperature_threshold = 0.0
-        self.oaf_econimizing_threshold = 0.0
+        self.oaf_economizing_threshold = 0.0
         self.cooling_enabled_threshold = 0.0
         self.temp_difference_threshold = 0.0
         self.mat_low_threshold = 0.0
@@ -103,7 +101,7 @@ class EconimizerAgent(Agent):
         self.temp_sensor_problem = None
 
         #diagnostics
-        self.temp_sensor_dx = None
+        self.temp_sensor = None
         self.econ_correctly_on = None
         self.econ_correctly_off = None
         self.excess_oa = None
@@ -151,7 +149,7 @@ class EconimizerAgent(Agent):
         self.constant_volume = self.read_argument("constant_volume", False)
         self.temp_band = self.read_argument("temp_band", 1.0)
         self.oaf_temperature_threshold = self.read_argument("oaf_temperature_threshold", 5.0)
-        self.oaf_econimizing_threshold = self.read_argument("oaf_econimizing_threshold", 25.0)
+        self.oaf_economizing_threshold = self.read_argument("oaf_economizing_threshold", 25.0)
         self.cooling_enabled_threshold = self.read_argument("cooling_enabled_threshold", 5.0)
         self.temp_difference_threshold = self.read_argument("temp_difference_threshold", 4.0)
         self.mat_low_threshold = self.read_argument("mat_low_threshold", 50.0)
@@ -177,7 +175,7 @@ class EconimizerAgent(Agent):
         self.no_required_data = self.read_argument("no_requried_data", 15)
         self.open_damper_time = td(minutes=self.read_argument("open_damper_time", 5))
         self.device_type = self.read_argument("device_type", "rtu").lower()
-        self.economizer_type = self.read_argument("econimizer_type", "DDB").lower()
+        self.economizer_type = self.read_argument("economizer_type", "DDB").lower()
         self.sensitivity = self.read_argument("sensitivity", "default")
         self.point_mapping = self.read_argument("point_mapping", {})
 
@@ -200,8 +198,6 @@ class EconimizerAgent(Agent):
 
     def get_point_mapping_or_none(self, name):
         value = self.point_mapping.get(name, None)
-        if value:
-            value = value.lower()
         return value
 
     def configuration_value_check(self):
@@ -252,9 +248,11 @@ class EconimizerAgent(Agent):
 
     def create_diagnostics(self):
         """creates the diagnostic classes"""
-        self.temp_sensor_dx = None
-        self.econ_correctly_on = None
-        self.econ_correctly_off = None
+        self.temp_sensor = None
+        self.econ_correctly_on = EconCorrectlyOn()
+        self.econ_correctly_on.set_class_values(self.open_damper_threshold, self.minimum_damper_setpoint, self.data_window, self.no_required_data, float(self.rated_cfm), self.eer)
+        self.econ_correctly_off = EconCorrectlyOff()
+        self.econ_correctly_off.set_class_values(self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
         self.excess_oa = None
         self.insufficient_oa = None
 
@@ -277,19 +275,19 @@ class EconimizerAgent(Agent):
             if value is None:
                 continue
             if key == self.fan_status_name:
-                self.fan_status_data = value
+                self.fan_status_data.append(value)
             elif key == self.oad_sig_name:
-                self.damper_data = value
+                self.damper_data.append(value)
             elif key == self.oat_name:
-                self.oat_data = value
+                self.oat_data.append(value)
             elif key == self.mat_name:
-                self.mat_data = value
+                self.mat_data.append(value)
             elif key == self.rat_name:
-                self.rat_data = value
+                self.rat_data.append(value)
             elif key == self.cool_call_name:
-                self.cooling_data = value
+                self.cooling_data.append(value)
             elif key == self.fan_sp_name:
-                self.fan_sp_data = value
+                self.fan_sp_data.append(value)
 
 
     def check_for_missing_data(self):
@@ -343,34 +341,38 @@ class EconimizerAgent(Agent):
         else:
             self.oaf_condition = None
 
-    def check_elapsed_time(self, current_time):
+    def check_elapsed_time(self, current_time, message):
         """Check on time since last message to see if it is in data window"""
         if self.oaf_condition is not None:
             elapsed_time = current_time - self.oaf_condition
         else:
             elapsed_time = td(minutes=0)
         if elapsed_time >= self.data_window:
-            self.pre_conditions(current_time)
+            self.pre_conditions(message)
             self.clear_all()
 
     def clear_all(self):
         """Reinitialize all data arrays for diagnostics."""
-        #self.econ1.clear_data()
-        #self.econ2.clear_data()
-        #self.econ2.clear_data()
-        #self.econ3.clear_data()
-        #self.econ4.clear_data()
-        #self.econ5.clear_data()
+        self.clear_diagnostics()
         self.temp_sensor_problem = None
         self.unit_status = None
         self.oaf_condition = None
         self.sensor_limit = None
 
-    def pre_conditions(self, current_time):
+    def clear_diagnostics(self):
+        """Clear the diagnositcs"""
+        #self.temp_sensor.clear_data()
+        self.econ_correctly_on.clear_data()
+        self.econ_correctly_off.clear_data()
+        #self.excess_oa.clear_data()
+        #self.insufficient_oa.clear_data()
+        pass
+
+    def pre_conditions(self, message):
         """Publish Pre conditions not met"""
         dx_msg = {}
         for sensitivity in self.sensitivity:
-            dx_msg[sensitivity] = constants.OAF
+            dx_msg[sensitivity] = message
 
         for diagnostic in constants.DX_LIST:
             _log.info({diagnostic + constants.DX: dx_msg})
@@ -450,42 +452,41 @@ class EconimizerAgent(Agent):
         self.oat = mean(self.oat_data)
         self.rat = mean(self.rat_data)
         self.mat = mean(self.mat_data)
-        self.oad = mean(self.oad_data)
+        self.oad = mean(self.damper_data)
 
         #check on temperature condition
         self.check_temperature_condition(current_time)
-        self.check_elapsed_time(current_time)
+        self.check_elapsed_time(current_time, constants.OAF)
 
         if self.oaf_condition:
             _log.info("OAT and RAT readings are too close.")
             return
 
         limit_condition = self.sensor_limit_check(current_time)
+        self.check_elapsed_time(current_time, limit_condition[1])
         #check to see if there was a temperature sensor out of bounds
         if limit_condition[0]:
             _log.info("Temperature sensor is outside of bounds: {} -- {}".format(limit_condition, self.sensor_limit))
             return
 
-        self.temp_sensor_problem = self.temp_sensor_dx
+        self.temp_sensor_problem = self.temp_sensor
         econ_condition, cool_call = self.determine_cooling_condition()
         _log.debug("Cool call: {} - Economizer status: {}".format(cool_call, econ_condition))
 
-
-
-
-
-
-
-
-
-
-
+        if self.temp_sensor_problem is not None and not self.temp_sensor_problem:
+            self.econ_correctly_on.economizer_algorithm(self.cool_call, self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
+            self.econ_correctly_off.economizer_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_sp)
+            self.excess_oa = None
+            self.insufficient_oa = None
+        elif self.temp_sensor_problem:
+            self.pre_conditions(constants.TEMP_SENSOR)
+            self.clear_diagnostics()
 
 
 def main(argv=sys.argv):
     """Main method called by the app."""
     try:
-        utils.vip_main(EconimizerAgent)
+        utils.vip_main(EconomizerAgent)
     except Exception as exception:
         _log.exception("unhandled exception")
         _log.error(repr(exception))

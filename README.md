@@ -38,6 +38,6 @@ PNNL developed applications
     
     This application has been  coded to run with Python3 supports the VOLTTRON config store.
    
- - ILCAgent - moved to volttron-GS repository.
+ - ILCAgent - moved to volttron-GS repository. https://github.com/VOLTTRON/volttron-GS
 
 

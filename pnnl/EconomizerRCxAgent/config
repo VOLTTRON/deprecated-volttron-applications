@@ -28,7 +28,7 @@
             "supply_fan_speed": "SupplyFanSpeed"
         },
             "device_type": "rtu",
-            "data_window": 0,
+            "data_window": 1,
             "no_required_data": 1,
             "open_damper_time": 0,
             "low_supply_fan_threshold": 20.0,

@@ -65,6 +65,7 @@ class EconCorrectlyOn(object):
         self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
+        self.analysis_name = ''
 
         # Initialize not_cooling and not_economizing flags
         self.not_cooling = None
@@ -90,7 +91,7 @@ class EconCorrectlyOn(object):
             "Conditions are favorable for economizing and OAD is 100% but the OAF is too low."
         ]
 
-    def set_class_values(self, open_damper_threshold, minimum_damper_setpoint, data_window, no_required_data,cfm, eer):
+    def set_class_values(self, analysis_name, open_damper_threshold, minimum_damper_setpoint, data_window, no_required_data,cfm, eer):
         """Set the values needed for doing the diagnostics"""
         self.open_damper_threshold = open_damper_threshold
         self.oaf_economizing_threshold = {
@@ -100,6 +101,7 @@ class EconCorrectlyOn(object):
         }
         self.minimum_damper_setpoint = minimum_damper_setpoint
         self.data_window = data_window
+        self.analysis_name = analysis_name
         self.no_required_data = no_required_data
         self.cfm = cfm
         self.eer = eer
@@ -128,6 +130,7 @@ class EconCorrectlyOn(object):
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
                 return
             self.not_economizing_when_needed()
@@ -136,22 +139,24 @@ class EconCorrectlyOn(object):
     def economizer_conditions(self, cooling_call, econ_condition, cur_time):
         """"""
         if not cooling_call:
-            _log.log("{}: not cooling at {}".format(constants.ECON2, cur_time))
+            _log.info("{}: not cooling at {}".format(constants.ECON2, cur_time))
             if self.not_cooling is None:
                 self.not_cooling = cur_time
             if cur_time - self.not_cooling >= self.data_window:
-                _log.log("{}: no cooling during data set - reinitialize.".format(constants.ECON2))
+                _log.info("{}: no cooling during data set - reinitialize.".format(constants.ECON2))
+                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ':' + str(self.not_cooling_dict))))
                 self.clear_data()
             return False
         else:
             self.not_cooling = None
 
         if not econ_condition:
-            _log.log("{}: not economizing at {}.".format(constants.ECON2, cur_time))
+            _log.info("{}: not economizing at {}.".format(constants.ECON2, cur_time))
             if self.not_economizing is None:
                 self.not_economizing = cur_time
             if cur_time - self.not_economizing >= self.data_window:
-                _log.log("{}: no economizing during data set - reinitialize.".format(constants.ECON2))
+                _log.info("{}: no economizing during data set - reinitialize.".format(constants.ECON2))
+                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ':' + str(self.not_economizing_dict))))
                 self.clear_data()
             return False
         else:
@@ -180,10 +185,11 @@ class EconCorrectlyOn(object):
                     msg = "{} - {}: {}".format(constants.ECON2, key, self.alg_result_messages[1])
                     result = 10.0
                     energy = 0.0
-            _log.log(msg)
+            _log.info(msg)
             diagnostic_msg.update({key: result})
             energy_impact.update({key: energy})
-
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ':' + str(diagnostic_msg))))
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI + ':' + str(energy_impact))))
         self.clear_data()
 
     def energy_impact_calculation(self):

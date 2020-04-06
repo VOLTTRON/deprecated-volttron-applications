@@ -15,3 +15,8 @@ OAT_LIMIT = -79.2
 RAT_LIMIT = -69.2
 MAT_LIMIT = -59.2
 TEMP_SENSOR = -49.2
+
+
+def table_log_format(name, timestamp, data):
+    """ Return a formatted string for use in the log"""
+    return str(str(name) + '&' + str(timestamp) + '->[' + str(data) + ']')

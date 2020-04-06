@@ -66,6 +66,7 @@ class EconCorrectlyOff(object):
         self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
+        self.analysis_name = ''
 
         # Initialize not_cooling and not_economizing flags
         self.economizing = None
@@ -83,15 +84,16 @@ class EconCorrectlyOff(object):
         self.eer = None
 
         # Application result messages
-        self.alg_result_messages = \
-            ["The OAD should be at the minimum position but is significantly above this value.",
+        self.alg_result_messages = [
+            "The OAD should be at the minimum position but is significantly above this value.",
              "No problems detected.",
              "Inconclusive results, could not verify the status of the economizer."]
 
-    def set_class_values(self, data_window, no_required_data, minimum_damper_setpoint, desired_oaf, cfm, eer):
+    def set_class_values(self, analysis_name, data_window, no_required_data, minimum_damper_setpoint, desired_oaf, cfm, eer):
         """Set the values needed for doing the diagnostics"""
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.data_window = data_window
+        self.analysis_name = analysis_name
         self.no_required_data = no_required_data
         self.min_damper_sp = minimum_damper_setpoint
         self.excess_damper_threshold = {
@@ -125,6 +127,7 @@ class EconCorrectlyOff(object):
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
                 return
             self.economizing_when_not_needed()
@@ -133,11 +136,12 @@ class EconCorrectlyOff(object):
     def economizer_conditions(self, econ_condition, cur_time):
         """"""
         if econ_condition:
-            _log.log("{}: economizing, for data {} --{}.".format(constants.ECON3, econ_condition, cur_time))
+            _log.info("{}: economizing, for data {} --{}.".format(constants.ECON3, econ_condition, cur_time))
             if self.economizing is None:
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
-                _log.log("{}: economizing - reinitialize!".format(constants.ECON3))
+                _log.info("{}: economizing - reinitialize!".format(constants.ECON3))
+                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX + ':' + str(self.economizing_dict))))
                 self.clear_data()
             return True
         else:
@@ -161,10 +165,11 @@ class EconCorrectlyOff(object):
                 # color_code = "GREEN"
                 result = 20.0
                 energy = 0.0
-            _log.log(msg)
+            _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
             energy_impact.update({sensitivity: energy})
-
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(diagnostic_msg))))
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI + ':' + str(energy_impact))))
         self.clear_data()
 
     def energy_impact_calculation(self, desired_oaf):

@@ -244,5 +244,3 @@ class DamperSensorInconsistency(object):
         self.mat_values = []
         self.steady_state = None
         self.timestamp = []
-
-

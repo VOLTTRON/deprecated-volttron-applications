@@ -198,6 +198,5 @@ class EconCorrectlyOff(object):
         self.mat_values = []
         self.fan_spd_values = []
         self.timestamp = []
-        self.not_economizing = None
-        self.not_cooling = None
+
 

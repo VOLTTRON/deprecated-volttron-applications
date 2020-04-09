@@ -8,6 +8,7 @@ from datetime import timedelta as td
 from .diagnostics.TemperatureSensor import TemperatureSensor
 from .diagnostics.TemperatureSensor import DamperSensorInconsistency
 from .diagnostics.EconCorrectlyOff import EconCorrectlyOff
+from .diagnostics.EconCorrectlyOn import EconCorrectlyOn
 from datetime import datetime
 
 
@@ -398,3 +399,201 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         assert len(econ.fan_spd_values) == 0
 
 
+class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
+    """
+    Contains all the tests for Econ Correctly On Diagnostic
+    """
+    def test_econ_correctly_on_creation(self):
+        """test the creation of econ correctly on diagnostic class"""
+        econ = EconCorrectlyOn()
+        if isinstance(econ, EconCorrectlyOn):
+            assert True
+        else:
+            assert False
+
+    def test_econ_on_set_values(self):
+        """test the econ correctly On set values method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        assert econ.data_window == td(minutes=1)
+        assert econ.no_required_data == 1
+        assert econ.analysis_name == "test"
+        assert econ.min_damper_sp == 20.0
+        assert econ.desired_oaf == 10.0
+        assert econ.cfm == 6000.0
+        assert econ.eer == 10.0
+        assert econ.excess_damper_threshold["low"] == 40.0
+        assert econ.excess_damper_threshold["normal"] == 20.0
+        assert econ.excess_damper_threshold["high"] == 10.0
+
+    def test_econ_On_algorithm_one_timestamp(self):
+        """test the econ correctly On algorithm method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        cur_time = datetime.fromtimestamp(10000)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        econ.economizer_On_algorithm(50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
+        assert len(econ.oat_values) == 1
+        assert len(econ.mat_values) == 1
+        assert len(econ.rat_values) == 1
+        assert len(econ.oad_values) == 1
+        assert len(econ.fan_spd_values) == 1
+        assert len(econ.timestamp) == 1
+
+    def test_econ_On_algorithm_two_timestamp(self):
+        """test the econ correctly On algorithm method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        first_stamp = datetime.fromtimestamp(1)
+        econ.timestamp.append(first_stamp)
+        cur_time = datetime.fromtimestamp(10000)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        econ.economizer_On_algorithm(50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
+        assert len(econ.oat_values) == 0
+        assert len(econ.mat_values) == 0
+        assert len(econ.rat_values) == 0
+        assert len(econ.oad_values) == 0
+        assert len(econ.fan_spd_values) == 0
+        assert len(econ.timestamp) == 0
+
+    def test_econ_on_conditions(self):
+        """test the econ conditions method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        cur_time = datetime.fromtimestamp(10000)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        first_stamp = datetime.fromtimestamp(1)
+        econ.economizing = first_stamp
+        econ.oat_values.append(50)
+        econ.mat_values.append(25)
+        econ.oad_values.append(100)
+        econ.rat_values.append(50)
+        ret = econ.economizer_conditions(5.0, cur_time)
+        assert len(econ.oat_values) == 0
+        assert len(econ.mat_values) == 0
+        assert len(econ.rat_values) == 0
+        assert len(econ.oad_values) == 0
+        assert len(econ.fan_spd_values) == 0
+        assert len(econ.timestamp) == 0
+        assert ret is True
+
+    def test_econ_on_conditions_no_clear(self):
+        """test the econ conditions without clearing method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        cur_time = datetime.fromtimestamp(10000)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        first_stamp = datetime.fromtimestamp(100000)
+        econ.economizing = first_stamp
+        econ.oat_values.append(50)
+        econ.mat_values.append(25)
+        econ.oad_values.append(100)
+        econ.rat_values.append(50)
+        econ.fan_spd_values.append(50)
+        ret = econ.economizer_conditions(5.0, cur_time)
+        assert len(econ.oat_values) == 1
+        assert len(econ.mat_values) == 1
+        assert len(econ.rat_values) == 1
+        assert len(econ.oad_values) == 1
+        assert len(econ.fan_spd_values) == 1
+        assert len(econ.timestamp) == 0
+        assert ret is True
+
+    def test_econ_on_conditions_false(self):
+        """test the econ conditions method returning false"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        cur_time = datetime.fromtimestamp(10000)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        ret = econ.economizer_conditions(False, cur_time)
+        assert ret is False
+
+    def test_econ_on_when_not_needed(self):
+        """test the econ when not needed method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        first_stamp = datetime.fromtimestamp(1)
+        econ.timestamp.append(first_stamp)
+        econ.economizing = first_stamp
+        econ.oat_values.append(50)
+        econ.mat_values.append(25)
+        econ.oad_values.append(100)
+        econ.rat_values.append(50)
+        econ.economizing_when_not_needed()
+        assert len(econ.oat_values) == 0
+        assert len(econ.mat_values) == 0
+        assert len(econ.rat_values) == 0
+        assert len(econ.oad_values) == 0
+        assert len(econ.fan_spd_values) == 0
+        assert len(econ.timestamp) == 0
+
+    def test_econ_on_ei_calculation_positive(self):
+        """test the econ energy impact method"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        first_stamp = datetime.fromtimestamp(1)
+        econ.timestamp.append(first_stamp)
+        econ.economizing = first_stamp
+        econ.oat_values.append(10)
+        econ.mat_values.append(20)
+        econ.oad_values.append(10)
+        econ.rat_values.append(10)
+        econ.fan_spd_values.append(10)
+        ei = econ.energy_impact_calculation(1.0)
+        assert ei == 3888.0
+
+    def test_econ_on_ei_calculation_zero_value(self):
+        """test the econ energy impact method with zero value"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        first_stamp = datetime.fromtimestamp(1)
+        econ.timestamp.append(first_stamp)
+        econ.economizing = first_stamp
+        econ.oat_values.append(1)
+        econ.mat_values.append(1)
+        econ.oad_values.append(1)
+        econ.rat_values.append(1)
+        econ.fan_spd_values.append(1)
+        ei = econ.energy_impact_calculation(0.0)
+        assert ei == 0.0
+
+    def test_econ_on_ei_calculation_negative_value(self):
+        """test the econ energy impact method with a negative value"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        first_stamp = datetime.fromtimestamp(1)
+        econ.timestamp.append(first_stamp)
+        econ.economizing = first_stamp
+        econ.oat_values.append(10)
+        econ.mat_values.append(20)
+        econ.oad_values.append(10)
+        econ.rat_values.append(10)
+        econ.fan_spd_values.append(10)
+        ei = econ.energy_impact_calculation(-10.0)
+        assert ei == 3888.0
+
+    def test_econ_on_clear_data(self):
+        """test the damp sensor clear data"""
+        econ = EconCorrectlyOn()
+        data_window = td(minutes=1)
+        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        econ.oat_values.append(50)
+        econ.mat_values.append(25)
+        econ.oat_values.append(100)
+        econ.mat_values.append(50)
+        econ.oad_values.append(10)
+        econ.fan_spd_values.append(10)
+        assert len(econ.oat_values) == 2
+        assert len(econ.mat_values) == 2
+        assert len(econ.oad_values) == 1
+        assert len(econ.fan_spd_values) == 1
+        econ.clear_data()
+        assert len(econ.oat_values) == 0
+        assert len(econ.mat_values) == 0
+        assert len(econ.oad_values) == 0
+        assert len(econ.fan_spd_values) == 0

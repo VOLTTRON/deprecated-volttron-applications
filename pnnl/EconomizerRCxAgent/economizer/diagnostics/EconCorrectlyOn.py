@@ -91,13 +91,18 @@ class EconCorrectlyOn(object):
             "Conditions are favorable for economizing and OAD is 100% but the OAF is too low."
         ]
 
-    def set_class_values(self, analysis_name, open_damper_threshold, minimum_damper_setpoint, data_window, no_required_data,cfm, eer):
+    def set_class_values(self, analysis_name, data_window, no_required_data, minimum_damper_setpoint, open_damper_threshold, cfm, eer):
         """Set the values needed for doing the diagnostics"""
         self.open_damper_threshold = open_damper_threshold
         self.oaf_economizing_threshold = {
             'low': open_damper_threshold - 30.0,
             'normal': open_damper_threshold - 20.0,
             'high': open_damper_threshold - 10.0
+        }
+        self.open_damper_threshold = {
+            'low': open_damper_threshold - 10.0,
+            'normal': open_damper_threshold,
+            'high': open_damper_threshold + 10.0
         }
         self.minimum_damper_setpoint = minimum_damper_setpoint
         self.data_window = data_window

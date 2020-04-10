@@ -106,6 +106,7 @@ class InsufficientOutsideAir(object):
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
+                return
             self.insufficient_oa()
 
 
@@ -121,6 +122,7 @@ class InsufficientOutsideAir(object):
             _log.info(msg)
             _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.invalid_oaf_dict))))
             self.clear_data()
+            return
 
         avg_oaf = max(0.0, min(100.0, avg_oaf))
         for sensitivity, threshold in self.ventilation_oaf_threshold.items():

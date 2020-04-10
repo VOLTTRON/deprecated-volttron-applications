@@ -254,7 +254,7 @@ class EconomizerAgent(Agent):
         self.temp_sensor = TemperatureSensor()
         self.temp_sensor.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.temp_difference_threshold, self.open_damper_time,  self.temp_damper_threshold)
         self.econ_correctly_on = EconCorrectlyOn()
-        self.econ_correctly_on.set_class_values(self.analysis_name, self.open_damper_threshold, self.minimum_damper_setpoint, self.data_window, self.no_required_data, float(self.rated_cfm), self.eer)
+        self.econ_correctly_on.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.open_damper_threshold, float(self.rated_cfm), self.eer)
         self.econ_correctly_off = EconCorrectlyOff()
         self.econ_correctly_off.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
         self.excess_outside_air = ExcessOutsideAir()

@@ -128,6 +128,7 @@ class ExcessOutsideAir(object):
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
+                return
             self.excess_oa()
 
 

@@ -22,7 +22,9 @@ setup_logging()
 _log = logging.getLogger(__name__)
 
 class EconomizerAgent(Agent):
-
+    """
+     Agent that starts all of the economizer diagnostics
+    """
     def __init__(self, config_path, **kwargs):
         super(EconomizerAgent, self).__init__(**kwargs)
 
@@ -121,7 +123,7 @@ class EconomizerAgent(Agent):
     def read_config(self, config_path):
         """
         Use volttrons config reader to grab and parse out configuration file
-        :param config_path: The path to the agents configuration file
+        config_path: The path to the agents configuration file
         """
         config = utils.load_config(config_path)
         #get device, then the units underneath that
@@ -144,7 +146,9 @@ class EconomizerAgent(Agent):
                     self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all"))
 
     def read_argument_config(self, config_path):
-        """read all the config arguments section"""
+        """read all the config arguments section
+        no return
+        """
         config = utils.load_config(config_path)
         self.arguments = config.get("arguments", {})
 
@@ -183,14 +187,18 @@ class EconomizerAgent(Agent):
         self.point_mapping = self.read_argument("point_mapping", {})
 
     def read_argument(self, config_key, default_value):
-        """Method that reads an argument from the config file and returns the value or returns the default value if key is not present in config file"""
+        """Method that reads an argument from the config file and returns the value or returns the default value if key is not present in config file
+        return mixed (string or float or int or dict)
+        """
         return_value = default_value
         if config_key in self.arguments:
             return_value = self.arguments[config_key]
         return return_value
 
     def read_point_mapping(self):
-        """Method that reads the point mapping and sets the values"""
+        """Method that reads the point mapping and sets the values
+        no return
+        """
         self.fan_status_name = self.get_point_mapping_or_none("supply_fan_status")
         self.fan_sp_name = self.get_point_mapping_or_none("supply_fan_speed")
         self.oat_name = self.get_point_mapping_or_none("outdoor_air_temperature")
@@ -200,11 +208,16 @@ class EconomizerAgent(Agent):
         self.cool_call_name = self.get_point_mapping_or_none("cool_call")
 
     def get_point_mapping_or_none(self, name):
+        """ Get the item from the point mapping, or return None
+        return mixed (string or float or int or dic
+        """
         value = self.point_mapping.get(name, None)
         return value
 
     def configuration_value_check(self):
-        """Method goes through the configuration values and checks them for correctness.  Will error if values are not correct. Some may change based on specific settings"""
+        """Method goes through the configuration values and checks them for correctness.  Will error if values are not correct. Some may change based on specific settings
+        no return
+        """
         if self.sensitivity is not None and self.sensitivity == "custom":
             self.oaf_temperature_threshold = max(5.0, min(self.oaf_temperature_threshold, 15.0))
             self.cooling_enabled_threshold = max(5.0, min(self.cooling_enabled_threshold, 50.0))
@@ -250,7 +263,9 @@ class EconomizerAgent(Agent):
             sys.exit()
 
     def create_diagnostics(self):
-        """creates the diagnostic classes"""
+        """creates the diagnostic classes
+        No return
+        """
         self.temp_sensor = TemperatureSensor()
         self.temp_sensor.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.temp_difference_threshold, self.open_damper_time,  self.temp_damper_threshold)
         self.econ_correctly_on = EconCorrectlyOn()
@@ -263,7 +278,10 @@ class EconomizerAgent(Agent):
         self.insufficient_outside_air.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.desired_oaf)
 
     def parse_data_message(self, message):
-        """Breaks down the passed VOLTTRON message"""
+        """Breaks down the passed VOLTTRON message
+        message: dictionary
+        no return
+        """
         data_message = message[0]
         #reset the data arrays on new message
         self.fan_status_data = []
@@ -296,7 +314,9 @@ class EconomizerAgent(Agent):
 
 
     def check_for_missing_data(self):
-        """Method that checks the parsed message results for any missing data"""
+        """Method that checks the parsed message results for any missing data
+        return bool
+        """
         if not self.oat_data:
             self.missing_data.append(self.oat_name)
         if not self.rat_data:
@@ -315,7 +335,11 @@ class EconomizerAgent(Agent):
         return False
 
     def check_fan_status(self, current_time):
-        """Check the status and speed of the fan"""
+        """Check the status and speed of the fan
+        current_time: datetime time delta
+
+        return int
+        """
         if self.fan_status_data:
             supply_fan_status = int(max(self.fan_status_data))
         else:
@@ -339,7 +363,11 @@ class EconomizerAgent(Agent):
         return supply_fan_status
 
     def check_temperature_condition(self, current_time):
-        """Ensure the OAT and RAT have minimum difference to allow for a conclusive diagnostic."""
+        """Ensure the OAT and RAT have minimum difference to allow for a conclusive diagnostic.
+        current_time: datetime time delta
+
+        no return
+        """
         if abs(self.oat - self.rat) < self.oaf_temperature_threshold:
             if self.oaf_condition is None:
                 self.oaf_condition = current_time
@@ -347,7 +375,11 @@ class EconomizerAgent(Agent):
             self.oaf_condition = None
 
     def check_elapsed_time(self, current_time, condition, message):
-        """Check on time since last message to see if it is in data window"""
+        """Check on time since last message to see if it is in data window
+        current_time: datetime time delta
+        condition: datetime time delta
+        message: string
+        """
         if condition is not None:
             elapsed_time = current_time - condition
         else:
@@ -357,7 +389,9 @@ class EconomizerAgent(Agent):
             self.clear_all()
 
     def clear_all(self):
-        """Reinitialize all data arrays for diagnostics."""
+        """Reinitialize all data arrays for diagnostics.
+        no return
+        """
         self.clear_diagnostics()
         self.temp_sensor_problem = None
         self.unit_status = None
@@ -365,16 +399,22 @@ class EconomizerAgent(Agent):
         self.sensor_limit = None
 
     def clear_diagnostics(self):
-        """Clear the diagnositcs"""
+        """Clear the diagnositcs
+        no return
+        """
         self.temp_sensor.clear_data()
         self.econ_correctly_on.clear_data()
         self.econ_correctly_off.clear_data()
         self.excess_outside_air.clear_data()
         self.insufficient_outside_air.clear_data()
-        pass
 
     def pre_conditions(self, message, cur_time):
-        """Publish Pre conditions not met"""
+        """Publish Pre conditions not met
+        message: string
+        cur_time: datetime time delta
+
+        no return
+        """
         dx_msg = {}
         for sensitivity in self.sensitivity:
             dx_msg[sensitivity] = message
@@ -383,7 +423,11 @@ class EconomizerAgent(Agent):
             _log.info(constants.table_log_format(self.analysis_name, cur_time, (diagnostic + constants.DX + ':' + str(dx_msg))))
 
     def sensor_limit_check(self, current_time):
-        """ Check temperature limits on sensors."""
+        """ Check temperature limits on sensors.
+        current_time: datetime time delta
+
+        return bool
+        """
         sensor_limit = (False, None)
         if self.oat < self.oat_low_threshold or self.oat > self.oat_high_threshold:
             sensor_limit = (True, constants.OAT_LIMIT)
@@ -400,7 +444,11 @@ class EconomizerAgent(Agent):
         return sensor_limit
 
     def determine_cooling_condition(self):
-        """Determine if the unit is in a cooling mode and if conditions are favorable for economizing."""
+        """Determine if the unit is in a cooling mode and if conditions are favorable for economizing.
+
+        return float
+        return Bool/int
+        """
         if self.device_type == "ahu":
             clg_vlv_pos = mean(self.cooling_data)
             cool_call = True if clg_vlv_pos > self.cooling_enabled_threshold else False
@@ -426,13 +474,14 @@ class EconomizerAgent(Agent):
     def new_data_message(self, peer, sender, bus, topic, headers, message):
         """
         Call back method for curtailable device data subscription.
-        :param peer:
-        :param sender:
-        :param bus:
-        :param topic:
-        :param headers:
-        :param message:
-        :return:
+        peer: string
+        sender: string
+        bus: string
+        topic: string
+        headers: dict
+        message: dict
+
+        no return
         """
         current_time = parser.parse(headers["Date"])
         _log.info("Processing Results!")
@@ -499,7 +548,7 @@ def main(argv=sys.argv):
 
 
 if __name__ == "__main__":
-    # Entry point for script
+    """Entry point for script"""
     try:
         sys.exit(main())
     except KeyboardInterrupt:

@@ -84,7 +84,17 @@ class ExcessOutsideAir(object):
         self.inconsistent_date = None
 
     def set_class_values(self, analysis_name, data_window, no_required_data, min_damper_sp, desired_oaf, cfm, eer):
-        """Set the values needed for doing the diagnostics"""
+        """Set the values needed for doing the diagnostics
+        analysis_name: string
+        data_window: datetime time delta
+        no_required_data: integer
+        min_damper_sp: float
+        desired_oaf: float
+        cfm: float
+        eer: float
+
+        No return
+        """
         self.cfm = cfm
         self.eer = eer
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
@@ -109,7 +119,17 @@ class ExcessOutsideAir(object):
 
 
     def excess_ouside_air_algorithm(self, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
-        """"""
+        """Perform the excess outside air class algorithm
+        oat: float
+        rat: float
+        mat: float
+        oad: float
+        econ_condition: float
+        cur_time: datetime time delta
+        fan_sp: float
+
+        No return
+        """
         economizing = self.economizer_conditions(econ_condition, cur_time)
         if economizing:
             return
@@ -133,7 +153,12 @@ class ExcessOutsideAir(object):
 
 
     def economizer_conditions(self, econ_condition, cur_time):
-        """"""
+        """Check conditions to see if should be economizing
+        econ_conditions: float
+        cur_time: datetime time delta
+
+        returns boolean
+        """
         if econ_condition:
             _log.info("{}: economizing at {} .".format(constants.ECON4, cur_time))
             if self.economizing is None:
@@ -148,7 +173,9 @@ class ExcessOutsideAir(object):
         return False
 
     def excess_oa(self):
-        """If the detected problems(s) are consistent then generate a fault message(s)."""
+        """If the detected problems(s) are consistent then generate a fault message(s).
+        No return
+        """
         oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
         avg_oaf = mean(oaf) * 100.0
         avg_damper = mean(self.oad_values)
@@ -198,7 +225,11 @@ class ExcessOutsideAir(object):
 
 
     def energy_impact_calculation(self, desired_oaf):
-        """"""
+        """ Calculate the impact the temperature values have
+        desired_oaf: float
+
+        returns float
+        """
         ei = 0.0
         energy_calc = [
             (1.08 * spd * self.cfm * (m - (o * desired_oaf + (r * (1.0 - desired_oaf))))) / (1000.0 * self.eer)
@@ -214,8 +245,9 @@ class ExcessOutsideAir(object):
 
     def clear_data(self):
         """
-        Reinitialize class insufficient_oa data.
-        :return:
+        Reinitialize data arrays.
+
+        No return
         """
         self.oad_values = []
         self.oat_values = []

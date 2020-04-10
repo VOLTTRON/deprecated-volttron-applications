@@ -24,7 +24,7 @@ either expressed or implied, of the FreeBSD Project.
 This material was prepared as an account of work sponsored by an agency of the
 United States Government. Neither the United States Government nor the United
 States Department of Energy, nor Battelle, nor any of their employees, nor any
-jurisdiction or organization that has cooperated in the development of these
+jurisdiction or organization that has cooperated in th.e development of these
 materials, makes any warranty, express or implied, or assumes any legal
 liability or responsibility for the accuracy, completeness, or usefulness or
 any information, apparatus, product, software, or process disclosed, or
@@ -81,7 +81,16 @@ class TemperatureSensor(object):
 
 
     def set_class_values(self, analysis_name, data_window, no_required_data, temp_diff_thr, open_damper_time, temp_damper_threshold):
-        """Set the values needed for doing the diagnostics"""
+        """Set the values needed for doing the diagnostics
+        analysis_name: string
+        data_window: datetime time delta
+        no_required_data: integer
+        temp_diff_thr: float
+        open_damper_time: float
+        open_damper_threshold: float
+
+        No return
+        """
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.data_window = data_window
         self.analysis_name = analysis_name
@@ -101,7 +110,15 @@ class TemperatureSensor(object):
 
 
     def temperature_algorithm(self, oat, rat, mat, oad, cur_time):
-        """"""
+        """Perform the temperature sensor class algorithm
+        oat: float
+        rat: float
+        mat: float
+        oad: float
+        cur_time: datetime time delta
+
+        return bool
+        """
         self.oat_values.append(oat)
         self.mat_values.append(mat)
         self.rat_values.append(rat)
@@ -126,7 +143,9 @@ class TemperatureSensor(object):
         return self.temp_sensor_problem
 
     def temperature_sensor_dx(self):
-        """Temperature sensor diagnostic."""
+        """Temperature sensor diagnostic.
+        No return
+        """
         avg_oa_ma, avg_ra_ma, avg_ma_oa, avg_ma_ra = self.aggregate_data()
         diagnostic_msg = {}
         for sensitivity, threshold in self.temp_diff_thr.items():
@@ -149,6 +168,13 @@ class TemperatureSensor(object):
         self.clear_data()
 
     def aggregate_data(self):
+        """ Calculate averages used for calculations within the class.  Needs oat, mat,rat values set in class
+        return
+        avg_oa_ma: float
+        avg_ra_ma: float
+        avg_ma_oa: float
+        avg_ma_ra: float
+        """
         oa_ma = [(x - y) for x, y in zip(self.oat_values, self.mat_values)]
         ra_ma = [(x - y) for x, y in zip(self.rat_values, self.mat_values)]
         ma_oa = [(y - x) for x, y in zip(self.oat_values, self.mat_values)]
@@ -162,7 +188,8 @@ class TemperatureSensor(object):
     def clear_data(self):
         """
         Reinitialize data arrays.
-        :return:
+
+        No return
         """
         self.oat_values = []
         self.rat_values = []
@@ -194,7 +221,16 @@ class DamperSensorInconsistency(object):
         self.analysis_name = ''
 
     def set_class_values(self, analysis_name, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold):
-        """Set the values needed for doing the diagnostics"""
+        """Set the values needed for doing the diagnostics
+        analysis_name: string
+        data_window: datetime time delta
+        no_required_data: integer
+        open_damper_time: float
+        oat_mat_check: dictionary with "low": float, "normal": float, "high": float
+        temp_damper_threshold: float
+
+        No return
+        """
         self.econ_time_check = open_damper_time
         self.data_window = data_window
         self.no_required_data = no_required_data
@@ -203,7 +239,14 @@ class DamperSensorInconsistency(object):
         self.analysis_name = analysis_name
 
     def damper_algorithm(self, oat, mat, oad, cur_time):
-        """ """
+        """Perform the damper class algorithm
+        oat: float
+        mat: float
+        oad: float
+        cur_time: datetime time delta
+
+        No return
+        """
         msg = ""
         if oad > self.oad_temperature_threshold:
             if self.steady_state is None:
@@ -238,7 +281,8 @@ class DamperSensorInconsistency(object):
     def clear_data(self):
         """
         Reinitialize data arrays.
-        :return:
+
+        No return
         """
         self.oat_values = []
         self.mat_values = []

@@ -76,7 +76,14 @@ class InsufficientOutsideAir(object):
         self.inconsistent_date = None
 
     def set_class_values(self, analysis_name, data_window, no_required_data, desired_oaf):
-        """Set the values needed for doing the diagnostics"""
+        """Set the values needed for doing the diagnostics
+        analysis_name: string
+        data_window: datetime time delta
+        no_required_data: integer
+        desired_oaf: float
+
+        No return
+        """
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
 
         # Application thresholds (Configurable)
@@ -94,7 +101,14 @@ class InsufficientOutsideAir(object):
 
 
     def insufficient_outside_air_algorithm(self, oatemp, ratemp, matemp, cur_time):
-        """"""
+        """Perform the insufficient outside air class algorithm
+        oatemp: float
+        ratemp: float
+        matemp: float
+        cur_time: datetime time delta
+
+        No return
+        """
         self.oat_values.append(oatemp)
         self.rat_values.append(ratemp)
         self.mat_values.append(matemp)
@@ -111,7 +125,9 @@ class InsufficientOutsideAir(object):
 
 
     def insufficient_oa(self):
-        """If the detected problems(s) are consistent then generate a fault message(s)."""
+        """If the detected problems(s) are consistent then generate a fault message(s).
+        No return
+        """
         oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
         avg_oaf = mean(oaf) * 100.0
         diagnostic_msg = {}
@@ -140,8 +156,9 @@ class InsufficientOutsideAir(object):
 
     def clear_data(self):
         """
-        Reinitialize class insufficient_oa data.
-        :return:
+        Reinitialize data arrays.
+
+        No return
         """
         self.oat_values = []
         self.rat_values = []

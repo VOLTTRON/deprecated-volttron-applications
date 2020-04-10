@@ -92,7 +92,17 @@ class EconCorrectlyOn(object):
         ]
 
     def set_class_values(self, analysis_name, data_window, no_required_data, minimum_damper_setpoint, open_damper_threshold, cfm, eer):
-        """Set the values needed for doing the diagnostics"""
+        """Set the values needed for doing the diagnostics
+        analysis_name: string
+        data_window: datetime time delta
+        no_required_data: integer
+        minimum_damper_setpoint: float
+        open_damper_threshold float
+        cfm: float
+        eer: float
+
+        No return
+        """
         self.open_damper_threshold = open_damper_threshold
         self.oaf_economizing_threshold = {
             'low': open_damper_threshold - 30.0,
@@ -117,7 +127,18 @@ class EconCorrectlyOn(object):
 
 
     def economizer_on_algorithm(self, cooling_call, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
-        """"""
+        """Perform the Econ Correctly On class algorithm
+        cooling_call: int
+        oat: float
+        rat: float
+        mat: float
+        oad: float
+        econ_condition: float
+        cur_time: datetime time delta
+        fan_sp: float
+
+        No return
+        """
 
         economizing = self.economizer_conditions(cooling_call, econ_condition, cur_time)
         if not economizing:
@@ -142,7 +163,13 @@ class EconCorrectlyOn(object):
 
 
     def economizer_conditions(self, cooling_call, econ_condition, cur_time):
-        """"""
+        """Check conditions to see if should be economizing
+        cooling_call: int
+        econ_conditions: float
+        cur_time: datetime time delta
+
+        returns boolean
+        """
         if not cooling_call:
             _log.info("{}: not cooling at {}".format(constants.ECON2, cur_time))
             if self.not_cooling is None:
@@ -169,7 +196,9 @@ class EconCorrectlyOn(object):
         return True
 
     def not_economizing_when_needed(self):
-        """If the detected problems(s) are consistent then generate a fault message(s)."""
+        """If the detected problems(s) are consistent then generate a fault message(s).
+        No return
+        """
         oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
         avg_oaf = max(0.0, min(100.0, mean(oaf) * 100.0))
         avg_damper_signal = mean(self.oad_values)
@@ -198,7 +227,10 @@ class EconCorrectlyOn(object):
         self.clear_data()
 
     def energy_impact_calculation(self):
-        """"""
+        """Calculate the impact the temperature values have
+
+        returns float
+        """
         ei = 0.0
         energy_calc = [1.08 * s * self.cfm * (m - o) / (1000.0 * self.eer)
                        for m, o, s in zip(self.mat_values, self.oat_values, self.fan_spd_values)
@@ -213,7 +245,8 @@ class EconCorrectlyOn(object):
     def clear_data(self):
         """
         Reinitialize data arrays.
-        :return:
+
+        No return
         """
         self.oad_values = []
         self.oat_values = []

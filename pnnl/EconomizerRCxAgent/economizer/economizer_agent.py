@@ -20,6 +20,8 @@ __version__ = "1.2.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
 
 class EconomizerAgent(Agent):
     """
@@ -138,7 +140,6 @@ class EconomizerAgent(Agent):
             self.units = self.device["unit"]
         for u in self.units:
             #building the connection string for each unit
-            _log.info("unit is:" + str(u))
             self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="", point="all"))
             #loop over subdevices and add them
             if "subdevices" in self.units[u]:
@@ -467,7 +468,6 @@ class EconomizerAgent(Agent):
     def onstart_subscriptions(self, sender, **kwargs):
         """Method used to setup data subscription on startup of the agent"""
         for device in self.device_list:
-            _log.info("Subscribing to " + device)
             self.vip.pubsub.subscribe(peer="pubsub", prefix=device, callback=self.new_data_message)
 
 

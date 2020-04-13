@@ -50,6 +50,8 @@ from .. import constants
 
 setup_logging()
 _log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
 
 class EconCorrectlyOff(object):
     """
@@ -132,7 +134,7 @@ class EconCorrectlyOff(object):
         """
 
         economizing = self.economizer_conditions(econ_condition, cur_time)
-        if not economizing:
+        if economizing:
             return
 
         self.oat_values.append(oat)
@@ -229,5 +231,6 @@ class EconCorrectlyOff(object):
         self.mat_values = []
         self.fan_spd_values = []
         self.timestamp = []
+        self.economizing = None
 
 

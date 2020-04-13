@@ -50,6 +50,8 @@ from .. import constants
 
 setup_logging()
 _log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
 
 class ExcessOutsideAir(object):
     """
@@ -165,7 +167,10 @@ class ExcessOutsideAir(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 _log.info("{}: economizing for data set, reinitialize.".format(constants.ECON4))
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
+                if len(self.timestamp):
+                    _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
+                else:
+                    _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
                 self.clear_data()
             return True
         else:

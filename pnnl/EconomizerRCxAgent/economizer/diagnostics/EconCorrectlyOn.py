@@ -50,6 +50,8 @@ from .. import constants
 
 setup_logging()
 _log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
 
 class EconCorrectlyOn(object):
     """Air-side HVAC economizer diagnostic for AHU/RTU systems.

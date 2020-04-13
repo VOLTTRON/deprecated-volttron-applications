@@ -236,12 +236,12 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         cur_time = datetime.fromtimestamp(10000)
         econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         econ.economizer_off_algorithm(50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
-        assert len(econ.oat_values) == 1
-        assert len(econ.mat_values) == 1
-        assert len(econ.rat_values) == 1
-        assert len(econ.oad_values) == 1
-        assert len(econ.fan_spd_values) == 1
-        assert len(econ.timestamp) == 1
+        assert len(econ.oat_values) == 0
+        assert len(econ.mat_values) == 0
+        assert len(econ.rat_values) == 0
+        assert len(econ.oad_values) == 0
+        assert len(econ.fan_spd_values) == 0
+        assert len(econ.timestamp) == 0
 
     def test_econ_off_algorithm_two_timestamp(self):
         """test the econ correctly off algorithm method"""
@@ -257,7 +257,7 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         assert len(econ.rat_values) == 0
         assert len(econ.oad_values) == 0
         assert len(econ.fan_spd_values) == 0
-        assert len(econ.timestamp) == 0
+        assert len(econ.timestamp) == 1
 
     def test_econ_conditions(self):
         """test the econ conditions method"""

@@ -50,6 +50,8 @@ from .. import constants
 
 setup_logging()
 _log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
 
 class TemperatureSensor(object):
     """
@@ -125,8 +127,7 @@ class TemperatureSensor(object):
         self.timestamp.append(cur_time)
         elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
-        if elapsed_time and self.data_window:
-            _log.info("Elapsed time: {} -- required time: {}".format(elapsed_time, self.data_window))
+        _log.info("Elapsed time: {} -- required time: {}".format(elapsed_time, self.data_window))
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
@@ -137,7 +138,7 @@ class TemperatureSensor(object):
                 return self.temp_sensor_problem
 
         if self.temp_sensor_problem:
-            self.sensor_damper_dx.clear_data()
+            return self.temp_sensor_problem
         else:
             self.sensor_damper_dx.damper_algorithm(oat, mat, oad, cur_time)
         return self.temp_sensor_problem

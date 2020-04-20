@@ -58,9 +58,13 @@ import os
 import sys
 import time
 
+from custom_setpoint import calc_setpoint, calc_average_power
+from meter_target import calc_target_power
+
 from volttron.platform.agent import utils
 from volttron.platform.agent.utils import parse_timestamp_string
 from volttron.platform.vip.agent import Agent, Core, PubSub, errors
+from volttron.platform.messaging import topics
 
 utils.setup_logging()
 _log = logging.getLogger(__name__)
@@ -85,15 +89,15 @@ class SimulationAgent(Agent):
         please see the user guide in volttron/docs/source/devguides/agent_development/Simulated-Drivers.rst
     """
 
-    rpt_headers = {
-        'report_time': 'Time',
-        'net_power_kw': 'Net Power kW',
-        'devices/simload/power_kw': 'Load Power kW',
-        'devices/simmeter/power_kw': 'Meter Power kW',
-        'devices/simpv/power_kw': 'PV Power kW',
-        'devices/simstorage/power_kw': 'Storage Power kW',
-        'devices/simstorage/soc_kwh': 'Storage SOC kWh',
-        'devices/simstorage/dispatch_kw': 'Dispatch Power kW'}
+    # rpt_headers = {
+    #     'report_time': 'Time',
+    #     'net_power_kw': 'Net Power kW',
+    #     'devices/simload/power_kw': 'Load Power kW',
+    #     'devices/simmeter/power_kw': 'Meter Power kW',
+    #     'devices/simpv/power_kw': 'PV Power kW',
+    #     'devices/simstorage/power_kw': 'Storage Power kW',
+    #     'devices/simstorage/soc_kwh': 'Storage SOC kWh',
+    #     'devices/simstorage/dispatch_kw': 'Dispatch Power kW'}
 
     def __init__(self, config_path, **kwargs):
         super(SimulationAgent, self).__init__(**kwargs)
@@ -128,7 +132,13 @@ class SimulationAgent(Agent):
             'storage_reduced_charge_soc_threshold': 0.80,           # Charging is reduced if SOC % > this value
             'storage_reduced_discharge_soc_threshold': 0.20,        # Discharging is reduced if SOC % < this value
             'storage_setpoint_rule': 'oscillation',
-            'sim_driver_list': ['simload', 'simmeter', 'simpv', 'simstorage']
+            'sim_driver_list': ['simload', 'simmeter', 'simpv', 'simstorage'],
+
+            'interval_length': 15,                          # Minutes
+            'default_meter_target': 470,
+            'reduced_meter_target': 420,
+            'min_threshold': 460,
+            'max_threshold': 480,
         }
         self.vip.config.subscribe(self.configure, actions=["NEW", "UPDATE"], pattern="config")
         self.config = utils.load_config(config_path)
@@ -162,30 +172,50 @@ class SimulationAgent(Agent):
         self.storage_reduced_discharge_soc_threshold = self.config_for('storage_reduced_discharge_soc_threshold')
         self.storage_setpoint_rule = self.config_for('storage_setpoint_rule')
         self.sim_driver_list = self.config_for('sim_driver_list')
-        self.validate_config()
+
+        self.interval_length = self.config_for('interval_length')
+        self.default_meter_target = self.config_for('default_meter_target')
+        self.reduced_meter_target = self.config_for('reduced_meter_target')
+        self.min_threshold = self.config_for('min_threshold')
+        self.max_threshold = self.config_for('max_threshold')
 
         self.sim_topics = []                # Which data elements to track and report
         self.sim_power_topics = []          # Which data elements to sum when deriving net power
         self.sim_topics.append('report_time')
         self.sim_topics.append('net_power_kw')
-        if 'simload' in self.sim_driver_list:
-            self.sim_topics.append('devices/simload/power_kw')
-            self.sim_power_topics.append('devices/simload/power_kw')
-        if 'simmeter' in self.sim_driver_list:
-            self.sim_topics.append('devices/simmeter/power_kw')
-            self.sim_power_topics.append('devices/simmeter/power_kw')
-        if 'simpv' in self.sim_driver_list:
-            self.sim_topics.append('devices/simpv/power_kw')
-            self.sim_power_topics.append('devices/simpv/power_kw')
-        if 'simstorage' in self.sim_driver_list:
-            self.sim_topics.append('devices/simstorage/power_kw')
-            self.sim_topics.append('devices/simstorage/soc_kwh')
-            self.sim_topics.append('devices/simstorage/dispatch_kw')
-            self.sim_power_topics.append('devices/simstorage/power_kw')
+
+        self.simload = self.simmeter = self.simpv = self.simstorage = None
+
+        self.sim_driver_list = [
+            "campus1/building1/unit1/simload",
+            "campus1/building1/unit1/simpv",
+            "campus1/building1/unit1/simstorage"
+        ]
+
+        for device_path in self.sim_driver_list:
+            if 'simload' in device_path:
+                self.simload = device_path
+                self.sim_topics.append('devices/{}/power_kw'.format(self.simload))
+                self.sim_power_topics.append('devices/{}/power_kw'.format(self.simload))
+            if 'simmeter' in device_path:
+                self.simmeter = device_path
+                self.sim_topics.append('devices/{}/power_kw'.format(self.simmeter))
+                self.sim_power_topics.append('devices/{}/power_kw'.format(self.simmeter))
+            if 'simpv' in device_path:
+                self.simpv = device_path
+                self.sim_topics.append('devices/{}/power_kw'.format(self.simpv))
+                self.sim_power_topics.append('devices/{}/power_kw'.format(self.simpv))
+            if 'simstorage' in device_path:
+                self.simstorage = device_path
+                self.sim_topics.append('devices/{}/power_kw'.format(self.simstorage))
+                self.sim_topics.append('devices/{}/soc_kwh'.format(self.simstorage))
+                self.sim_topics.append('devices/{}/dispatch_kw'.format(self.simstorage))
+                self.sim_power_topics.append('devices/{}/power_kw'.format(self.simstorage))
 
         self.last_report = None
         self.sim_data = {}
         self.simulation_started = None
+        self.validate_config()
 
     def config_for(self, parameter_name):
         """
@@ -222,7 +252,7 @@ class SimulationAgent(Agent):
         self.report_file_path = os.path.expandvars(os.path.expanduser(self.report_file_path))
         assert type(self.sim_driver_list) is list
 
-        if 'simload' in self.sim_driver_list:
+        if self.simload:
             assert type(self.load_timestamp_column_header) is str
             assert type(self.load_power_column_header) is str
             assert type(self.load_data_frequency_min) is int
@@ -232,7 +262,7 @@ class SimulationAgent(Agent):
             _log.debug('Testing for existence of {}'.format(self.load_csv_file_path))
             assert os.path.exists(self.load_csv_file_path)
 
-        if 'simpv' in self.sim_driver_list:
+        if self.simpv:
             assert type(self.pv_panel_area) is float
             assert type(self.pv_efficiency) is float
             assert 0.0 <= self.pv_efficiency <= 1.0
@@ -243,7 +273,7 @@ class SimulationAgent(Agent):
             self.pv_csv_file_path = os.path.expandvars(os.path.expanduser(self.pv_csv_file_path))
             assert os.path.exists(self.pv_csv_file_path)
 
-        if 'simstorage' in self.sim_driver_list:
+        if self.simstorage:
             assert type(self.storage_soc_kwh) is float
             assert type(self.storage_max_soc_kwh) is float
             assert type(self.storage_max_charge_kw) is float
@@ -272,8 +302,10 @@ class SimulationAgent(Agent):
         @param topic: The point name.
         @param message: The point's scraped value.
         """
-        if self.simulation_started and topic in self.sim_topics:
-            self.sim_data[topic] = message[0]
+        if self.simulation_started:
+            for sim_topic in self.sim_topics:
+                if topic.endswith(sim_topic):
+                    self.sim_data[sim_topic] = message[0]
 
     def run_simulation(self):
         """
@@ -288,18 +320,18 @@ class SimulationAgent(Agent):
         # Stop the previous simulation, if any, forcing data files to be reloaded.
         # Also zero out registers that might otherwise be carried over from prior simulations.
         self.send_clock_request('stop_simulation')
-        if 'simpv' in self.sim_driver_list:
-            self.set_point('simpv', 'csv_file_path', '')
-            self.set_point('simpv', 'power_kw', 0.0)
-        if 'simload' in self.sim_driver_list:
-            self.set_point('simload', 'csv_file_path', '')
-            self.set_point('simload', 'power_kw', 0.0)
-        if 'simstorage' in self.sim_driver_list:
-            self.set_point('simstorage', 'power_kw', 0.0)
-            self.set_point('simstorage', 'soc_kwh', 0.0)
-            self.set_point('simstorage', 'dispatch_kw', 0.0)
-        if 'simmeter' in self.sim_driver_list:
-            self.set_point('simmeter', 'power_kw', 0.0)
+        if self.simpv:
+            self.set_point(self.simpv, 'csv_file_path', '')
+            self.set_point(self.simpv, 'power_kw', 0.0)
+        if self.simload:
+            self.set_point(self.simload, 'csv_file_path', '')
+            self.set_point(self.simload, 'power_kw', 0.0)
+        if self.simstorage:
+            self.set_point(self.simstorage, 'power_kw', 0.0)
+            self.set_point(self.simstorage, 'soc_kwh', 0.0)
+            self.set_point(self.simstorage, 'dispatch_kw', 0.0)
+        if self.simmeter:
+            self.set_point(self.simmeter, 'power_kw', 0.0)
 
         self.simulation_started = None
 
@@ -322,9 +354,9 @@ class SimulationAgent(Agent):
         self.initialize_drivers()
 
         with open(self.report_file_path, 'wb') as report_file:
-            col_headers = [self.rpt_headers[topic] for topic in self.sim_topics]
-            csv_writer = csv.DictWriter(report_file, fieldnames=col_headers)
-            csv_writer.writeheader()
+            # col_headers = [self.rpt_headers[topic] for topic in self.sim_topics]
+            # csv_writer = csv.DictWriter(report_file, fieldnames=col_headers)
+            # csv_writer.writeheader()
             while self.simulation_started:
                 # Periodically wake up and report simulation driver status.
                 # Also dispatch an updated power setting to the storage simulation driver.
@@ -348,24 +380,28 @@ class SimulationAgent(Agent):
                         self.sim_data['report_time'] = sim_time
                         self.sim_data['net_power_kw'] = sum(self.sim_data[topic] if topic in self.sim_data else 0.0
                                                             for topic in self.sim_power_topics)
-                        data_by_col = {self.rpt_headers[topic]: self.sim_data[topic] if topic in self.sim_data else ''
-                                       for topic in self.sim_topics}
-                        csv_writer.writerow(data_by_col)
-                        report_file.flush()                 # Keep the file contents up-to-date on disk
+                        # data_by_col = {self.rpt_headers[topic]: self.sim_data[topic] if topic in self.sim_data else ''
+                        #                for topic in self.sim_topics}
+                        # csv_writer.writerow(data_by_col)
+                        # report_file.flush()                 # Keep the file contents up-to-date on disk
                         _log.debug('{} Reporting at sim time {}'.format(curr_time, sim_time))
                         for key in sorted(self.sim_data):
                             _log.debug('\t{} = {}'.format(key, self.sim_data[key]))
                         self.last_report = curr_time
 
-                        if 'simstorage' in self.sim_driver_list:
+                        if self.simstorage:
                             # Send a new dispatch setpoint to the storage simulation
                             if self.storage_setpoint_rule == 'oscillation':
                                 storage_setpoint = self.oscillation_setpoint()
+                            elif self.storage_setpoint_rule == 'threshold':
+                                storage_setpoint = self.manage_microgrid_threshold_setpoint()
+                            elif self.storage_setpoint_rule == 'custom':
+                                storage_setpoint = self.custom_setpoint()
                             else:
                                 # By default, send the storage/battery a command to charge up at max power
                                 storage_setpoint = self.storage_max_charge_kw
                             _log.debug('\t\tSetting storage dispatch to {} kW'.format(storage_setpoint))
-                            self.set_point('simstorage', 'dispatch_kw', storage_setpoint)
+                            self.set_point(self.simstorage, 'dispatch_kw', storage_setpoint)
 
                     time.sleep(self.report_interval)
 
@@ -375,7 +411,7 @@ class SimulationAgent(Agent):
         """
         _log.debug('{} Initializing drivers'.format(datetime.now()))
 
-        if 'simload' in self.sim_driver_list:
+        if self.simload:
             log_string = '\tInitializing Load: timestamp_column_header={}, power_column_header={}, ' + \
                          'data_frequency_min={}, data_year={}, csv_file_path={}'
             _log.debug(log_string.format(self.load_timestamp_column_header,
@@ -383,16 +419,16 @@ class SimulationAgent(Agent):
                                          self.load_data_frequency_min,
                                          self.load_data_year,
                                          self.load_csv_file_path))
-            self.set_point('simload', 'timestamp_column_header', self.load_timestamp_column_header)
-            self.set_point('simload', 'power_column_header', self.load_power_column_header)
-            self.set_point('simload', 'data_frequency_min', self.load_data_frequency_min)
-            self.set_point('simload', 'data_year', self.load_data_year)
-            self.set_point('simload', 'csv_file_path', self.load_csv_file_path)
+            self.set_point(self.simload, 'timestamp_column_header', self.load_timestamp_column_header)
+            self.set_point(self.simload, 'power_column_header', self.load_power_column_header)
+            self.set_point(self.simload, 'data_frequency_min', self.load_data_frequency_min)
+            self.set_point(self.simload, 'data_year', self.load_data_year)
+            self.set_point(self.simload, 'csv_file_path', self.load_csv_file_path)
 
-        if 'simmeter' in self.sim_driver_list:
+        if self.simmeter in self.sim_driver_list:
             _log.debug('\tInitializing Meter:')
 
-        if 'simpv' in self.sim_driver_list:
+        if self.simpv in self.sim_driver_list:
             log_string = '\tInitializing PV: panel_area={}, efficiency={}, ' + \
                          'data_frequency_min={}, data_year={}, csv_file_path={}'
             _log.debug(log_string.format(self.pv_panel_area,
@@ -400,13 +436,13 @@ class SimulationAgent(Agent):
                                          self.pv_data_frequency_min,
                                          self.pv_data_year,
                                          self.pv_csv_file_path))
-            self.set_point('simpv', 'panel_area', self.pv_panel_area)
-            self.set_point('simpv', 'efficiency', self.pv_efficiency)
-            self.set_point('simpv', 'data_frequency_min', self.pv_data_frequency_min)
-            self.set_point('simpv', 'data_year', self.pv_data_year)
-            self.set_point('simpv', 'csv_file_path', self.pv_csv_file_path)
+            self.set_point(self.simpv, 'panel_area', self.pv_panel_area)
+            self.set_point(self.simpv, 'efficiency', self.pv_efficiency)
+            self.set_point(self.simpv, 'data_frequency_min', self.pv_data_frequency_min)
+            self.set_point(self.simpv, 'data_year', self.pv_data_year)
+            self.set_point(self.simpv, 'csv_file_path', self.pv_csv_file_path)
 
-        if 'simstorage' in self.sim_driver_list:
+        if self.simstorage:
             log_string = '\tInitializing Storage: soc_kwh={}, max_soc_kwh={}, ' +\
                          'max_charge_kw={}, max_discharge_kw={}, ' +\
                          'reduced_charge_soc_threshold = {}, reduced_discharge_soc_threshold = {}'
@@ -416,12 +452,12 @@ class SimulationAgent(Agent):
                                          self.storage_max_discharge_kw,
                                          self.storage_reduced_charge_soc_threshold,
                                          self.storage_reduced_discharge_soc_threshold))
-            self.set_point('simstorage', 'soc_kwh', self.storage_soc_kwh)
-            self.set_point('simstorage', 'max_soc_kwh', self.storage_max_soc_kwh)
-            self.set_point('simstorage', 'max_charge_kw', self.storage_max_charge_kw)
-            self.set_point('simstorage', 'max_discharge_kw', self.storage_max_discharge_kw)
-            self.set_point('simstorage', 'reduced_charge_soc_threshold', self.storage_reduced_charge_soc_threshold)
-            self.set_point('simstorage', 'reduced_discharge_soc_threshold',
+            self.set_point(self.simstorage, 'soc_kwh', self.storage_soc_kwh)
+            self.set_point(self.simstorage, 'max_soc_kwh', self.storage_max_soc_kwh)
+            self.set_point(self.simstorage, 'max_charge_kw', self.storage_max_charge_kw)
+            self.set_point(self.simstorage, 'max_discharge_kw', self.storage_max_discharge_kw)
+            self.set_point(self.simstorage, 'reduced_charge_soc_threshold', self.storage_reduced_charge_soc_threshold)
+            self.set_point(self.simstorage, 'reduced_discharge_soc_threshold',
                            self.storage_reduced_discharge_soc_threshold)
 
     def oscillation_setpoint(self):
@@ -434,9 +470,10 @@ class SimulationAgent(Agent):
             . Otherwise dispatch_kw is a +/- constant, with the sign unchanged from its previous value.
             . The effect is a slow oscillation in the battery's dispatch power and SOC.
         """
-        if 'devices/simstorage/soc_kwh' in self.sim_data:
-            soc = self.sim_data['devices/simstorage/soc_kwh']
-            prior_dispatch = self.sim_data['devices/simstorage/dispatch_kw']
+        soc_topic = 'devices/{}/soc_kwh'.format(self.simstorage)
+        if soc_topic in self.sim_data:
+            soc = self.sim_data[soc_topic]
+            prior_dispatch = self.sim_data['devices/{}/dispatch_kw'.format(self.simstorage)]
             if soc < self.go_positive_if_below * self.storage_max_soc_kwh:
                 dispatch_kw = self.positive_dispatch_kw
             elif soc > self.go_negative_if_above * self.storage_max_soc_kwh:
@@ -449,6 +486,55 @@ class SimulationAgent(Agent):
         else:
             dispatch_kw = self.positive_dispatch_kw
         return dispatch_kw
+
+    def manage_microgrid_threshold_setpoint(self):
+        net_power_kw = self.sim_data['net_power_kw']
+        # If our meter is reading greater than our max threshold, discharge the battery. If it's less than our min
+        #  threshold, charge the battery. Otherwise, do nothing.
+        if net_power_kw < self.min_threshold:
+            return self.positive_dispatch_kw
+        elif net_power_kw > self.max_threshold:
+            return self.negative_dispatch_kw
+        else:
+            return 0.0
+
+    def custom_setpoint(self):
+        # Net Power kW is the power reading on the meter.
+        power_now = self.sim_data['net_power_kw']
+
+        # Current time based on the simulation clock. This will be used to keep track of where in the interval the
+        #  simulation is currently running.
+        time_now, _ = self.send_clock_request('get_time')
+        time_now = parse_timestamp_string(time_now)
+        _log.debug("Current time and power reading: {}, {}".format(time_now, power_now))
+
+        # Last Update and Average Power kW are records of the most recent (simulated) timestamp that a meter reading
+        #  occured and a running total of the average meter power for that interval.
+        time_previous = self.sim_data.get('last_update', time_now)
+        avg_power_previous = self.sim_data.get('avg_power_kw', power_now)
+
+        # Calculate new average power
+        avg_power_now = calc_average_power(power_now, time_now, time_previous, avg_power_previous, self.interval_length)
+        _log.debug("Average power for current interval: {}".format(avg_power_now))
+
+        # Calculate new target power
+        meter_target = calc_target_power(self.sim_data, time_now, time_previous, avg_power_previous,
+                                         self.default_meter_target, self.reduced_meter_target, self.interval_length)
+        _log.debug("Power target: {}".format(meter_target))
+
+        # Calculate a control setpoint to send to the battery.
+        setpoint_previous = self.sim_data.get('last_setpoint', 0)
+        setpoint = calc_setpoint(power_now, setpoint_previous, time_now, avg_power_now, self.interval_length,
+                                 meter_target, self.storage_max_charge_kw, self.storage_max_discharge_kw)
+
+        _log.debug("Sending setpoint: {}".format(setpoint))
+
+        # Update in memory values
+        self.sim_data['meter_target'] = meter_target
+        self.sim_data['last_update'] = time_now
+        self.sim_data['avg_power_kw'] = avg_power_now
+        self.sim_data['last_setpoint'] = setpoint
+        return setpoint
 
     def set_point(self, driver_name, point_name, value):
         response = None
@@ -473,6 +559,23 @@ class SimulationAgent(Agent):
         except Exception, exc:
             err = 'Exception during clock request = {}'.format(exc)
         return response, err
+
+    @Core.receiver('onstart')
+    def onstart_method(self, sender):
+        """The agent has started. Perform initialization and spawn the main process loop."""
+        _log.debug('Starting agent')
+
+        # Subscribe to the VENAgent's event and report parameter publications.
+        self.vip.pubsub.subscribe(peer='pubsub', prefix=topics.OPENADR_EVENT, callback=self.receive_event)
+
+    def receive_event(self, peer, sender, bus, topic, headers, message):
+        """(Subscription callback) Receive a list of active events as JSON."""
+        debug_string = 'Received event: ID={}, status={}, start={}, end={}, opt_type={}, all params={}'
+        _log.debug(debug_string.format(message['event_id'], message['status'], message['start_time'],
+                                       message['end_time'], message['opt_type'], message))
+        self.sim_data['start_event'] = message['start_time']
+        self.sim_data['end_event'] = message['end_time']
+
 
 def main(argv=sys.argv):
     """Main method called by the platform."""

@@ -20,7 +20,7 @@
         "point_mapping": {
         
             "supply_fan_status": "FanStatus",
-            "outdoor_air_temperature": "OutsideAirTemp",
+            "outdoor_air_temperature": "outsideairtemp",
             "return_air_temperature": "ReturnAirTemp",
             "mixed_air_temperature": "MixedAirTemp",
             "outdoor_damper_signal": "Damper",

@@ -1,0 +1,7 @@
+<DERStatus xmlns="urn:ieee:std:2030.5:ns">
+    <genConnectStatus>
+        <dateTime>1456345000</dateTime>
+        <value>0</value>
+    </genConnectStatus>
+    <readingTime>1456345000</readingTime>
+</DERStatus>

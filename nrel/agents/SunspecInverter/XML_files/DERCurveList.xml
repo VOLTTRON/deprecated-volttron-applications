@@ -1,0 +1,26 @@
+<DERCurveList href="/sep2/A1/derp/1/dc" all="2" results="2" xmlns="urn:ieee:std:2030.5:ns">
+    <DERCurve href="/sep2/dc/2">
+        <mRID>C0000002</mRID>
+        <description>Volt-VAr Curve 2</description>
+        <creationTime>1514836801</creationTime>
+        <CurveData> <xvalue>90</xvalue> <yvalue>60</yvalue> </CurveData>
+        <CurveData> <xvalue>93</xvalue> <yvalue>0</yvalue> </CurveData>
+        <CurveData> <xvalue>107</xvalue> <yvalue>0</yvalue> </CurveData>
+        <CurveData> <xvalue>110</xvalue> <yvalue>-60</yvalue> </CurveData>
+        <curveType>0</curveType>
+        <xMultiplier>0</xMultiplier> <yMultiplier>0</yMultiplier>
+        <yRefType>3</yRefType>
+    </DERCurve>
+    <DERCurve href="/sep2/dc/1">
+        <mRID>C0000001</mRID>
+        <description>Volt-VAr Curve 1</description>
+        <creationTime>1514836800</creationTime>
+        <CurveData> <xvalue>91</xvalue> <yvalue>61</yvalue> </CurveData>
+        <CurveData> <xvalue>94</xvalue> <yvalue>1</yvalue> </CurveData>
+        <CurveData> <xvalue>108</xvalue> <yvalue>1</yvalue> </CurveData>
+        <CurveData> <xvalue>111</xvalue> <yvalue>-61</yvalue> </CurveData>
+        <curveType>0</curveType>
+        <xMultiplier>0</xMultiplier> <yMultiplier>0</yMultiplier>
+        <yRefType>3</yRefType>
+    </DERCurve>
+</DERCurveList>

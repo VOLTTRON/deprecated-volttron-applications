@@ -1,0 +1,6 @@
+<DERSettings xmlns="urn:ieee:std:2030.5:ns">
+    <setGradW>0</setGradW>
+    <setMaxA> <multiplier>0</multiplier> <value>20</value> </setMaxA>
+    <setMaxW> <multiplier>0</multiplier> <value>5000</value> </setMaxW>
+    <updatedTime>1483257600</updatedTime>
+</DERSettings>

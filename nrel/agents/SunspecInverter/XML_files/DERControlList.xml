@@ -1,0 +1,20 @@
+<DERControlList href="/sep2/A1/derp/1/derc" subscribable="1" all="1" results="1"
+xmlns="urn:ieee:std:2030.5:ns">
+    <DERControl href="/sep2/A1/derp/1/derc/1" replyTo="/rsps/1/rsp" responseRequired="03">
+        <mRID>D0000001</mRID>
+        <description>Scheduled DERC</description>
+        <creationTime>1514838000</creationTime>
+        <EventStatus>
+            <currentStatus>0</currentStatus>
+            <dateTime>1514838000</dateTime>
+            <potentiallySuperseded>false</potentiallySuperseded>
+        </EventStatus>
+        <interval>
+        <duration>3600</duration>
+        <start>1514926800</start>
+        </interval>
+        <DERControlBase>
+            <opModFixedW>9500</opModFixedW>
+        </DERControlBase>
+    </DERControl>
+</DERControlList>

@@ -3,6 +3,7 @@ import sys
 import logging
 from datetime import timedelta as td
 from dateutil import parser
+import dateutil.tz
 from volttron.platform.agent import utils
 from volttron.platform.messaging import topics
 from volttron.platform.agent.math_utils import mean
@@ -46,6 +47,7 @@ class EconomizerAgent(Agent):
         self.mat_name = ""
         self.oad_sig_name = ""
         self.cool_call_name = ""
+        self.timezone = ""
 
         #list attributes
         self.device_list = []
@@ -130,6 +132,7 @@ class EconomizerAgent(Agent):
         config = utils.load_config(config_path)
         #get device, then the units underneath that
         self.analysis_name = config.get("analysis_name", "analysis_name")
+        self.timezone = config.get("local_timezone", "US/Pacific")
         self.device = config.get("device", {})
         if "campus" in self.device:
             self.campus = self.device["campus"]
@@ -484,6 +487,8 @@ class EconomizerAgent(Agent):
         no return
         """
         current_time = parser.parse(headers["Date"])
+        to_zone = dateutil.tz.gettz(self.timezone)
+        current_time = current_time.astimezone(to_zone)
         _log.info("Processing Results!")
         self.parse_data_message(message)
         missing_data = self.check_for_missing_data()

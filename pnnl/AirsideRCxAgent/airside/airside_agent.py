@@ -9,6 +9,8 @@ from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
 from .diagnostics import common
 from .diagnostics.sat_aircx import SupplyTempAIRCx
+from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
+from .diagnostics.stcpr_aircx import DuctStaticAIRCx
 
 
 
@@ -371,13 +373,22 @@ class AirsideAgent(Agent):
         """creates the diagnostic classes
         No return
         """
+        self.stcpr_aircx = DuctStaticAIRCx()
+        self.stcpr_aircx.set_class_values(self.no_required_data, self.data_window, self.auto_correct_flag,
+                                          self.stcpr_stpt_deviation_thr, self.max_stcpr_stpt,self.stcpr_retuning, self.zn_high_damper_thr,
+                                          self.zn_low_damper_thr, self.hdzn_damper_thr, self.min_stcpr_stpt, self.analysis, self.duct_stp_stpt_cname)
+
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.no_required_data, self.data_window, self.auto_correct_flag,
-                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
-                                         self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
-                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
-                                         self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis, self.sat_stpt_cname)
+                                        self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
+                                        self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
+                                        self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
+                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis, self.sat_stpt_cname)
 
+        self.sched_reset_aircx = SchedResetAIRCx()
+        self.sched_reset_aircx.set_class_values(self.unocc_time_thr, self.unocc_stp_thr, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
+                                                self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
+                                                self.stcpr_reset_threshold, self.sat_reset_threshold, self.analysis)
     def parse_data_message(self, message):
         """Breaks down the passed VOLTTRON message
         message: dictionary
@@ -526,7 +537,7 @@ class AirsideAgent(Agent):
             return
 
         current_fan_status = self.check_fan_status(current_time)
-        #self.sched_reset_aircx.diagnostic()
+        self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data, self.sat_stpt_data, current_fan_status)
         self.check_elapsed_time(current_time)
         if not current_fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
@@ -553,7 +564,7 @@ class AirsideAgent(Agent):
             _log.info("Unit is in warm-up. Data will not be analyzed.")
             return
 
-        #self.stcpr_aircx.diagnostic()
+        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_cond, self.high_sf_cond)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
 
 

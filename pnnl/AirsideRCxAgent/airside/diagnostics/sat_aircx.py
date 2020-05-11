@@ -115,10 +115,9 @@ class SupplyTempAIRCx(object):
         self.dx_offset = 30.0
 
 
-    def set_class_values(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr,
-                 rht_on_thr, high_dmpr_thr, percent_dmpr_thr, percent_rht_thr,
-                 min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt,
-                 analysis, sat_stpt_cname):
+    def set_class_values(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
+                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname):
+        """Set the values needed for doing the diagnostics"""
 
         self.analysis = analysis
         self.sat_stpt_cname = sat_stpt_cname

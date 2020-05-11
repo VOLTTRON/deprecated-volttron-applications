@@ -76,11 +76,7 @@ class SchedResetAIRCx(object):
     Operational schedule, supply-air temperature set point reset, and duct static pressure reset
     AIRCx for AHUs or RTUs.
     """
-    def __init__(self, unocc_time_thr, unocc_stcpr_thr,
-                 monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
-                 friday_sch, saturday_sch, sunday_sch,
-                 no_req_data, stcpr_reset_thr, sat_reset_thr,
-                 analysis):
+    def __init__(self):
         self.fan_status_array = []
         self.schedule = {}
         self.stcpr_array = []
@@ -91,6 +87,32 @@ class SchedResetAIRCx(object):
         self.reset_table_key = None
         self.timestamp_array = []
         self.dx_table = {}
+
+        def date_parse(dates):
+            return [parse(timestamp_array).time() for timestamp_array in dates]
+
+        self.analysis = ""
+        self.monday_sch = []
+        self.tuesday_sch = []
+        self.wednesday_sch = []
+        self.thursday_sch = []
+        self.friday_sch = []
+        self.saturday_sch = []
+        self.sunday_sch = []
+
+        self.schedule = {}
+        self.pre_msg = ""
+
+        # Application thresholds (Configurable)
+        self.no_req_data = 0
+        self.unocc_time_thr = 0
+        self.unocc_stcpr_thr = 0
+        self.stcpr_reset_thr = 0
+        self.sat_reset_thr = 0
+
+    def set_class_values(self, unocc_time_thr, unocc_stcpr_thr, monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
+                         friday_sch, saturday_sch, sunday_sch, no_req_data, stcpr_reset_thr, sat_reset_thr, analysis):
+        """Set the values needed for doing the diagnostics"""
 
         def date_parse(dates):
             return [parse(timestamp_array).time() for timestamp_array in dates]
@@ -128,7 +150,7 @@ class SchedResetAIRCx(object):
         self.schedule_time_array = []
 
     def schedule_reset_aircx(self, current_time, stcpr_data, stcpr_stpt_data,
-                             sat_stpt_data, current_fan_status, dx_result):
+                             sat_stpt_data, current_fan_status):
         """
         Calls Schedule AIRCx and Set Point Reset AIRCx.
         :param current_time:
@@ -139,19 +161,17 @@ class SchedResetAIRCx(object):
         :param dx_result:
         :return:
         """
-        dx_result = self.sched_aircx(current_time, stcpr_data, current_fan_status, dx_result)
-        dx_result = self.setpoint_reset_aircx(current_time, current_fan_status,
-                                              stcpr_stpt_data, sat_stpt_data, dx_result)
+        self.sched_aircx(current_time, stcpr_data, current_fan_status)
+        self.setpoint_reset_aircx(current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data)
         self.timestamp_array.append(current_time)
-        return dx_result
 
-    def sched_aircx(self, current_time, stcpr_data, current_fan_status, dx_result):
+
+    def sched_aircx(self, current_time, stcpr_data, current_fan_status):
         """
         Main function for operation schedule AIRCx - manages data arrays checks AIRCx run status.
         :param current_time:
         :param stcpr_data:
         :param current_fan_status:
-        :param dx_result:
         :return:
         """
         schedule = self.schedule[current_time.weekday()]
@@ -302,7 +322,6 @@ class SchedResetAIRCx(object):
     def no_sat_stpt_reset(self):
         """
         AIRCx to detect whether a supply-air temperature set point reset is implemented.
-        :param dx_result:
         :return:
         """
         diagnostic_msg = {}

@@ -7,6 +7,7 @@ from volttron.platform.messaging import topics
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
+from volttron.platform.jsonrpc import RemoteError
 from .diagnostics import common
 from .diagnostics.sat_aircx import SupplyTempAIRCx
 from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
@@ -80,6 +81,7 @@ class AirsideAgent(Agent):
         self.sat_reset_thr = 0.0
         self.unocc_time_thr = 0.0
         self.unocc_stp_thr = 0.0
+        self.device_lock_duration = 0.0
 
         #list attributes
         self.device_list = []
@@ -114,6 +116,7 @@ class AirsideAgent(Agent):
         self.unocc_time_thr_dict = {}
         self.sat_reset_threshold_dict = {}
         self.stcpr_reset_threshold_dict = {}
+        self.command_tuple = None
 
         #bool attributes
         self.auto_correct_flag = None
@@ -122,6 +125,7 @@ class AirsideAgent(Agent):
         self.unit_status = None
         self.low_sf_condition = None
         self.high_sf_condition = None
+        self.actuation_mode = None
 
         #diagnostics
         self.stcpr_aircx = None
@@ -144,6 +148,8 @@ class AirsideAgent(Agent):
         """
         config = utils.load_config(config_path)
         self.analysis_name = config.get("analysis_name", "analysis_name")
+        self.actuation_mode = config.get("actuation_mode", "PASSIVE")
+        self.device_lock_duration = config.get("device_lock_duration", 10.0)
         self.device = config.get("device", {})
         if "campus" in self.device:
             self.campus = self.device["campus"]
@@ -296,6 +302,10 @@ class AirsideAgent(Agent):
         self.high_sf_thr = float(self.high_sf_thr)
         self.warm_up_time = td(minutes=self.warm_up_time)
 
+        if self.actuation_mode == "ACTIVE":
+            self.actuation_mode = True
+        else:
+            self.actuation_mode = False
 
         if self.fan_sp_name is None and self.fan_status_name is None:
             _log.error("SupplyFanStatus or SupplyFanSpeed are required to verify AHU status.")
@@ -374,12 +384,12 @@ class AirsideAgent(Agent):
         No return
         """
         self.stcpr_aircx = DuctStaticAIRCx()
-        self.stcpr_aircx.set_class_values(self.no_required_data, self.data_window, self.auto_correct_flag,
+        self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                           self.stcpr_stpt_deviation_thr, self.max_stcpr_stpt,self.stcpr_retuning, self.zn_high_damper_thr,
-                                          self.zn_low_damper_thr, self.hdzn_damper_thr, self.min_stcpr_stpt, self.analysis, self.duct_stp_stpt_cname)
+                                          self.zn_low_damper_thr, self.hdzn_damper_thr, self.min_stcpr_stpt, self.analysis, self.duct_stp_stpt_name)
 
         self.sat_aircx = SupplyTempAIRCx()
-        self.sat_aircx.set_class_values(self.no_required_data, self.data_window, self.auto_correct_flag,
+        self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
                                         self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
@@ -527,6 +537,7 @@ class AirsideAgent(Agent):
         message: dict
         no return
         """
+        self.command_tuple = {}
         current_time = parser.parse(headers["Date"])
         _log.info("Processing Results!")
         self.parse_data_message(message)
@@ -534,7 +545,7 @@ class AirsideAgent(Agent):
         # want to do no further parsing if data is missing
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
-            return
+            return self.check_result_command()
 
         current_fan_status = self.check_fan_status(current_time)
         self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data, self.sat_stpt_data, current_fan_status)
@@ -542,7 +553,7 @@ class AirsideAgent(Agent):
         if not current_fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
             self.warm_up_flag = True
-            return
+            return self.check_result_command()
         _log.info("Supply fan is on: {}".format(current_time))
 
         if self.fan_speed is not None and self.fan_speed > self.high_sf_thr:
@@ -558,15 +569,28 @@ class AirsideAgent(Agent):
         if self.warm_up_flag:
             self.warm_up_flag = False
             self.warm_up_start = current_time
-            return
+            return self.check_result_command()
 
         if self.warm_up_start is not None and (current_time - self.warm_up_start) < self.warm_up_time:
             _log.info("Unit is in warm-up. Data will not be analyzed.")
-            return
+            return self.check_result_command()
 
         self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_cond, self.high_sf_cond)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
 
+    def check_result_command(self):
+        """Check to see if any commands need to be ran based on diagnostic results"""
+
+        base_actuator_path = topics.RPC_DEVICE_PATH(campus=self.campus, building=self.building, unit=None, path="", point=None)
+        for device in self.device_list:
+            for point, new_value in self.command_tuple.items():
+                point_path = base_actuator_path(unit=device, point=point)
+                try:
+                    _log.info("Set point {} to {}".format(point_path, new_value))
+                    self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path, new_value).get(timeout=15)
+                except RemoteError as ex:
+                    _log.warning("Failed to set {} to {}: {}".format(point_path, new_value, str(ex)))
+                    continue
 
 def main(argv=sys.argv):
     """Main method called by the app."""

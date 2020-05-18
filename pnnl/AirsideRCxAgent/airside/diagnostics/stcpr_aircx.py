@@ -99,14 +99,16 @@ class DuctStaticAIRCx(object):
         self.hs_dmpr_high_avg = []
         self.low_sf_condition = []
         self.high_sf_condition = []
+        self.command_tuple = {}
         self.dx_offset = 0.0
 
-    def set_class_values(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
+    def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
                          zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname):
         """Set the values needed for doing the diagnostic"""
 
         # Initialize configurable thresholds
         self.analysis = analysis
+        self.command_tuple = command_tuple
         self.stcpr_stpt_cname = stcpr_stpt_cname
         self.no_req_data = no_req_data
         self.stpt_deviation_thr = stpt_deviation_thr
@@ -207,14 +209,14 @@ class DuctStaticAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_stcpr_stpt = avg_stcpr_stpt + self.stcpr_retuning
                     if aircx_stcpr_stpt <= self.max_stcpr_stpt:
-                        #dx_result.command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
+                        self.command_tuple.append([self.stcpr_stpt_cname, aircx_stcpr_stpt])
                         stcpr_stpt = "%s" % float("%.2g" % aircx_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too low. Set point increased to: {}".format(key,
                                                                                                      stcpr_stpt)
                         result = 11.1
                     else:
-                        #dx_result.command(self.stcpr_stpt_cname, self.max_stcpr_stpt)
+                        self.command_tuple.append([self.stcpr_stpt_cname, self.max_stcpr_stpt])
                         stcpr_stpt = "%s" % float("%.2g" % self.max_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too low. Set point increased to max {}.".format(key,

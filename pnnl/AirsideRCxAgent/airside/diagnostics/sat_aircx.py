@@ -92,6 +92,7 @@ class SupplyTempAIRCx(object):
         self.percent_rht = []
         self.percent_dmpr = []
         self.table_key = None
+        self.command_tuple = {}
 
         # Common RCx parameters
         self.analysis = ""
@@ -115,11 +116,12 @@ class SupplyTempAIRCx(object):
         self.dx_offset = 30.0
 
 
-    def set_class_values(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
+    def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
                          percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname):
         """Set the values needed for doing the diagnostics"""
 
         self.analysis = analysis
+        self.command_tuple = command_tuple
         self.sat_stpt_cname = sat_stpt_cname
         self.no_req_data = no_req_data
         self.auto_correct_flag = bool(auto_correct_flag)
@@ -226,12 +228,12 @@ class SupplyTempAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_sat_stpt = avg_sat_stpt + self.sat_retuning
                     if aircx_sat_stpt <= self.max_sat_stpt:
-                        #dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
+                        self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too low. SAT set point increased to: {}F".format(key, sat_stpt)
                         result = 41.1
                     else:
-                        #dx_result.command(self.sat_stpt_cname, self.max_sat_stpt)
+                        self.command_tuple.append([self.sat_stpt_cname, self.max_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % self.max_sat_stpt)
                         sat_stpt = str(sat_stpt)
                         msg = "{} - SAT too low. Auto-correcting to max SAT set point {}F".format(key, sat_stpt)

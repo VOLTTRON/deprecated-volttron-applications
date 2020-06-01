@@ -181,6 +181,7 @@ class ExcessOutsideAir(object):
         """If the detected problems(s) are consistent then generate a fault message(s).
         No return
         """
+        energy = 0.0
         oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
         avg_oaf = mean(oaf) * 100.0
         avg_damper = mean(self.oad_values)

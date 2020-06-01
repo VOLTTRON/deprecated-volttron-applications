@@ -1,4 +1,47 @@
-
+"""
+Copyright (c) 2020, Battelle Memorial Institute
+All rights reserved.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies,
+either expressed or implied, of the FreeBSD Project.
+This material was prepared as an account of work sponsored by an agency of the
+United States Government. Neither the United States Government nor the United
+States Department of Energy, nor Battelle, nor any of their employees, nor any
+jurisdiction or organization that has cooperated in th.e development of these
+materials, makes any warranty, express or implied, or assumes any legal
+liability or responsibility for the accuracy, completeness, or usefulness or
+any information, apparatus, product, software, or process disclosed, or
+represents that its use would not infringe privately owned rights.
+Reference herein to any specific commercial product, process, or service by
+trade name, trademark, manufacturer, or otherwise does not necessarily
+constitute or imply its endorsement, recommendation, or favoring by the
+United States Government or any agency thereof, or Battelle Memorial Institute.
+The views and opinions of authors expressed herein do not necessarily state or
+reflect those of the United States Government or any agency thereof.
+PACIFIC NORTHWEST NATIONAL LABORATORY
+operated by
+BATTELLE
+for the
+UNITED STATES DEPARTMENT OF ENERGY
+under Contract DE-AC05-76RL01830
+"""
 import sys
 import logging
 from datetime import timedelta as td
@@ -32,6 +75,7 @@ class EconomizerAgent(Agent):
 
         #list of class attributes.  Default values will be filled in from reading config file
         #string attributes
+        self.config = None
         self.campus = ""
         self.building = ""
         self.agent_id = ""
@@ -116,7 +160,8 @@ class EconomizerAgent(Agent):
 
         #start reading all the class configs and check them
         self.read_config(config_path)
-        self.read_argument_config(config_path)
+        self.setup_device_list()
+        self.read_argument_config()
         self.read_point_mapping()
         self.configuration_value_check()
         self.create_diagnostics()
@@ -127,10 +172,21 @@ class EconomizerAgent(Agent):
         Use volttrons config reader to grab and parse out configuration file
         config_path: The path to the agents configuration file
         """
-        config = utils.load_config(config_path)
+        file_config = utils.load_config(config_path)
+        default_config = self.setup_default_config()
+        if file_config:
+            self.config = file_config
+        else:
+            self.config = default_config
+
+        self.vip.config.set_default("config", self.config)
+        self.vip.config.subscribe(self.configure_main, actions=["NEW", "UPDATE"], pattern="config")
+
+    def setup_device_list(self):
+        """Setup the device subscriptions"""
         #get device, then the units underneath that
-        self.analysis_name = config.get("analysis_name", "analysis_name")
-        self.device = config.get("device", {})
+        self.analysis_name = self.config.get("analysis_name", "analysis_name")
+        self.device = self.config.get("device", {})
         if "campus" in self.device:
             self.campus = self.device["campus"]
         if "building" in self.device:
@@ -146,12 +202,33 @@ class EconomizerAgent(Agent):
                 for sd in self.units[u]["subdevices"]:
                     self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all"))
 
-    def read_argument_config(self, config_path):
+
+    def configure_main(self, config_name, action, contents):
+        """This triggers configuration via the VOLTTRON configuration store.
+        :param config_name: canonical name is config
+        :param action: on instantiation this is "NEW" or
+        "UPDATE" if user uploads update config to store
+        :param contents: configuration contents
+        :return: None
+        """
+        _log.info("Update %s for %s", config_name, self.core.identity)
+        config = self.config.copy()
+        config.update(contents)
+        if action == "NEW" or "UPDATE":
+            self.device_list = []
+            self.setup_device_list()
+            self.read_argument_config()
+            self.read_point_mapping()
+            self.configuration_value_check()
+            self.create_diagnostics()
+
+
+    def read_argument_config(self):
         """read all the config arguments section
         no return
         """
-        config = utils.load_config(config_path)
-        self.arguments = config.get("arguments", {})
+
+        self.arguments = self.config.get("arguments", {})
 
         self.econ_hl_temp = self.read_argument("econ_hl_temp", 65.0)
         self.constant_volume = self.read_argument("constant_volume", False)
@@ -178,7 +255,7 @@ class EconomizerAgent(Agent):
         self.temp_damper_threshold = self.read_argument("temp_damper_threshold", 90.0)
         self.rated_cfm = self.read_argument("rated_cfm", 6000.0)
         self.eer = self.read_argument("eer", 10.0)
-        self.temp_deadband = self.read_argument("temp_deadband", 1.0)
+        self.temp_deadband = self.read_argument("temp_band", 1.0)
         self.data_window = td(minutes=self.read_argument("data_window", 30))
         self.no_required_data = self.read_argument("no_required_data", 15)
         self.open_damper_time = td(minutes=self.read_argument("open_damper_time", 5))
@@ -186,6 +263,75 @@ class EconomizerAgent(Agent):
         self.economizer_type = self.read_argument("economizer_type", "DDB").lower()
         self.sensitivity = self.read_argument("sensitivity", ['low', 'normal', 'high'])
         self.point_mapping = self.read_argument("point_mapping", {})
+
+    def setup_default_config(self):
+        """Setup a default configuration object"""
+        default_config = {
+            "application": "economizer.economizer_rcx.Application",
+            "device": {
+                "campus": "campus",
+                "building": "building",
+                "unit": {
+                    "rtu4": {
+                        "subdevices": []
+                    }
+                }
+            },
+            "analysis_name": "Economizer_AIRCx",
+            "actuation_mode": "PASSIVE",
+            "arguments": {
+                "point_mapping": {
+                    "supply_fan_status": "FanStatus",
+                    "outdoor_air_temperature": "outsideairtemp",
+                    "return_air_temperature": "ReturnAirTemp",
+                    "mixed_air_temperature": "MixedAirTemp",
+                    "outdoor_damper_signal": "Damper",
+                    "cool_call": "CompressorStatus",
+                    "supply_fan_speed": "SupplyFanSpeed"
+                },
+                "device_type": "rtu",
+                "economizer_type": "DDB",
+                "data_window": 30,
+                "no_required_data": 15,
+                "open_damper_time": 5,
+                "econ_hl_temp": 65.0,
+                "sensitivity": ['low', 'normal', 'high'],
+                "constant_volume": False,
+                "low_supply_fan_threshold": 15.0,
+                "mat_low_threshold": 50.0,
+                "mat_high_threshold": 90.0,
+                "oat_low_threshold": 30.0,
+                "oat_high_threshold": 110.0,
+                "oat_mat_check": 5.0,
+                "rat_low_threshold": 50.0,
+                "rat_high_threshold": 90.0,
+                "temp_difference_threshold": 4.0,
+                "open_damper_threshold": 80.0,
+                "oaf_economizing_threshold": 25.0,
+                "oaf_temperature_threshold": 5.0,
+                "cooling_enabled_threshold": 5.0,
+                "minimum_damper_setpoint": 20.0,
+                "excess_damper_threshold": 20.0,
+                "insufficient_damper_threshold": 15.0,
+                "excess_oaf_threshold": 20.0,
+                "ventilation_oaf_threshold": 5.0,
+                "temp_damper_threshold": 90,
+                "desired_oaf": 10.0,
+                "rated_cfm": 6000.0,
+                "eer": 10.0,
+                "economizer_type": "DDB",
+                "temp_band": 1.0
+            },
+            "conversion_map": {
+                ".*Temperature": "float",
+                ".*Command": "float",
+                ".*Signal": "float",
+                "SupplyFanStatus": "int",
+                "Cooling.*": "float",
+                "SupplyFanSpeed": "int"
+            }
+        }
+        return default_config
 
     def read_argument(self, config_key, default_value):
         """Method that reads an argument from the config file and returns the value or returns the default value if key is not present in config file
@@ -450,6 +596,7 @@ class EconomizerAgent(Agent):
         return float
         return Bool/int
         """
+        cool_call = None
         if self.device_type == "ahu":
             clg_vlv_pos = mean(self.cooling_data)
             cool_call = True if clg_vlv_pos > self.cooling_enabled_threshold else False

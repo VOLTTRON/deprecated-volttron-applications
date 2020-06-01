@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -237,9 +237,9 @@ class ExcessOutsideAir(object):
         """
         ei = 0.0
         energy_calc = [
-            (1.08 * spd * self.cfm * (m - (o * desired_oaf + (r * (1.0 - desired_oaf))))) / (1000.0 * self.eer)
-            for m, o, r, spd in zip(self.mat_values, self.oat_values, self.rat_values, self.fan_spd_values)
-            if (m - (o * desired_oaf + (r * (1.0 - desired_oaf)))) > 0
+            (1.08 * spd * self.cfm * (mat - (oat * desired_oaf + (rat * (1.0 - desired_oaf))))) / (1000.0 * self.eer)
+            for mat, oat, rat, spd in zip(self.mat_values, self.oat_values, self.rat_values, self.fan_spd_values)
+            if (mat - (oat * desired_oaf + (rat * (1.0 - desired_oaf)))) > 0
         ]
         if energy_calc:
             avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds() / 60 if len(self.timestamp) > 1 else 1

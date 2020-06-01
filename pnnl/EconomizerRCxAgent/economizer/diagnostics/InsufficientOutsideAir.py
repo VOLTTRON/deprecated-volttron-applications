@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -130,7 +130,7 @@ class InsufficientOutsideAir(object):
         """If the detected problems(s) are consistent then generate a fault message(s).
         No return
         """
-        oaf = [(m - r) / (o - r) for o, r, m in zip(self.oat_values, self.rat_values, self.mat_values)]
+        oaf = [(mat - rat) / (oat - rat) for oat, rat, mat in zip(self.oat_values, self.rat_values, self.mat_values)]
         avg_oaf = mean(oaf) * 100.0
         diagnostic_msg = {}
 

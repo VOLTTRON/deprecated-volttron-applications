@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -234,9 +234,9 @@ class EconCorrectlyOn(object):
         returns float
         """
         ei = 0.0
-        energy_calc = [1.08 * s * self.cfm * (m - o) / (1000.0 * self.eer)
-                       for m, o, s in zip(self.mat_values, self.oat_values, self.fan_spd_values)
-                       if (m - o) > 0]
+        energy_calc = [1.08 * spd * self.cfm * (mat - oat) / (1000.0 * self.eer)
+                       for mat, oat, spd in zip(self.mat_values, self.oat_values, self.fan_spd_values)
+                       if (mat - oat) > 0]
         if energy_calc:
             avg_step = (self.timestamp[-1] - self.timestamp[0]).total_seconds() / 60 if len(self.timestamp) > 1 else 1
             dx_time = (len(energy_calc) - 1) * avg_step if len(energy_calc) > 1 else 1.0

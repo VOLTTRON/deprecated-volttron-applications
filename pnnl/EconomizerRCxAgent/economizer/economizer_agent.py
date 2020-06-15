@@ -152,6 +152,8 @@ class EconomizerAgent(Agent):
         self.unit_status = None
         self.sensor_limit = None
         self.temp_sensor_problem = None
+        self.update_config_flag = None
+        self.diagnostic_done_flag = None
 
         #diagnostics
         self.temp_sensor = None
@@ -220,12 +222,23 @@ class EconomizerAgent(Agent):
         config = self.config.copy()
         config.update(contents)
         if action == "NEW" or "UPDATE":
-            self.device_list = []
-            self.setup_device_list()
-            self.read_argument_config()
-            self.read_point_mapping()
-            self.configuration_value_check()
-            self.create_diagnostics()
+            self.update_config_flag = True
+            if self.diagnostic_done_flag:
+                self.update_configuration()
+            else:
+                _log.info("Waiting for Diagnostics to finish before update configuration!")
+
+
+    def update_configuration(self):
+        """Update configurations for agent"""
+        self.device_unsubscribe()
+        self.device_list = []
+        self.setup_device_list()
+        self.read_argument_config()
+        self.read_point_mapping()
+        self.configuration_value_check()
+        self.create_diagnostics()
+        self.update_config_flag = False
 
 
     def read_argument_config(self):
@@ -622,6 +635,16 @@ class EconomizerAgent(Agent):
         for device in self.device_list:
             self.vip.pubsub.subscribe(peer="pubsub", prefix=device, callback=self.new_data_message)
 
+    def device_unsubscribe(self):
+        """Method used to unsubscribe devices"""
+        self.vip.pubsub.unsubscribe("pubsub", None, None)
+
+    def check_for_config_update_after_diagnostics(self):
+        """Check to see if the configuration needs to be update"""
+        self.diagnostic_done_flag = True
+        if self.update_config_flag:
+            self.update_configuration()
+
 
     def new_data_message(self, peer, sender, bus, topic, headers, message):
         """
@@ -635,6 +658,7 @@ class EconomizerAgent(Agent):
 
         no return
         """
+        self.diagnostic_done_flag = False
         current_time = parser.parse(headers["Date"])
         to_zone = dateutil.tz.gettz(self.timezone)
         current_time = current_time.astimezone(to_zone)
@@ -644,6 +668,7 @@ class EconomizerAgent(Agent):
         #want to do no further parsing if data is missing
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
+            self.check_for_config_update_after_diagnostics()
             return
 
         #check on fan status and speed
@@ -651,6 +676,7 @@ class EconomizerAgent(Agent):
         self.check_elapsed_time(current_time, self.unit_status, constants.FAN_OFF)
         if not fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
+            self.check_for_config_update_after_diagnostics()
             return
         else:
             _log.info("Supply fan is on: {}".format(current_time))
@@ -669,6 +695,7 @@ class EconomizerAgent(Agent):
 
         if self.oaf_condition:
             _log.info("OAT and RAT readings are too close.")
+            self.check_for_config_update_after_diagnostics()
             return
 
         limit_condition = self.sensor_limit_check(current_time)
@@ -676,6 +703,7 @@ class EconomizerAgent(Agent):
         #check to see if there was a temperature sensor out of bounds
         if limit_condition[0]:
             _log.info("Temperature sensor is outside of bounds: {} -- {}".format(limit_condition, self.sensor_limit))
+            self.check_for_config_update_after_diagnostics()
             return
 
         self.temp_sensor_problem = self.temp_sensor.temperature_algorithm(self.oat, self.rat, self.mat, self.oad, current_time)
@@ -690,6 +718,7 @@ class EconomizerAgent(Agent):
         elif self.temp_sensor_problem:
             self.pre_conditions(constants.TEMP_SENSOR, current_time)
             self.clear_diagnostics()
+        self.check_for_config_update_after_diagnostics()
 
 
 def main(argv=sys.argv):

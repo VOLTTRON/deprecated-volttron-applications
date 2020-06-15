@@ -153,7 +153,7 @@ class EconomizerAgent(Agent):
         self.sensor_limit = None
         self.temp_sensor_problem = None
         self.update_config_flag = None
-        self.diagnostic_done_flag = None
+        self.diagnostic_done_flag = True
 
         #diagnostics
         self.temp_sensor = None
@@ -219,14 +219,13 @@ class EconomizerAgent(Agent):
         :return: None
         """
         _log.info("Update %s for %s", config_name, self.core.identity)
-        config = self.config.copy()
-        config.update(contents)
+        self.config.update(contents)
         if action == "NEW" or "UPDATE":
             self.update_config_flag = True
             if self.diagnostic_done_flag:
                 self.update_configuration()
-            else:
-                _log.info("Waiting for Diagnostics to finish before update configuration!")
+            elif self.diagnostic_done_flag == False:
+                _log.info("Waiting for Diagnostics to finish before updating configuration!")
 
 
     def update_configuration(self):
@@ -239,6 +238,7 @@ class EconomizerAgent(Agent):
         self.configuration_value_check()
         self.create_diagnostics()
         self.update_config_flag = False
+        self.onstart_subscriptions(None)
 
 
     def read_argument_config(self):
@@ -643,6 +643,7 @@ class EconomizerAgent(Agent):
         """Check to see if the configuration needs to be update"""
         self.diagnostic_done_flag = True
         if self.update_config_flag:
+            _log.info("finishing config update check")
             self.update_configuration()
 
 

@@ -6,10 +6,8 @@
         "campus": "campus1",
         "building": "building1",
         "unit": {
-            "rtu4": {
-                "subdevices": []
-            },
-            "rtu5": {
+
+            "AHU3": {
                 "subdevices": [
                     "VAV13111", "VAV13112",
                     "FCU13258", "FCU13259"

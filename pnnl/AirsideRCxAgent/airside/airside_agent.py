@@ -7,6 +7,7 @@ from volttron.platform.messaging import topics
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
+from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.jsonrpc import RemoteError
 from .diagnostics import common
 from .diagnostics.sat_aircx import SupplyTempAIRCx
@@ -51,12 +52,16 @@ class AirsideAgent(Agent):
         self.sat_stpt_name = ""
         self.zn_damper_name = ""
         self.zn_reheat_name = ""
+        self.initialize_time = None
+        self.timezone = ""
 
         #int attributes
         self.no_required_data = 0
         self.warm_up_time = 0
         self.data_window = 0
         self.fan_speed = None
+        self.interval = 0
+
 
         #float attributes
         self.stcpr_retuning = 0.0
@@ -82,9 +87,12 @@ class AirsideAgent(Agent):
         self.unocc_time_thr = 0.0
         self.unocc_stp_thr = 0.0
         self.device_lock_duration = 0.0
+        self.missing_data_threshold = 0.0
 
         #list attributes
         self.device_list = []
+        self.master_devices = []
+        self.needed_devices = []
         self.units = []
         self.arguments = []
         self.point_mapping = []
@@ -103,6 +111,7 @@ class AirsideAgent(Agent):
         self.zn_rht_data = []
         self.zn_dmpr_data = []
         self.fan_sp_data = []
+        self.device_values = {}
         self.stcpr_stpt_deviation_thr_dict = {}
         self.sat_stpt_deviation_thr_dict = {}
         self.percent_reheat_thr_dict = {}
@@ -117,6 +126,9 @@ class AirsideAgent(Agent):
         self.sat_reset_threshold_dict = {}
         self.stcpr_reset_threshold_dict = {}
         self.command_tuple = None
+        self.device_topic_dict = {}
+        self.conversion_map = {}
+        self.map_names = []
 
         #bool attributes
         self.auto_correct_flag = None
@@ -131,6 +143,7 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = None
         self.sat_aircx = None
         self.sched_reset_aircx = None
+        self.converter = ConversionMapper()
 
         # start reading all the class configs and check them
         self.read_config(config_path)
@@ -150,6 +163,13 @@ class AirsideAgent(Agent):
         self.analysis_name = config.get("analysis_name", "analysis_name")
         self.actuation_mode = config.get("actuation_mode", "PASSIVE")
         self.device_lock_duration = config.get("device_lock_duration", 10.0)
+        self.timezone = config.get("local_timezone", "US/Pacific")
+        self.interval = config.get("interval", 60)
+        self.missing_data_threshold = config.get("missing_data_threshold", 15.0) / 100.0
+        self.conversion_map = config.get("conversion_map", {})
+        for key, value in self.conversion_map.items():
+            self.map_names[key] = value
+
         self.device = config.get("device", {})
         if "campus" in self.device:
             self.campus = self.device["campus"]
@@ -160,13 +180,24 @@ class AirsideAgent(Agent):
             self.units = self.device["unit"]
         for u in self.units:
             # building the connection string for each unit
-            self.device_list.append(
-                topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="", point="all"))
+            device_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="", point="all")
+            self.device_list.append(device_topic)
+            self.device_topic_dict.update({device_topic: u})
+            self.master_devices.append(u)
             # loop over subdevices and add them
             if "subdevices" in self.units[u]:
                 for sd in self.units[u]["subdevices"]:
-                    self.device_list.append(
-                        topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all"))
+                    subdevice_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all")
+                    self.device_list.append(subdevice_topic)
+                    sd_string = u + "/" + sd
+                    self.master_devices.append(sd_string)
+                    self.device_topic_dict.update({subdevice_topic: sd_string})
+        self.initialize_devices()
+
+    def initialize_devices(self):
+        """Set which devices are needed and blank out the values"""
+        self.needed_devices = self.master_devices[:]
+        self.device_values = {}
 
     def read_argument_config(self, config_path):
         """read all the config arguments section
@@ -399,12 +430,11 @@ class AirsideAgent(Agent):
         self.sched_reset_aircx.set_class_values(self.unocc_time_thr, self.unocc_stp_thr, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
                                                 self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
                                                 self.stcpr_reset_threshold, self.sat_reset_threshold, self.analysis)
-    def parse_data_message(self, message):
+    def parse_data_dict(self, data):
         """Breaks down the passed VOLTTRON message
-        message: dictionary
+        data: dictionary
         no return
         """
-        data_message = message[0]
         # reset the data arrays on new message
         self.fan_status_data = []
         self.stcpr_stpt_data = []
@@ -415,8 +445,7 @@ class AirsideAgent(Agent):
         self.zn_dmpr_data = []
         self.fan_sp_data = []
 
-        for key in data_message:
-            value = data_message[key]
+        for key, value in data.items():
             if value is None:
                 continue
             if key == self.fan_status_name:
@@ -524,6 +553,7 @@ class AirsideAgent(Agent):
     def onstart_subscriptions(self, sender, **kwargs):
         """Method used to setup data subscription on startup of the agent"""
         for device in self.device_list:
+            _log.info("Subscribing to " + device)
             self.vip.pubsub.subscribe(peer="pubsub", prefix=device, callback=self.new_data_message)
 
     def new_data_message(self, peer, sender, bus, topic, headers, message):
@@ -537,18 +567,89 @@ class AirsideAgent(Agent):
         message: dict
         no return
         """
-        self.command_tuple = {}
         current_time = parser.parse(headers["Date"])
+        missing_but_running = False
+        if self.initialize_time is None and len(self.master_devices) > 1:
+            self.initialize_time = find_reinitialize_time(timestamp)
+
+        if self.initialize_time is not None and timestamp < self.initialize_time:
+            if len(self.master_devices) > 1:
+                return
+
+        to_zone = dateutil.tz.gettz(self.timezone)
+        current_time = current_time.astimezone(to_zone)
+
+        device_data = message[0]
+        if isinstance(device_data, list):
+            device_data = device_data[0]
+
+        device_needed = self.aggregate_subdevice(device_data, topic)
+        if not device_needed:
+            fraction_missing = float(len(self.needed_devices)) / len(self.master_devices)
+            if fraction_missing > self.missing_data_threshold:
+                _log.error("Device values already present, reinitializing at publish: {}".format(current_time))
+                self.initialize_devices()
+                device_needed = self.aggregate_subdevice(device_data, topic)
+                return
+            missing_but_running = True
+            _log.warning("Device already present. Using available data for diagnostic.: {}".format(timestamp))
+            _log.warning("Device  already present - topic: {}".format(topic))
+            _log.warning("All devices: {}".format(self.master_devices))
+            _log.warning("Needed devices: {}".format(self.needed_devices))
+
+        if self._should_run_now() or missing_but_running:
+            field_names = {}
+            for point, data in self.device_values.items():
+                field_names[point] = data
+            if not converter.initialized and conversion_map is not None:
+                converter.setup_conversion_map(self.map_names, field_names)
+
+            device_data = converter.process_row(field_names)
+            self.run_diagnostics(timestamp, device_data)
+            self.initialize_devices()
+            if missing_but_running:
+                device_needed = self.aggregate_subdevice(device_data, topic)
+        else:
+            _log.info("Still need {} before running.".format(self.needed_devices))
+
+
+
+    def aggregate_subdevice(self, device_data, topic):
+        """"""
+        tagged_device_data = {}
+        device_tag = device_topic_dict[topic]
+        _log.debug("Current device to aggregate: {}".format(device_tag))
+        if device_tag not in self.needed_devices:
+            return False
+        for key, value in device_data.items():
+            device_data_tag = "&".join([key, device_tag])
+            tagged_device_data[device_data_tag] = value
+        self.device_values.update(tagged_device_data)
+        self.needed_devices.remove(device_tag)
+        return True
+
+
+    def run_diagnostics(self, current_time, device_data):
+        """Run diagnostics on the data that is available."""
+        self.command_tuple = {}
         _log.info("Processing Results!")
-        self.parse_data_message(message)
+        device_dict = {}
+
+        for key, value in points.items():
+            point_device = [_name for _name in key.split("&")]
+            if point_device[0] not in device_dict:
+                device_dict[point_device[0]] = [(point_device[1], value)]
+            else:
+                device_dict[point_device[0]].append((point_device[1], value))
+        self.parse_data_dict(device_dict)
         missing_data = self.check_for_missing_data()
-        # want to do no further parsing if data is missing
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
             return self.check_result_command()
 
         current_fan_status = self.check_fan_status(current_time)
-        self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data, self.sat_stpt_data, current_fan_status)
+        self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data,
+                                                    self.sat_stpt_data, current_fan_status)
         self.check_elapsed_time(current_time)
         if not current_fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
@@ -575,8 +676,19 @@ class AirsideAgent(Agent):
             _log.info("Unit is in warm-up. Data will not be analyzed.")
             return self.check_result_command()
 
-        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_cond, self.high_sf_cond)
+        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data,
+                                     self.low_sf_cond, self.high_sf_cond)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
+
+    def find_reinitialize_time(self, current_time):
+        midnight = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        seconds_from_midnight = (current_time - midnight).total_seconds()
+        offset = seconds_from_midnight % self.interval
+        previous_in_seconds = seconds_from_midnight - offset
+        next_in_seconds = previous_in_seconds + self.interval
+        from_midnight = td(seconds=next_in_seconds)
+        _log.debug("Start of next scrape interval: {}".format(midnight + from_midnight))
+        return midnight + from_midnight
 
     def check_result_command(self):
         """Check to see if any commands need to be ran based on diagnostic results"""

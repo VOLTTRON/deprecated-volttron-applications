@@ -68,6 +68,7 @@ class InsufficientOutsideAir(object):
         self.timestamp = []
         self.max_dx_time = None
         self.analysis_name = ''
+        self.results_publish = None
 
         # Application thresholds (Configurable)
         self.data_window = None
@@ -77,7 +78,7 @@ class InsufficientOutsideAir(object):
         self.invalid_oaf_dict = None
         self.inconsistent_date = None
 
-    def set_class_values(self, analysis_name, data_window, no_required_data, desired_oaf):
+    def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, desired_oaf):
         """Set the values needed for doing the diagnostics
         analysis_name: string
         data_window: datetime time delta
@@ -86,6 +87,7 @@ class InsufficientOutsideAir(object):
 
         No return
         """
+        self.results_publish = results_publish
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
 
         # Application thresholds (Configurable)
@@ -121,6 +123,7 @@ class InsufficientOutsideAir(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
                 return
             self.insufficient_oa()
@@ -139,6 +142,7 @@ class InsufficientOutsideAir(object):
                    "unexpected value: {}".format(constants.ECON5, avg_oaf))
             _log.info(msg)
             _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.invalid_oaf_dict))))
+            self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.invalid_oaf_dict))))
             self.clear_data()
             return
 
@@ -153,6 +157,8 @@ class InsufficientOutsideAir(object):
             _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(diagnostic_msg))))
+        self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(diagnostic_msg))))
+
         self.clear_data()
 
 

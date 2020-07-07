@@ -71,6 +71,7 @@ class TemperatureSensor(object):
         self.temp_sensor_problem = None
         self.max_dx_time = None
         self.analysis_name = ''
+        self.results_publish = None
 
         # Application thresholds (Configurable)
         self.data_window = None
@@ -82,7 +83,7 @@ class TemperatureSensor(object):
 
 
 
-    def set_class_values(self, analysis_name, data_window, no_required_data, temp_diff_thr, open_damper_time, temp_damper_threshold):
+    def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, temp_diff_thr, open_damper_time, temp_damper_threshold):
         """Set the values needed for doing the diagnostics
         analysis_name: string
         data_window: datetime time delta
@@ -93,6 +94,7 @@ class TemperatureSensor(object):
 
         No return
         """
+        self.results_publish = results_publish
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.data_window = data_window
         self.analysis_name = analysis_name
@@ -108,7 +110,7 @@ class TemperatureSensor(object):
             'high': max(1.0, temp_diff_thr - 2.0)
         }
         self.inconsistent_date = {key: 3.2 for key in self.temp_diff_thr}
-        self.sensor_damper_dx.set_class_values(analysis_name, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold)
+        self.sensor_damper_dx.set_class_values(analysis_name, results_publish, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold)
 
 
     def temperature_algorithm(self, oat, rat, mat, oad, cur_time):
@@ -132,6 +134,7 @@ class TemperatureSensor(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
             else:
                 self.temperature_sensor_dx()
@@ -166,6 +169,7 @@ class TemperatureSensor(object):
         if diagnostic_msg["normal"] > 0.0:
             self.temp_sensor_problem = True
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
+        self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
         self.clear_data()
 
     def aggregate_data(self):
@@ -220,8 +224,9 @@ class DamperSensorInconsistency(object):
         self.oad_temperature_threshold = None
         self.oat_mat_check = None
         self.analysis_name = ''
+        self.results_publish = None
 
-    def set_class_values(self, analysis_name, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold):
+    def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold):
         """Set the values needed for doing the diagnostics
         analysis_name: string
         data_window: datetime time delta
@@ -232,6 +237,7 @@ class DamperSensorInconsistency(object):
 
         No return
         """
+        self.results_publish = results_publish
         self.econ_time_check = open_damper_time
         self.data_window = data_window
         self.no_required_data = no_required_data
@@ -277,6 +283,8 @@ class DamperSensorInconsistency(object):
 
                 _log.info(msg)
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
+                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
+
             self.clear_data()
 
     def clear_data(self):

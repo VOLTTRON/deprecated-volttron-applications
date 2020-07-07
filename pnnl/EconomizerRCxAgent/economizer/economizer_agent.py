@@ -48,7 +48,7 @@ from datetime import timedelta as td
 from dateutil import parser
 import dateutil.tz
 from volttron.platform.agent import utils
-from volttron.platform.messaging import topics
+from volttron.platform.messaging import (headers as headers_mod, topics)
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
@@ -92,6 +92,7 @@ class EconomizerAgent(Agent):
         self.oad_sig_name = ""
         self.cool_call_name = ""
         self.timezone = ""
+        self.publish_base = ""
 
         #list attributes
         self.device_list = []
@@ -106,6 +107,7 @@ class EconomizerAgent(Agent):
         self.fan_sp_data = []
         self.fan_status_data = []
         self.missing_data = []
+        self.results_publish = []
 
         #int attributes
         self.data_window = 0
@@ -432,15 +434,15 @@ class EconomizerAgent(Agent):
         No return
         """
         self.temp_sensor = TemperatureSensor()
-        self.temp_sensor.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.temp_difference_threshold, self.open_damper_time,  self.temp_damper_threshold)
+        self.temp_sensor.set_class_values(self.analysis_name, self.results_publish, self.data_window, self.no_required_data, self.temp_difference_threshold, self.open_damper_time,  self.temp_damper_threshold)
         self.econ_correctly_on = EconCorrectlyOn()
-        self.econ_correctly_on.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.open_damper_threshold, float(self.rated_cfm), self.eer)
+        self.econ_correctly_on.set_class_values(self.analysis_name, self.results_publish, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.open_damper_threshold, float(self.rated_cfm), self.eer)
         self.econ_correctly_off = EconCorrectlyOff()
-        self.econ_correctly_off.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
+        self.econ_correctly_off.set_class_values(self.analysis_name, self.results_publish, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
         self.excess_outside_air = ExcessOutsideAir()
-        self.excess_outside_air.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
+        self.excess_outside_air.set_class_values(self.analysis_name, self.results_publish, self.data_window, self.no_required_data, self.minimum_damper_setpoint, self.desired_oaf, float(self.rated_cfm), self.eer)
         self.insufficient_outside_air = InsufficientOutsideAir()
-        self.insufficient_outside_air.set_class_values(self.analysis_name, self.data_window, self.no_required_data, self.desired_oaf)
+        self.insufficient_outside_air.set_class_values(self.analysis_name, self.results_publish, self.data_window, self.no_required_data, self.desired_oaf)
 
     def parse_data_message(self, message):
         """Breaks down the passed VOLTTRON message
@@ -669,6 +671,7 @@ class EconomizerAgent(Agent):
         #want to do no further parsing if data is missing
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
+            self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
 
@@ -677,6 +680,7 @@ class EconomizerAgent(Agent):
         self.check_elapsed_time(current_time, self.unit_status, constants.FAN_OFF)
         if not fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
+            self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
         else:
@@ -696,6 +700,7 @@ class EconomizerAgent(Agent):
 
         if self.oaf_condition:
             _log.info("OAT and RAT readings are too close.")
+            self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
 
@@ -704,6 +709,7 @@ class EconomizerAgent(Agent):
         #check to see if there was a temperature sensor out of bounds
         if limit_condition[0]:
             _log.info("Temperature sensor is outside of bounds: {} -- {}".format(limit_condition, self.sensor_limit))
+            self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
 
@@ -719,7 +725,30 @@ class EconomizerAgent(Agent):
         elif self.temp_sensor_problem:
             self.pre_conditions(constants.TEMP_SENSOR, current_time)
             self.clear_diagnostics()
+        self.publish_analysis_results()
         self.check_for_config_update_after_diagnostics()
+
+    def publish_analysis_results(self):
+        """Publish the diagnostic results"""
+        _log.info("**************In results publish*******" + str(self.results_publish) )
+        publish_base = "/".join([self.analysis_name])
+        to_publish = {}
+        for app, analysis_table in self.results_publish:
+            name_timestamp = app.split("&")
+            timestamp = name_timestamp[1]
+            _log.info("data analysis table*******" + str(analysis_table))
+            headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
+            for point, result in analysis_table:
+                for device in self.device_list:
+                    publish_topic = "/".join([publish_base, device, point])
+                    analysis_topic = topics.RECORD(subtopic=publish_topic)
+                    to_publish[analysis_topic] = result
+                    _log.info("data to publish*******" + str(to_publish))
+
+            for result_topic, result in to_publish.items():
+                self.vip.pubsub.publish("pubsub", result_topic, headers, result)
+            to_publish.clear()
+            self.results_publish.clear()
 
 
 def main(argv=sys.argv):

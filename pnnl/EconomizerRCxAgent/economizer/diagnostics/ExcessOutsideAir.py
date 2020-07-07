@@ -70,6 +70,7 @@ class ExcessOutsideAir(object):
         self.fan_spd_values = []
         self.economizing = None
         self.analysis_name = ''
+        self.results_publish = None
 
         # Application thresholds (Configurable)
         self.cfm = None
@@ -85,7 +86,7 @@ class ExcessOutsideAir(object):
         self.invalid_oaf_dict = None
         self.inconsistent_date = None
 
-    def set_class_values(self, analysis_name, data_window, no_required_data, min_damper_sp, desired_oaf, cfm, eer):
+    def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, min_damper_sp, desired_oaf, cfm, eer):
         """Set the values needed for doing the diagnostics
         analysis_name: string
         data_window: datetime time delta
@@ -97,6 +98,7 @@ class ExcessOutsideAir(object):
 
         No return
         """
+        self.results_publish = results_publish
         self.cfm = cfm
         self.eer = eer
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
@@ -149,6 +151,7 @@ class ExcessOutsideAir(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.inconsistent_date))))
                 self.clear_data()
                 return
             self.excess_oa()
@@ -169,8 +172,10 @@ class ExcessOutsideAir(object):
                 _log.info("{}: economizing for data set, reinitialize.".format(constants.ECON4))
                 if len(self.timestamp):
                     _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
+                    self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
                 else:
                     _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
+                    self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
                 self.clear_data()
             return True
         else:
@@ -193,6 +198,7 @@ class ExcessOutsideAir(object):
             msg = ("{}: Inconclusive result, unexpected OAF value: {}".format(constants.ECON4, avg_oaf))
             _log.info(msg)
             _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.invalid_oaf_dict))))
+            self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(self.invalid_oaf_dict))))
             self.clear_data()
             return
 
@@ -227,6 +233,8 @@ class ExcessOutsideAir(object):
             diagnostic_msg.update({key: result})
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(diagnostic_msg))))
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.EI + ':' + str(energy_impact))))
+        self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ':' + str(diagnostic_msg))))
+        self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.EI + ':' + str(energy_impact))))
         self.clear_data()
 
 

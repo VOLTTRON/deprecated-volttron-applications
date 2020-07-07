@@ -128,7 +128,7 @@ class AirsideAgent(Agent):
         self.command_tuple = None
         self.device_topic_dict = {}
         self.conversion_map = {}
-        self.map_names = []
+        self.map_names = {}
 
         #bool attributes
         self.auto_correct_flag = None
@@ -417,19 +417,19 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = DuctStaticAIRCx()
         self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                           self.stcpr_stpt_deviation_thr, self.max_stcpr_stpt,self.stcpr_retuning, self.zn_high_damper_thr,
-                                          self.zn_low_damper_thr, self.hdzn_damper_thr, self.min_stcpr_stpt, self.analysis, self.duct_stp_stpt_name)
+                                          self.zn_low_damper_thr, self.hdzn_damper_thr, self.min_stcpr_stpt, self.analysis_name, self.duct_stp_stpt_name)
 
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
                                         self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
-                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis, self.sat_stpt_cname)
+                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name)
 
         self.sched_reset_aircx = SchedResetAIRCx()
         self.sched_reset_aircx.set_class_values(self.unocc_time_thr, self.unocc_stp_thr, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
                                                 self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
-                                                self.stcpr_reset_threshold, self.sat_reset_threshold, self.analysis)
+                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name)
     def parse_data_dict(self, data):
         """Breaks down the passed VOLTTRON message
         data: dictionary

@@ -3,14 +3,14 @@
     "application": "airside_aircx.Application",
 
     "device": {
-        "campus": "campus1",
-        "building": "building1",
+        "campus": "campus",
+        "building": "building",
         "unit": {
 
             "AHU3": {
                 "subdevices": [
-                    "VAV13111", "VAV13112",
-                    "FCU13258", "FCU13259"
+                    "VAV107", "VAV104",
+                    "VAV116", "VAV105"
                 ]
             }
         }

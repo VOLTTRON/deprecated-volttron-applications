@@ -152,7 +152,7 @@ class EconCorrectlyOff(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX), str(self.inconsistent_date)))
                 self.clear_data()
                 return
             self.economizing_when_not_needed()
@@ -171,7 +171,7 @@ class EconCorrectlyOff(object):
             if cur_time - self.economizing >= self.data_window:
                 _log.info("{}: economizing - reinitialize!".format(constants.ECON3))
                 _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX + ':' + str(self.economizing_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX + ':' + str(self.economizing_dict))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX), str(self.economizing_dict)))
                 self.clear_data()
             return True
         else:
@@ -201,9 +201,9 @@ class EconCorrectlyOff(object):
             diagnostic_msg.update({sensitivity: result})
             energy_impact.update({sensitivity: energy})
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(diagnostic_msg))))
-        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(diagnostic_msg))))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX), str(diagnostic_msg)))
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI + ':' + str(energy_impact))))
-        self.results_publish(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI + ':' + str(energy_impact))))
+        self.results_publish(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI), str(energy_impact)))
         self.clear_data()
 
     def energy_impact_calculation(self, desired_oaf):

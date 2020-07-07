@@ -588,6 +588,7 @@ class EconomizerAgent(Agent):
 
         for diagnostic in constants.DX_LIST:
             _log.info(constants.table_log_format(self.analysis_name, cur_time, (diagnostic + constants.DX + ':' + str(dx_msg))))
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (diagnostic + constants.DX), str(dx_msg)))
 
     def sensor_limit_check(self, current_time):
         """ Check temperature limits on sensors.
@@ -730,25 +731,25 @@ class EconomizerAgent(Agent):
 
     def publish_analysis_results(self):
         """Publish the diagnostic results"""
-        _log.info("**************In results publish*******" + str(self.results_publish) )
+        if(len(self.results_publish)) <= 0:
+            return
         publish_base = "/".join([self.analysis_name])
-        to_publish = {}
         for app, analysis_table in self.results_publish:
+            to_publish = {}
             name_timestamp = app.split("&")
             timestamp = name_timestamp[1]
-            _log.info("data analysis table*******" + str(analysis_table))
+            point = analysis_table[0]
+            result = analysis_table[1]
             headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
-            for point, result in analysis_table:
-                for device in self.device_list:
-                    publish_topic = "/".join([publish_base, device, point])
-                    analysis_topic = topics.RECORD(subtopic=publish_topic)
-                    to_publish[analysis_topic] = result
-                    _log.info("data to publish*******" + str(to_publish))
+            for device in self.device_list:
+                publish_topic = "/".join([publish_base, device, point])
+                analysis_topic = topics.RECORD(subtopic=publish_topic)
+                to_publish[analysis_topic] = result
 
             for result_topic, result in to_publish.items():
                 self.vip.pubsub.publish("pubsub", result_topic, headers, result)
             to_publish.clear()
-            self.results_publish.clear()
+        self.results_publish.clear()
 
 
 def main(argv=sys.argv):

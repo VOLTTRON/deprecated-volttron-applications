@@ -134,7 +134,7 @@ class TemperatureSensor(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX), str(self.inconsistent_date)))
                 self.clear_data()
             else:
                 self.temperature_sensor_dx()
@@ -169,7 +169,7 @@ class TemperatureSensor(object):
         if diagnostic_msg["normal"] > 0.0:
             self.temp_sensor_problem = True
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
-        self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX ), str(diagnostic_msg)))
         self.clear_data()
 
     def aggregate_data(self):
@@ -283,7 +283,7 @@ class DamperSensorInconsistency(object):
 
                 _log.info(msg)
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
-                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ':' + str(diagnostic_msg))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX), str(diagnostic_msg)))
 
             self.clear_data()
 

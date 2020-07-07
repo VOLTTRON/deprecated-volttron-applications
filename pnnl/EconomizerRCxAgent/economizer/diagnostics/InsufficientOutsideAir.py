@@ -123,7 +123,7 @@ class InsufficientOutsideAir(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX), str(self.inconsistent_date)))
                 self.clear_data()
                 return
             self.insufficient_oa()
@@ -142,7 +142,7 @@ class InsufficientOutsideAir(object):
                    "unexpected value: {}".format(constants.ECON5, avg_oaf))
             _log.info(msg)
             _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.invalid_oaf_dict))))
-            self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(self.invalid_oaf_dict))))
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX), str(self.invalid_oaf_dict)))
             self.clear_data()
             return
 
@@ -157,7 +157,7 @@ class InsufficientOutsideAir(object):
             _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(diagnostic_msg))))
-        self.results_publish.append(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ':' + str(diagnostic_msg))))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX), str(diagnostic_msg)))
 
         self.clear_data()
 

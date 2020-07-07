@@ -64,8 +64,7 @@ def table_log_format(name, timestamp, data):
     """ Return a formatted string for use in the log"""
     return str(str(name) + '&' + str(timestamp) + '->[' + str(data) + ']')
 
-def table_publish_format(name, timestamp, data):
+def table_publish_format(name, timestamp, table, data):
     """ Return a dictionary for use in the results publish"""
     table_key = str(str(name) + '&' + str(timestamp))
-    table_data = data.split(":")
-    return [table_key, [table_data[0], table_data[1]]]
+    return [table_key, [table, data]]

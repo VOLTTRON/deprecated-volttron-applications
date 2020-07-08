@@ -175,7 +175,7 @@ class ExcessOutsideAir(object):
                     self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), str(self.economizing_dict)))
                 else:
                     _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX + ':' + str(self.economizing_dict))))
-                    self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), str(self.economizing_dict)))
+                    self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX), str(self.economizing_dict)))
                 self.clear_data()
             return True
         else:

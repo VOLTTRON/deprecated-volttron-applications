@@ -96,6 +96,7 @@ class EconomizerAgent(Agent):
 
         #list attributes
         self.device_list = []
+        self.publish_list = []
         self.units = []
         self.arguments = []
         self.point_mapping = []
@@ -206,10 +207,12 @@ class EconomizerAgent(Agent):
         for u in self.units:
             #building the connection string for each unit
             self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="", point="all"))
+            self.publish_list.append("/".join([self.campus, self.building, u]))
             #loop over subdevices and add them
             if "subdevices" in self.units[u]:
                 for sd in self.units[u]["subdevices"]:
                     self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all"))
+                    self.publish_list.append("/".join([self.campus, self.building, u, sd]))
 
 
     def configure_main(self, config_name, action, contents):
@@ -234,6 +237,7 @@ class EconomizerAgent(Agent):
         """Update configurations for agent"""
         self.device_unsubscribe()
         self.device_list = []
+        self.publish_list = []
         self.setup_device_list()
         self.read_argument_config()
         self.read_point_mapping()
@@ -741,7 +745,7 @@ class EconomizerAgent(Agent):
             point = analysis_table[0]
             result = analysis_table[1]
             headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
-            for device in self.device_list:
+            for device in self.publish_list:
                 publish_topic = "/".join([publish_base, device, point])
                 analysis_topic = topics.RECORD(subtopic=publish_topic)
                 to_publish[analysis_topic] = result

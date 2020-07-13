@@ -203,7 +203,7 @@ class EconCorrectlyOff(object):
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(diagnostic_msg))))
         self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX), str(diagnostic_msg)))
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI + ':' + str(energy_impact))))
-        self.results_publish(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI), str(energy_impact)))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI), str(energy_impact)))
         self.clear_data()
 
     def energy_impact_calculation(self, desired_oaf):

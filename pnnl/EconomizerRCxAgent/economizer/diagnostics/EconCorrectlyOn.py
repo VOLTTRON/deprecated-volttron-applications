@@ -182,7 +182,7 @@ class EconCorrectlyOn(object):
             if cur_time - self.not_cooling >= self.data_window:
                 _log.info("{}: no cooling during data set - reinitialize.".format(constants.ECON2))
                 _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ':' + str(self.not_cooling_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), str(self.not_cooling_dict)))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX), str(self.not_cooling_dict)))
                 self.clear_data()
             return False
         else:
@@ -195,7 +195,7 @@ class EconCorrectlyOn(object):
             if cur_time - self.not_economizing >= self.data_window:
                 _log.info("{}: no economizing during data set - reinitialize.".format(constants.ECON2))
                 _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ':' + str(self.not_economizing_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], ( constants.ECON2 + constants.DX),  str(self.not_economizing_dict)))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, ( constants.ECON2 + constants.DX),  str(self.not_economizing_dict)))
                 self.clear_data()
             return False
         else:

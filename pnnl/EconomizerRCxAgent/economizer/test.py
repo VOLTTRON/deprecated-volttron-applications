@@ -76,7 +76,8 @@ class TestDiagnosticsTempSensor(unittest.TestCase):
         """test the temp sensor set values method"""
         temp_sensor = TemperatureSensor()
         data_window = td(minutes=1)
-        temp_sensor.set_class_values("test", data_window, 1, 4.0, 0,90.0)
+        results = []
+        temp_sensor.set_class_values("test", results, data_window, 1, 4.0, 0,90.0)
         assert temp_sensor.data_window == td(minutes=1)
         assert temp_sensor.no_required_data == 1
         assert temp_sensor.analysis_name == "test"
@@ -85,7 +86,8 @@ class TestDiagnosticsTempSensor(unittest.TestCase):
         """test the temp sensor algorithm"""
         temp_sensor = TemperatureSensor()
         data_window = td(minutes=1)
-        temp_sensor.set_class_values("test", data_window, 1, 4.0, 0, 90.0)
+        results = []
+        temp_sensor.set_class_values("test", results, data_window, 1, 4.0, 0, 90.0)
         oat = 50
         rat = 50
         mat = 50
@@ -98,7 +100,8 @@ class TestDiagnosticsTempSensor(unittest.TestCase):
         """test the temp sensor dx"""
         temp_sensor = TemperatureSensor()
         data_window = td(minutes=1)
-        temp_sensor.set_class_values("test", data_window, 1, 4.0, 0, 90.0)
+        results = []
+        temp_sensor.set_class_values("test", results, data_window, 1, 4.0, 0, 90.0)
         oat = 50
         rat = 50
         mat = 25
@@ -114,7 +117,8 @@ class TestDiagnosticsTempSensor(unittest.TestCase):
         """test the temp sensor dx for happy state"""
         temp_sensor = TemperatureSensor()
         data_window = td(minutes=1)
-        temp_sensor.set_class_values("test", data_window, 1, 4.0, 0, 90.0)
+        results = []
+        temp_sensor.set_class_values("test", results, data_window, 1, 4.0, 0, 90.0)
         oat = 50
         rat = 50
         mat = 50
@@ -130,7 +134,8 @@ class TestDiagnosticsTempSensor(unittest.TestCase):
         """test the temp sensor aggregate data method"""
         temp_sensor = TemperatureSensor()
         data_window = td(minutes=1)
-        temp_sensor.set_class_values("test", data_window, 1, 4.0, 0, 90.0)
+        results = []
+        temp_sensor.set_class_values("test", results, data_window, 1, 4.0, 0, 90.0)
         temp_sensor.oat_values.append(50)
         temp_sensor.mat_values.append(25)
         temp_sensor.rat_values.append(50)
@@ -147,7 +152,8 @@ class TestDiagnosticsTempSensor(unittest.TestCase):
         """test the temp sensor clear data"""
         temp_sensor = TemperatureSensor()
         data_window = td(minutes=1)
-        temp_sensor.set_class_values("test", data_window, 1, 4.0, 0, 90.0)
+        results = []
+        temp_sensor.set_class_values("test", results, data_window, 1, 4.0, 0, 90.0)
         temp_sensor.oat_values.append(50)
         temp_sensor.mat_values.append(25)
         temp_sensor.rat_values.append(50)
@@ -188,7 +194,8 @@ class TestDiagnosticsDamperSensorInconsistency(unittest.TestCase):
             'normal': max(temp_diff_thr * 1.25, 5.0),
             'high': max(temp_diff_thr, 4.0)
         }
-        damp_sensor.set_class_values("test", data_window, 1, open_damp_time, oat_mat_check, 90.0)
+        results = []
+        damp_sensor.set_class_values("test", results, data_window, 1, open_damp_time, oat_mat_check, 90.0)
         assert damp_sensor.data_window == td(minutes=1)
         assert damp_sensor.no_required_data == 1
         assert damp_sensor.oad_temperature_threshold == 90
@@ -211,7 +218,8 @@ class TestDiagnosticsDamperSensorInconsistency(unittest.TestCase):
         first_stamp = datetime.fromtimestamp(1)
         damp_sensor.timestamp.append(first_stamp)
         cur_time = datetime.fromtimestamp(10000)
-        damp_sensor.set_class_values("test", data_window, 1, open_damp_time, oat_mat_check, 90.0)
+        results = []
+        damp_sensor.set_class_values("test", results, data_window, 1, open_damp_time, oat_mat_check, 90.0)
         damp_sensor.oat_values.append(50)
         damp_sensor.mat_values.append(25)
         damp_sensor.steady_state = first_stamp
@@ -232,7 +240,8 @@ class TestDiagnosticsDamperSensorInconsistency(unittest.TestCase):
             'normal': max(temp_diff_thr * 1.25, 5.0),
             'high': max(temp_diff_thr, 4.0)
         }
-        damp_sensor.set_class_values("test", data_window, 1, open_damp_time, oat_mat_check, 90.0)
+        results = []
+        damp_sensor.set_class_values("test", results, data_window, 1, open_damp_time, oat_mat_check, 90.0)
         damp_sensor.oat_values.append(50)
         damp_sensor.mat_values.append(25)
         damp_sensor.oat_values.append(100)
@@ -262,7 +271,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         """test the econ correctly off set values method"""
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         assert econ.data_window == td(minutes=1)
         assert econ.no_required_data == 1
         assert econ.analysis_name == "test"
@@ -279,7 +289,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         econ.economizer_off_algorithm(50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
         assert len(econ.oat_values) == 0
         assert len(econ.mat_values) == 0
@@ -295,7 +306,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         econ.economizer_off_algorithm(50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
         assert len(econ.oat_values) == 0
         assert len(econ.mat_values) == 0
@@ -309,7 +321,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.economizing = first_stamp
         econ.oat_values.append(50)
@@ -330,7 +343,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(100000)
         econ.economizing = first_stamp
         econ.oat_values.append(50)
@@ -352,7 +366,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         ret = econ.economizer_conditions(False, cur_time)
         assert ret is False
 
@@ -360,7 +375,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         """test the econ when not needed method"""
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -380,7 +396,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         """test the econ energy impact method"""
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -396,7 +413,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         """test the econ energy impact method with zero value"""
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -412,7 +430,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         """test the econ energy impact method with a negative value"""
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -428,7 +447,8 @@ class TestDiagnosticsEconCorrectlyOff(unittest.TestCase):
         """test the damp sensor clear data"""
         econ = EconCorrectlyOff()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         econ.oat_values.append(50)
         econ.mat_values.append(25)
         econ.oat_values.append(100)
@@ -462,7 +482,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         """test the econ correctly On set values method"""
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         assert econ.data_window == td(minutes=1)
         assert econ.no_required_data == 1
         assert econ.analysis_name == "test"
@@ -477,7 +498,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         econ.economizer_on_algorithm(True, 50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
         assert len(econ.oat_values) == 1
         assert len(econ.mat_values) == 1
@@ -493,7 +515,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         econ.economizer_on_algorithm(True, 50.0, 25.0, 50.0, 25.0, 5.0, cur_time, 36)
         assert len(econ.oat_values) == 0
         assert len(econ.mat_values) == 0
@@ -507,7 +530,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.not_cooling = first_stamp
         econ.oat_values.append(50)
@@ -528,7 +552,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results,  data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(100000)
         econ.economizing = first_stamp
         econ.oat_values.append(50)
@@ -550,7 +575,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         ret = econ.economizer_conditions(False, 0, cur_time)
         assert ret is False
 
@@ -558,7 +584,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         """test the econ when not needed method"""
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -579,7 +606,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         with self.assertRaises(ZeroDivisionError):
             econ = EconCorrectlyOn()
             data_window = td(minutes=1)
-            econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+            results = []
+            econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
             first_stamp = datetime.fromtimestamp(1)
             econ.timestamp.append(first_stamp)
             econ.economizing = first_stamp
@@ -594,7 +622,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         """test the econ energy impact method"""
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -610,7 +639,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         """test the econ energy impact method with zero value"""
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -626,7 +656,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         """test the econ energy impact method with a negative value"""
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         econ.timestamp.append(first_stamp)
         econ.economizing = first_stamp
@@ -642,7 +673,8 @@ class TestDiagnosticsEconCorrectlyOn(unittest.TestCase):
         """test the damp sensor clear data"""
         econ = EconCorrectlyOn()
         data_window = td(minutes=1)
-        econ.set_class_values("test", data_window, 1, 20.0, 80.0, 6000.0, 10.0)
+        results = []
+        econ.set_class_values("test", results, data_window, 1, 20.0, 80.0, 6000.0, 10.0)
         econ.oat_values.append(50)
         econ.mat_values.append(25)
         econ.oat_values.append(100)
@@ -675,7 +707,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         """test the excess_outside_air set values method"""
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         assert air.data_window == td(minutes=1)
         assert air.no_required_data == 1
         assert air.analysis_name == "test"
@@ -692,7 +725,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         air.excess_ouside_air_algorithm(50.0, 25.0, 50.0, 25.0, 0.0, cur_time, 36)
         assert len(air.oat_values) == 1
         assert len(air.mat_values) == 1
@@ -708,7 +742,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         air.excess_ouside_air_algorithm(50.0, 25.0, 50.0, 25.0, 0.0, cur_time, 36)
         assert len(air.oat_values) == 0
         assert len(air.mat_values) == 0
@@ -722,7 +757,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         air.economizing = first_stamp
         air.timestamp.append(first_stamp)
@@ -744,7 +780,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(100000)
         air.economizing = first_stamp
         air.oat_values.append(50)
@@ -766,7 +803,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         ret = air.economizer_conditions(False, cur_time)
         assert ret is False
 
@@ -774,7 +812,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         """test the excess_oa_method"""
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         air.economizing = first_stamp
@@ -795,7 +834,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         with self.assertRaises(ZeroDivisionError):
             air = ExcessOutsideAir()
             data_window = td(minutes=1)
-            air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+            results = []
+            air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
             first_stamp = datetime.fromtimestamp(1)
             air.timestamp.append(first_stamp)
             air.economizing = first_stamp
@@ -815,7 +855,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         """test the excess outside air energy impact method"""
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         air.economizing = first_stamp
@@ -831,7 +872,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         """test the excess outside air energy impact method with zero value"""
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         air.economizing = first_stamp
@@ -847,7 +889,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         """test the excess outside air energy impact method with a negative value"""
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         air.economizing = first_stamp
@@ -863,7 +906,8 @@ class TestDiagnosticsExcessOutsideAir(unittest.TestCase):
         """test the excess outside air clear data"""
         air = ExcessOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 20.0, 10.0, 6000.0, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 20.0, 10.0, 6000.0, 10.0)
         air.oat_values.append(50)
         air.mat_values.append(25)
         air.oat_values.append(100)
@@ -896,7 +940,8 @@ class TestDiagnosticsInsufficientOutsideAir(unittest.TestCase):
         """test the Insufficient_outside_air set values method"""
         air = InsufficientOutsideAir()
         data_window = td(minutes=1)
-        air.set_class_values("test", data_window, 1, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 10.0)
         assert air.data_window == td(minutes=1)
         assert air.no_required_data == 1
         assert air.analysis_name == "test"
@@ -911,7 +956,8 @@ class TestDiagnosticsInsufficientOutsideAir(unittest.TestCase):
         air = InsufficientOutsideAir()
         data_window = td(minutes=1)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 10.0)
         air.insufficient_outside_air_algorithm(100.0, 50.0, 50.0, cur_time)
         assert len(air.oat_values) == 1
         assert len(air.mat_values) == 1
@@ -925,7 +971,8 @@ class TestDiagnosticsInsufficientOutsideAir(unittest.TestCase):
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 10.0)
         air.insufficient_outside_air_algorithm(100.0, 50.0, 50.0, cur_time)
         assert len(air.oat_values) == 0
         assert len(air.mat_values) == 0
@@ -939,7 +986,8 @@ class TestDiagnosticsInsufficientOutsideAir(unittest.TestCase):
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
         cur_time = datetime.fromtimestamp(10000)
-        air.set_class_values("test", data_window, 1, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 10.0)
         air.oat_values.append(50)
         air.mat_values.append(25)
         air.rat_values.append(100)
@@ -955,7 +1003,8 @@ class TestDiagnosticsInsufficientOutsideAir(unittest.TestCase):
         data_window = td(minutes=1)
         first_stamp = datetime.fromtimestamp(1)
         air.timestamp.append(first_stamp)
-        air.set_class_values("test", data_window, 1, 10.0)
+        results = []
+        air.set_class_values("test", results, data_window, 1, 10.0)
         air.oat_values.append(50)
         air.mat_values.append(25)
         air.rat_values.append(10)

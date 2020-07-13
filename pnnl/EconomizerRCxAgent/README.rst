@@ -13,35 +13,40 @@ re-tuning and problem identification which can lower the costs of RCx
 Featured Diagnostics
 --------------------
 
-1. Economizer Control AIRCx Main Diagnostic
+1. **Economizer Control AIRCx Main Diagnostic**
 
-   Main Diagnostic handles all configuration management, reporting,
-   and passing thresholds to the AHU diagnostics
+    Main Diagnostic handles all configuration management, reporting,
+    and passing thresholds to the AHU diagnostics
 
-2. Air Temperature Sensor Fault AIRCx
-   Checks for consistency between outdoor-air temperature and
-   mixed-air temperature when the outdoor air damper is fully open
+2. **Air Temperature Sensor Fault AIRCx**
 
-3. AHU is not Fully Economizing When It Should AIRCx
+    Checks for consistency between outdoor-air temperature and
+    mixed-air temperature when the outdoor air damper is fully open
+
+3. **AHU is not Fully Economizing When It Should AIRCx**
+
     Determines whether the economizer is ON and working properly
     when conditions are favorable for economizing.
 
-4. Economizing When It Should Not AIRCx
-   Determines whether the AHU is economizing when the outdoor
-   conditions are not favorable for economizing.  The AHU is
-   considered to be in the economizer mode when the outdoor-air
-   damper position and OAF exceed their minimum threshold values.
+4. **Economizing When It Should Not AIRCx**
 
-5. Excess Outdoor-air Intake AIRCx
-   Determines whether the AHU is introducing excess outdoor air
-   beyond the minimum ventilation requirements when the outdoor-air
-   damper should be at the minimum position.  Conditions are not
-   favorable for economizing, and there is no call for cooling the
-   zones served by the unit.
+    Determines whether the AHU is economizing when the outdoor
+    conditions are not favorable for economizing.  The AHU is
+    considered to be in the economizer mode when the outdoor-air
+    damper position and OAF exceed their minimum threshold values.
 
-6. Insufficient Outdoor-air Ventilation Intake AIRCx
-   Determines whether the AHU is providing sufficient outdoor air,
-   and therefore the minimum ventilation requirements are met
+5. **Excess Outdoor-air Intake AIRCx**
+
+    Determines whether the AHU is introducing excess outdoor air
+    beyond the minimum ventilation requirements when the outdoor-air
+    damper should be at the minimum position.  Conditions are not
+    favorable for economizing, and there is no call for cooling the
+    zones served by the unit.
+
+6. **Insufficient Outdoor-air Ventilation Intake AIRCx**
+
+    Determines whether the AHU is providing sufficient outdoor air,
+    and therefore the minimum ventilation requirements are met
 
 
 Running Agent

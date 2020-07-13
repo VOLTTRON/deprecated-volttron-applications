@@ -60,14 +60,14 @@ The agent is an installed Volttron agent. Sample command line for creating the a
 
 Sample Data
 -----------
-Sample data for running the Economizer is included in the economizer/sample0data directory
+Sample data for running the Economizer is included in the economizer/sampledata directory
 
 
 Python Testing
 --------------
-1. Start Volttron Platform - ./start-volttron from inside Volttron home
-2. Enable the Volttron Environment - source env/bin/activate
-3. From inside the economizer agent directory - pytest ./test.py
+1. **Start Volttron Platform** - ./start-volttron from inside Volttron home
+2. **Enable the Volttron Environment** - source env/bin/activate
+3. **Run Pytest From inside the economizer agent directory** - pytest ./test.py
 
 
 Configuration Options

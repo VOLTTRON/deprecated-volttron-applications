@@ -56,7 +56,7 @@ The agent is an installed Volttron agent. Sample command line for creating the a
 
 .. code-block:: python
 
-   python /path/to/voltron/install/agent/script -s /path/to/economizer/agent
+   python scripts/install-agent.py -s /path/to/economizer/agent
    -i economizer -c /path/to/economizer/confi --start --force
 
 

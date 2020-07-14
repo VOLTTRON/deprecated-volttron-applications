@@ -54,9 +54,10 @@ Running Agent
 
 The agent is an installed Volttron agent. Sample command line for creating the agent
 
-.. code-block:: python
+```
    python /path/to/voltron/install/agent/script -s /path/to/economizer/agent
    -i economizer -c /path/to/economizer/confi --start --force
+```
 
 Sample Data
 -----------

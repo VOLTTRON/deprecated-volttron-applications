@@ -1,5 +1,6 @@
 import sys
 import logging
+import dateutil.tz
 from datetime import timedelta as td
 from dateutil import parser
 from volttron.platform.agent import utils
@@ -93,6 +94,7 @@ class AirsideAgent(Agent):
         self.device_list = []
         self.master_devices = []
         self.needed_devices = []
+        self.missing_data = []
         self.units = []
         self.arguments = []
         self.point_mapping = []
@@ -268,12 +270,12 @@ class AirsideAgent(Agent):
         self.sat_stpt = self.get_point_mapping_or_none("sat_stpt")
         self.fan_status_name = self.get_point_mapping_or_none("fan_status")
         self.fan_sp_name = self.get_point_mapping_or_none("fan_speedcmd")
-        self.duct_stp_stpt_name = self.get_point_mapping_or_none("duct_stcpr_stpt")
-        self.duct_stp_name = self.get_point_mapping_or_none("duct_stcpr")
+        self.duct_stp_stpt_name = self.get_point_mapping_or_none("duct_stp_stpt")
+        self.duct_stp_name = self.get_point_mapping_or_none("duct_stp")
         self.sa_temp_name = self.get_point_mapping_or_none("sa_temp")
         self.sat_stpt_name = self.get_point_mapping_or_none("sat_stpt")
-        self.zn_damper_name = self.get_point_mapping_or_none("zn_damper")
-        self.zn_reheat_name = self.get_point_mapping_or_none("zn_reheat")
+        self.zn_damper_name = self.get_point_mapping_or_none("zone_damper")
+        self.zn_reheat_name = self.get_point_mapping_or_none("zone_reheat")
 
     def get_point_mapping_or_none(self, name):
         """ Get the item from the point mapping, or return None
@@ -449,28 +451,28 @@ class AirsideAgent(Agent):
             if value is None:
                 continue
             if key == self.fan_status_name:
-                self.fan_status_data.append(value)
+                self.fan_status_data = value
             elif key == self.duct_stp_stpt_name:
-                self.stcpr_stpt_data.append(value)
+                self.stcpr_stpt_data = value
             elif key == self.duct_stp_name:
-                self.stc_pr_data.append(value)
+                self.stc_pr_data = value
             elif key == self.sat_stpt_name:
-                self.sat_stpt_data.append(value)
+                self.sat_stpt_data = value
             elif key == self.sa_temp_name:
-                self.sat_data.append(value)
+                self.sat_data = value
             elif key == self.zn_reheat_name:
-                self.zn_rht_data.append(value)
+                self.zn_rht_data = value
             elif key == self.zn_damper_name:
-                self.zn_dmpr_data.append(value)
+                self.zn_dmpr_data = value
             elif key == self.fan_sp_name:
-                self.fan_sp_data.append(value)
+                self.fan_sp_data = value
 
 
     def check_for_missing_data(self):
         """Method that checks the parsed message results for any missing data
         return bool
         """
-        missing_data = []
+        self.missing_data = []
         if not self.fan_status_data and not self.fan_sp_data:
             self.missing_data.append(self.fan_status_name)
         if not self.sat_data:
@@ -570,15 +572,14 @@ class AirsideAgent(Agent):
         current_time = parser.parse(headers["Date"])
         missing_but_running = False
         if self.initialize_time is None and len(self.master_devices) > 1:
-            self.initialize_time = find_reinitialize_time(timestamp)
+            self.initialize_time = self.find_reinitialize_time(current_time)
 
-        if self.initialize_time is not None and timestamp < self.initialize_time:
+        if self.initialize_time is not None and current_time < self.initialize_time:
             if len(self.master_devices) > 1:
                 return
 
         to_zone = dateutil.tz.gettz(self.timezone)
         current_time = current_time.astimezone(to_zone)
-
         device_data = message[0]
         if isinstance(device_data, list):
             device_data = device_data[0]
@@ -592,23 +593,19 @@ class AirsideAgent(Agent):
                 device_needed = self.aggregate_subdevice(device_data, topic)
                 return
             missing_but_running = True
-            _log.warning("Device already present. Using available data for diagnostic.: {}".format(timestamp))
+            _log.warning("Device already present. Using available data for diagnostic.: {}".format(current_time))
             _log.warning("Device  already present - topic: {}".format(topic))
             _log.warning("All devices: {}".format(self.master_devices))
             _log.warning("Needed devices: {}".format(self.needed_devices))
 
-        if self._should_run_now() or missing_but_running:
+        if self.should_run_now() or missing_but_running:
             field_names = {}
             for point, data in self.device_values.items():
                 field_names[point] = data
-            if not converter.initialized and conversion_map is not None:
-                converter.setup_conversion_map(self.map_names, field_names)
-
-            device_data = converter.process_row(field_names)
-            self.run_diagnostics(timestamp, device_data)
+            self.run_diagnostics(current_time, field_names)
             self.initialize_devices()
             if missing_but_running:
-                device_needed = self.aggregate_subdevice(device_data, topic)
+                device_needed = self.aggregate_subdevice(field_names, topic)
         else:
             _log.info("Still need {} before running.".format(self.needed_devices))
 
@@ -617,7 +614,7 @@ class AirsideAgent(Agent):
     def aggregate_subdevice(self, device_data, topic):
         """"""
         tagged_device_data = {}
-        device_tag = device_topic_dict[topic]
+        device_tag = self.device_topic_dict[topic]
         _log.debug("Current device to aggregate: {}".format(device_tag))
         if device_tag not in self.needed_devices:
             return False
@@ -628,19 +625,30 @@ class AirsideAgent(Agent):
         self.needed_devices.remove(device_tag)
         return True
 
+    def should_run_now(self):
+        """
+        Checks if messages from all the devices are received
+            before running application
+        :returns: True or False based on received messages.
+        :rtype: boolean
+        """
+        # Assumes the unit/all values will have values.
+        if not self.device_values.keys():
+            return False
+        return not self.needed_devices
+
 
     def run_diagnostics(self, current_time, device_data):
         """Run diagnostics on the data that is available."""
         self.command_tuple = {}
         _log.info("Processing Results!")
         device_dict = {}
-
-        for key, value in points.items():
+        for key, value in device_data.items():
             point_device = [_name for _name in key.split("&")]
             if point_device[0] not in device_dict:
-                device_dict[point_device[0]] = [(point_device[1], value)]
+                device_dict[point_device[0]] = [value]
             else:
-                device_dict[point_device[0]].append((point_device[1], value))
+                device_dict[point_device[0]].append(value)
         self.parse_data_dict(device_dict)
         missing_data = self.check_for_missing_data()
         if missing_data:

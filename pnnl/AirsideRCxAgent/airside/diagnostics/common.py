@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -158,9 +158,9 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
             result = 2.2 + dx_offset
         _log.info(msg)
         diagnostic_msg.update({key: result})
-        dx_string = dx_name + DX + ": " + diagnostic_msg
-
-    return avg_set_point, dx_string
+        dx_string = dx_name + DX + ": "
+        dx_msg = str(diagnostic_msg)
+    return avg_set_point, dx_string, dx_msg
 
 
 def pre_conditions(message, dx_li, analysis, cur_time):
@@ -180,4 +180,9 @@ def pre_conditions(message, dx_li, analysis, cur_time):
 def table_log_format(name, timestamp, data):
     """ Return a formatted string for use in the log"""
     return str(str(name) + '&' + str(timestamp) + '->[' + str(data) + ']')
+
+def table_publish_format(name, timestamp, table, data):
+    """ Return a dictionary for use in the results publish"""
+    table_key = str(str(name) + '&' + str(timestamp))
+    return [table_key, [table, data]]
 

@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -79,21 +79,22 @@ class DuctStaticAIRCx(object):
         self.stcpr_stpt_array = []
         self.stcpr_array = []
         self.timestamp_array = []
+        self.results_publish = []
 
         # Initialize configurable thresholds
         self.analysis = ""
         self.stcpr_stpt_cname = ""
         self.no_req_data = 0
-        self.stpt_deviation_thr = 0
+        self.stpt_deviation_thr = {}
         self.max_stcpr_stpt = 0
         self.stcpr_retuning = 0
-        self.zn_high_dmpr_thr = 0
-        self.zn_low_dmpr_thr = 0
+        self.zn_high_dmpr_thr = {}
+        self.zn_low_dmpr_thr = {}
         self.data_window = 0
 
         self.auto_correct_flag = 0
         self.min_stcpr_stpt = 0
-        self.hdzn_dmpr_thr = 00
+        self.hdzn_dmpr_thr = {}
         self.ls_dmpr_low_avg = []
         self.ls_dmpr_high_avg = []
         self.hs_dmpr_high_avg = []
@@ -103,7 +104,7 @@ class DuctStaticAIRCx(object):
         self.dx_offset = 0.0
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
-                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname):
+                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname, results_publish):
         """Set the values needed for doing the diagnostic"""
 
         # Initialize configurable thresholds
@@ -117,6 +118,7 @@ class DuctStaticAIRCx(object):
         self.zn_high_dmpr_thr = zn_high_dmpr_thr
         self.zn_low_dmpr_thr = zn_low_dmpr_thr
         self.data_window = data_window
+        self.results_publish = results_publish
 
         self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)
@@ -232,6 +234,7 @@ class DuctStaticAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX1 + DX + ": " + str(diagnostic_msg))))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX1 + DX + ": ", str(diagnostic_msg)))
 
     def high_stcpr_aircx(self, avg_stcpr_stpt):
         """
@@ -280,3 +283,4 @@ class DuctStaticAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX2 + DX + ": " + str(diagnostic_msg))))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX2 + DX + ": ", str(diagnostic_msg)))

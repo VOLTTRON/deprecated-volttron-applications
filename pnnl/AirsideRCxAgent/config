@@ -36,7 +36,7 @@
         # "stpt_deviation_thr": 10.0,
 
         # Static Pressure AIRCx Thresholds
-        # "warm_up_time": 3,
+        # "warm_up_time": 5,
         # "duct_stcpr_retuning": 0.1,
         # "max_duct_stcpr_stpt": 2.5,
         # "high_sf_thr": 95.0,

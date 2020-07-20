@@ -1,10 +1,55 @@
+"""
+Copyright (c) 2020, Battelle Memorial Institute
+All rights reserved.
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies,
+either expressed or implied, of the FreeBSD Project.
+This material was prepared as an account of work sponsored by an agency of the
+United States Government. Neither the United States Government nor the United
+States Department of Energy, nor Battelle, nor any of their employees, nor any
+jurisdiction or organization that has cooperated in th.e development of these
+materials, makes any warranty, express or implied, or assumes any legal
+liability or responsibility for the accuracy, completeness, or usefulness or
+any information, apparatus, product, software, or process disclosed, or
+represents that its use would not infringe privately owned rights.
+Reference herein to any specific commercial product, process, or service by
+trade name, trademark, manufacturer, or otherwise does not necessarily
+constitute or imply its endorsement, recommendation, or favoring by the
+United States Government or any agency thereof, or Battelle Memorial Institute.
+The views and opinions of authors expressed herein do not necessarily state or
+reflect those of the United States Government or any agency thereof.
+PACIFIC NORTHWEST NATIONAL LABORATORY
+operated by
+BATTELLE
+for the
+UNITED STATES DEPARTMENT OF ENERGY
+under Contract DE-AC05-76RL01830
+"""
+
 import sys
 import logging
 import dateutil.tz
 from datetime import timedelta as td
 from dateutil import parser
 from volttron.platform.agent import utils
-from volttron.platform.messaging import topics
+from volttron.platform.messaging import (headers as headers_mod, topics)
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
@@ -36,6 +81,7 @@ class AirsideAgent(Agent):
         # list of class attributes.  Default values will be filled in from reading config file
         # string attributes
         self.analysis_name = ""
+        self.config = None
         self.sensitivity = ""
         self.fan_status = ""
         self.zone_reheat = ""
@@ -92,6 +138,7 @@ class AirsideAgent(Agent):
 
         #list attributes
         self.device_list = []
+        self.publish_list = []
         self.master_devices = []
         self.needed_devices = []
         self.missing_data = []
@@ -131,6 +178,7 @@ class AirsideAgent(Agent):
         self.device_topic_dict = {}
         self.conversion_map = {}
         self.map_names = {}
+        self.results_publish = []
 
         #bool attributes
         self.auto_correct_flag = None
@@ -140,6 +188,8 @@ class AirsideAgent(Agent):
         self.low_sf_condition = None
         self.high_sf_condition = None
         self.actuation_mode = None
+        self.update_config_flag = None
+        self.diagnostic_done_flag = True
 
         #diagnostics
         self.stcpr_aircx = None
@@ -149,7 +199,7 @@ class AirsideAgent(Agent):
 
         # start reading all the class configs and check them
         self.read_config(config_path)
-        self.read_argument_config(config_path)
+        self.read_argument_config()
         self.read_point_mapping()
         self.configuration_value_check()
         self.create_thresholds()
@@ -161,18 +211,29 @@ class AirsideAgent(Agent):
         Use volttrons config reader to grab and parse out configuration file
         config_path: The path to the agents configuration file
         """
-        config = utils.load_config(config_path)
-        self.analysis_name = config.get("analysis_name", "analysis_name")
-        self.actuation_mode = config.get("actuation_mode", "PASSIVE")
-        self.device_lock_duration = config.get("device_lock_duration", 10.0)
-        self.timezone = config.get("local_timezone", "US/Pacific")
-        self.interval = config.get("interval", 60)
-        self.missing_data_threshold = config.get("missing_data_threshold", 15.0) / 100.0
-        self.conversion_map = config.get("conversion_map", {})
+        file_config = utils.load_config(config_path)
+        default_config = self.setup_default_config()
+        if file_config:
+            self.config = file_config
+        else:
+            self.config = default_config
+
+        self.vip.config.set_default("config", self.config)
+        self.vip.config.subscribe(self.configure_main, actions=["NEW", "UPDATE"], pattern="config")
+
+    def setup_device_list(self):
+        """Setup the device subscriptions"""
+        self.analysis_name = self.config.get("analysis_name", "analysis_name")
+        self.actuation_mode = self.config.get("actuation_mode", "PASSIVE")
+        self.device_lock_duration = self.config.get("device_lock_duration", 10.0)
+        self.timezone = self.config.get("local_timezone", "US/Pacific")
+        self.interval = self.config.get("interval", 60)
+        self.missing_data_threshold = self.config.get("missing_data_threshold", 15.0) / 100.0
+        self.conversion_map = self.config.get("conversion_map", {})
         for key, value in self.conversion_map.items():
             self.map_names[key] = value
 
-        self.device = config.get("device", {})
+        self.device = self.config.get("device", {})
         if "campus" in self.device:
             self.campus = self.device["campus"]
         if "building" in self.device:
@@ -182,31 +243,160 @@ class AirsideAgent(Agent):
             self.units = self.device["unit"]
         for u in self.units:
             # building the connection string for each unit
-            device_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="", point="all")
+            device_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="",
+                                                point="all")
             self.device_list.append(device_topic)
+            self.publish_list.append("/".join([self.campus, self.building, u]))
             self.device_topic_dict.update({device_topic: u})
             self.master_devices.append(u)
             # loop over subdevices and add them
             if "subdevices" in self.units[u]:
                 for sd in self.units[u]["subdevices"]:
-                    subdevice_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all")
+                    subdevice_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd,
+                                                           point="all")
                     self.device_list.append(subdevice_topic)
                     sd_string = u + "/" + sd
                     self.master_devices.append(sd_string)
                     self.device_topic_dict.update({subdevice_topic: sd_string})
+                    self.publish_list.append("/".join([self.campus, self.building, u, sd]))
         self.initialize_devices()
+
+    def configure_main(self, config_name, action, contents):
+        """This triggers configuration via the VOLTTRON configuration store.
+        :param config_name: canonical name is config
+        :param action: on instantiation this is "NEW" or
+        "UPDATE" if user uploads update config to store
+        :param contents: configuration contents
+        :return: None
+        """
+        _log.info("Update %s for %s", config_name, self.core.identity)
+        self.config.update(contents)
+        if action == "NEW" or "UPDATE":
+            self.update_config_flag = True
+            if self.diagnostic_done_flag:
+                self.update_configuration()
+            elif self.diagnostic_done_flag == False:
+                _log.info("Waiting for Diagnostics to finish before updating configuration!")
+
+    def update_configuration(self):
+        """Update configurations for agent"""
+        self.device_unsubscribe()
+        self.device_list = []
+        self.publish_list = []
+        self.master_devices = []
+        self.needed_devices = []
+        self.setup_device_list()
+        self.read_argument_config()
+        self.read_point_mapping()
+        self.configuration_value_check()
+        self.create_thresholds()
+        self.create_diagnostics()
+        self.update_config_flag = False
+        self.onstart_subscriptions(None)
+
+    def setup_default_config(self):
+        """Setup a default configuration object"""
+        default_config = {
+            "agentid": "airside_aircx",
+            "application": "airside_aircx.Application",
+
+            "device": {
+                "campus": "campus",
+                "building": "building",
+                "unit": {
+
+                    "AHU3": {
+                        "subdevices": [
+                            "VAV107", "VAV104",
+                            "VAV116", "VAV105"
+                        ]
+                    }
+                }
+            },
+            "analysis_name": "AirsideAIRCx",
+            "mode": "PASSIVE",
+            "arguments": {
+                "point_mapping": {
+                    "fan_status": "supplyfanstatus",
+                    "zone_reheat": "heatingsignal",
+                    "zone_damper": "damperposition",
+                    "duct_stp": "ductstaticpressure",
+                    "duct_stp_stpt": "ductstaticpressuresetpoint",
+                    "sa_temp": "dischargeairtemperature",
+                    "fan_speedcmd": "supplyfanspeed",
+                    "sat_stpt": "dischargeairtemperaturesetpoint"
+                }
+                # Uncomment to customize thresholds
+
+                # "no_required_data": 10,
+                # "sensitivity": custom
+                # "autocorrect_flag": false,
+                # "stpt_deviation_thr": 10.0,
+
+                # Static Pressure AIRCx Thresholds
+                # "warm_up_time": 5,
+                # "duct_stcpr_retuning": 0.1,
+                # "max_duct_stcpr_stpt": 2.5,
+                # "high_sf_thr": 95.0,
+                # "low_sf_thr": 20.0,
+                # "zn_high_damper_thr": 90.0,
+                # "zn_low_damper_thr": 10.0,
+                # "min_duct_stcpr_stpt": 0.5,
+                # "hdzn_damper_thr": 30.0,
+
+                # SAT AIRCx Thresholds
+                # "percent_reheat_thr": 25.0,
+                # "rht_on_thr": 10.0,
+                # "sat_high_damper_thr": 80.0,
+                # "percent_damper_thr": 60.0,
+                # "minimum_sat_stpt": 50.0,
+                # "sat_retuning": 1.0,
+                # "reheat_valve_thr": 50.0,
+                # "maximum_sat_stpt": 75.0,
+
+                # Schedule/Reset AIRCx Thresholds
+                # "unocc_time_thr": 40.0,
+                # "unocc_stp_thr": 0.2,
+                # "monday_sch": ["5:30","18:30"],
+                # "tuesday_sch": ["5:30","18:30"],
+                # "wednesday_sch": ["5:30","18:30"],
+                # "thursday_sch": ["5:30","18:30"],
+                # "friday_sch": ["5:30","18:30"],
+                # "saturday_sch": ["0:00","0:00"],
+                # "sunday_sch": ["0:00","0:00"],
+
+                # "sat_reset_thr": 5.0,
+                # "stcpr_reset_thr": 0.25
+            },
+            "conversion_map": {
+                ".*Temperature": "float",
+                ".*SetPoint": "float",
+                "OutdoorDamperSignal": "float",
+                ".*Status": "int",
+                "CoolingCall": "float",
+                ".*Speed": "float",
+                "Damper*.": "float",
+                "Heating*.": "float",
+                "DuctStatic*.": "float"
+
+            }
+        }
+        return default_config
+
+    def device_unsubscribe(self):
+        """Method used to unsubscribe devices"""
+        self.vip.pubsub.unsubscribe("pubsub", None, None)
 
     def initialize_devices(self):
         """Set which devices are needed and blank out the values"""
         self.needed_devices = self.master_devices[:]
         self.device_values = {}
 
-    def read_argument_config(self, config_path):
+    def read_argument_config(self):
         """read all the config arguments section
         no return
         """
-        config = utils.load_config(config_path)
-        self.arguments = config.get("arguments", {})
+        self.arguments = self.config.get("arguments", {})
 
         self.no_required_data = self.read_argument("no_required_data", 10)
         self.warm_up_time = self.read_argument("warm_up_time", 15)
@@ -418,20 +608,20 @@ class AirsideAgent(Agent):
         """
         self.stcpr_aircx = DuctStaticAIRCx()
         self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
-                                          self.stcpr_stpt_deviation_thr, self.max_stcpr_stpt,self.stcpr_retuning, self.zn_high_damper_thr,
-                                          self.zn_low_damper_thr, self.hdzn_damper_thr, self.min_stcpr_stpt, self.analysis_name, self.duct_stp_stpt_name)
+                                          self.stcpr_stpt_deviation_thr_dict, self.max_stcpr_stpt, self.stcpr_retuning, self.zn_high_damper_thr_dict,
+                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.analysis_name, self.duct_stp_stpt_name, self.results_publish)
 
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
-                                        self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
+                                        self.sat_high_damper_thr, self.percent_damper_thr_dict,
                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
-                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name)
+                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name, self.results_publish)
 
         self.sched_reset_aircx = SchedResetAIRCx()
-        self.sched_reset_aircx.set_class_values(self.unocc_time_thr, self.unocc_stp_thr, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
+        self.sched_reset_aircx.set_class_values(self.unocc_time_thr_dict, self.unocc_stp_thr_dict, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
                                                 self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
-                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name)
+                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name, self.results_publish)
     def parse_data_dict(self, data):
         """Breaks down the passed VOLTTRON message
         data: dictionary
@@ -612,7 +802,7 @@ class AirsideAgent(Agent):
 
 
     def aggregate_subdevice(self, device_data, topic):
-        """"""
+        """Get device data organized and remove the device from the needed list of data elements"""
         tagged_device_data = {}
         device_tag = self.device_topic_dict[topic]
         _log.debug("Current device to aggregate: {}".format(device_tag))
@@ -653,7 +843,7 @@ class AirsideAgent(Agent):
         missing_data = self.check_for_missing_data()
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
-            return self.check_result_command()
+            return self.check_results()
 
         current_fan_status = self.check_fan_status(current_time)
         self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data,
@@ -662,7 +852,7 @@ class AirsideAgent(Agent):
         if not current_fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
             self.warm_up_flag = True
-            return self.check_result_command()
+            return self.check_results()
         _log.info("Supply fan is on: {}".format(current_time))
 
         if self.fan_speed is not None and self.fan_speed > self.high_sf_thr:
@@ -678,17 +868,17 @@ class AirsideAgent(Agent):
         if self.warm_up_flag:
             self.warm_up_flag = False
             self.warm_up_start = current_time
-            return self.check_result_command()
+            return self.check_results()
 
         if self.warm_up_start is not None and (current_time - self.warm_up_start) < self.warm_up_time:
             _log.info("Unit is in warm-up. Data will not be analyzed.")
-            return self.check_result_command()
+            return self.check_results()
 
-        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data,
-                                     self.low_sf_cond, self.high_sf_cond)
+        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_condition, self.high_sf_condition)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
 
     def find_reinitialize_time(self, current_time):
+        """determine when next data scrape should be"""
         midnight = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
         seconds_from_midnight = (current_time - midnight).total_seconds()
         offset = seconds_from_midnight % self.interval
@@ -697,6 +887,34 @@ class AirsideAgent(Agent):
         from_midnight = td(seconds=next_in_seconds)
         _log.debug("Start of next scrape interval: {}".format(midnight + from_midnight))
         return midnight + from_midnight
+
+    def check_results(self):
+        """Check the results of the diagnostics for publishing, commands, and loading new config"""
+        self.publish_analysis_results()
+        self.check_result_command()
+        self.check_for_config_update_after_diagnostics()
+
+    def publish_analysis_results(self):
+        """Publish the diagnostic results"""
+        if (len(self.results_publish)) <= 0:
+            return
+        publish_base = "/".join([self.analysis_name])
+        for app, analysis_table in self.results_publish:
+            to_publish = {}
+            name_timestamp = app.split("&")
+            timestamp = name_timestamp[1]
+            point = analysis_table[0]
+            result = analysis_table[1]
+            headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
+            for device in self.publish_list:
+                publish_topic = "/".join([publish_base, device, point])
+                analysis_topic = topics.RECORD(subtopic=publish_topic)
+                to_publish[analysis_topic] = result
+
+            for result_topic, result in to_publish.items():
+                self.vip.pubsub.publish("pubsub", result_topic, headers, result)
+            to_publish.clear()
+        self.results_publish.clear()
 
     def check_result_command(self):
         """Check to see if any commands need to be ran based on diagnostic results"""
@@ -711,6 +929,13 @@ class AirsideAgent(Agent):
                 except RemoteError as ex:
                     _log.warning("Failed to set {} to {}: {}".format(point_path, new_value, str(ex)))
                     continue
+
+    def check_for_config_update_after_diagnostics(self):
+        """Check to see if the configuration needs to be update"""
+        self.diagnostic_done_flag = True
+        if self.update_config_flag:
+            _log.info("finishing config update check")
+            self.update_configuration()
 
 def main(argv=sys.argv):
     """Main method called by the app."""

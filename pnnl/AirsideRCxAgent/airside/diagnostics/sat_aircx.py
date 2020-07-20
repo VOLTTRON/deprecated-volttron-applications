@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -103,13 +103,14 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = ""
         self.percent_rht_thr = ""
         self.data_window = ""
+        self.results_publish = []
 
         # Low SAT RCx thresholds
         self.rht_valve_thr = ""
         self.max_sat_stpt = ""
 
         # High SAT RCx thresholds
-        self.high_dmpr_thr = ""
+        self.high_dmpr_thr = 0.0
         self.percent_dmpr_thr = ""
         self.min_sat_stpt = ""
         self.sat_retuning = ""
@@ -117,7 +118,7 @@ class SupplyTempAIRCx(object):
 
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
-                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname):
+                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, results_publish):
         """Set the values needed for doing the diagnostics"""
 
         self.analysis = analysis
@@ -129,6 +130,7 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
         self.data_window = data_window
+        self.results_publish = results_publish
 
         # Low SAT RCx thresholds
         self.rht_valve_thr = rht_valve_thr
@@ -190,9 +192,10 @@ class SupplyTempAIRCx(object):
             self.reinitialize()
 
         if run_status:
-            avg_sat_stpt, dx_string = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX, self.dx_offset)
+            avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX, self.dx_offset)
 
-            _log.info(common.table_log_format(self.analysis, current_time, dx_string))
+            _log.info(common.table_log_format(self.analysis, current_time, dx_string + dx_msg))
+            self.results_publish.append(common.table_publish_format(self.analysis, current_time, dx_string, dx_msg))
             self.low_sat(avg_sat_stpt)
             self.high_sat(avg_sat_stpt)
             self.reinitialize()
@@ -248,6 +251,7 @@ class SupplyTempAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX1 + DX + ": " + str(diagnostic_msg))))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX1 + DX + ": ", str(diagnostic_msg)))
 
 
     def high_sat(self, avg_sat_stpt):
@@ -298,3 +302,5 @@ class SupplyTempAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX2 + DX + ": " + str(diagnostic_msg))))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX2 + DX + ": ", str(diagnostic_msg)))
+

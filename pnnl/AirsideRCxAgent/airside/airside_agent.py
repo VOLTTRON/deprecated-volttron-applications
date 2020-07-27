@@ -723,11 +723,11 @@ class AirsideAgent(Agent):
             elapsed_time = td(minutes=0)
         if self.data_window is not None:
             if elapsed_time >= self.data_window:
-                common.pre_conditions(message, common.dx_list, self.analysis_name, current_time)
+                common.pre_conditions(self.results_publish, message, common.dx_list, self.analysis_name, current_time)
                 self.clear_all()
         elif condition is not None and condition.hour != current_time.hour:
             message_time = condition.replace(minute=0)
-            common.pre_conditions(message, common.dx_list, self.analysis_name, message_time)
+            common.pre_conditions(self.results_publish, message, common.dx_list, self.analysis_name, message_time)
             self.clear_all()
 
     def clear_all(self):

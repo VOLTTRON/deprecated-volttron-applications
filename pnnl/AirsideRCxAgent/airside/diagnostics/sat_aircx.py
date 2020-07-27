@@ -181,14 +181,14 @@ class SupplyTempAIRCx(object):
         count_damper = len(zone_dmpr_data)
 
         if common.check_date(current_time, self.timestamp_array):
-            common.pre_conditions(INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.results_publish, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.results_publish, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         if run_status:

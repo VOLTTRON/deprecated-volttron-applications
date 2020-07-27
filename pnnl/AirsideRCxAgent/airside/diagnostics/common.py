@@ -163,7 +163,7 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
     return avg_set_point, dx_string, dx_msg
 
 
-def pre_conditions(message, dx_li, analysis, cur_time):
+def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
     """
     Check for persistence of failure to meet pre-conditions for diagnostics.
     :param message:
@@ -175,6 +175,7 @@ def pre_conditions(message, dx_li, analysis, cur_time):
     dx_msg = {'low': message, 'normal': message, 'high': message}
     for diagnostic in dx_li:
         _log.info(table_log_format(analysis, cur_time, (diagnostic + DX + ':' + str(dx_msg))))
+        results_pub.append(table_publish_format(analysis, cur_time, (diagnostic + DX + ':'), str(dx_msg)))
 
 
 def table_log_format(name, timestamp, data):

@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,9 +49,17 @@ for the
 UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
-from .common import check_date, create_table_key, pre_conditions, check_run_status, setpoint_control_check
-from collections import defaultdict
+import logging
 from volttron.platform.agent.math_utils import mean
+from volttron.platform.agent.utils import setup_logging
+from . import common
+
+
+setup_logging()
+_log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
+                    datefmt='%m-%d-%y %H:%M:%S')
+
 
 INCONSISTENT_DATE = -89.2
 INSUFFICIENT_DATA = -79.2
@@ -76,10 +84,7 @@ class SupplyTempAIRCx(object):
         rht_arr (List[float]): terminal box reheat command for analysis period.
 
     """
-    def __init__(self, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr,
-                 rht_on_thr, high_dmpr_thr, percent_dmpr_thr, percent_rht_thr,
-                 min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt,
-                 analysis, sat_stpt_cname):
+    def __init__(self):
         self.timestamp_array = []
         self.sat_stpt_array = []
         self.sat_array = []
@@ -87,9 +92,37 @@ class SupplyTempAIRCx(object):
         self.percent_rht = []
         self.percent_dmpr = []
         self.table_key = None
+        self.command_tuple = {}
 
         # Common RCx parameters
+        self.analysis = ""
+        self.sat_stpt_cname = ""
+        self.no_req_data = 0
+        self.auto_correct_flag = False
+        self.stpt_deviation_thr = ""
+        self.rht_on_thr = ""
+        self.percent_rht_thr = ""
+        self.data_window = ""
+        self.results_publish = []
+
+        # Low SAT RCx thresholds
+        self.rht_valve_thr = ""
+        self.max_sat_stpt = ""
+
+        # High SAT RCx thresholds
+        self.high_dmpr_thr = 0.0
+        self.percent_dmpr_thr = ""
+        self.min_sat_stpt = ""
+        self.sat_retuning = ""
+        self.dx_offset = 30.0
+
+
+    def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
+                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, results_publish):
+        """Set the values needed for doing the diagnostics"""
+
         self.analysis = analysis
+        self.command_tuple = command_tuple
         self.sat_stpt_cname = sat_stpt_cname
         self.no_req_data = no_req_data
         self.auto_correct_flag = bool(auto_correct_flag)
@@ -97,6 +130,7 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
         self.data_window = data_window
+        self.results_publish = results_publish
 
         # Low SAT RCx thresholds
         self.rht_valve_thr = rht_valve_thr
@@ -107,7 +141,7 @@ class SupplyTempAIRCx(object):
         self.percent_dmpr_thr = percent_dmpr_thr
         self.min_sat_stpt = min_sat_stpt
         self.sat_retuning = sat_retuning
-        self.dx_offset = 30.0
+
 
     def reinitialize(self):
         """
@@ -123,7 +157,7 @@ class SupplyTempAIRCx(object):
         self.percent_dmpr = []
 
     def sat_aircx(self, current_time, sat_data, sat_stpt_data,
-                  zone_rht_data, zone_dmpr_data, dx_result):
+                  zone_rht_data, zone_dmpr_data):
         """Manages supply-air diagnostic data sets.
 
         Args:
@@ -136,10 +170,8 @@ class SupplyTempAIRCx(object):
                 served by AHU.
             zone_dmpr_data (List[floats]): damper command for terminal boxes
                 served by AHU.
-            dx_result (Object): Object for interacting with platform and devices.
 
         Returns:
-            Results object (dx_result) to Application.
             Status of diagnostic (dx_status)
 
         """
@@ -148,28 +180,24 @@ class SupplyTempAIRCx(object):
         tot_dmpr = sum(1 if val > self.high_dmpr_thr else 0 for val in zone_dmpr_data)
         count_damper = len(zone_dmpr_data)
 
-        if check_date(current_time, self.timestamp_array):
-            dx_result = pre_conditions(INCONSISTENT_DATE, DX_LIST, self.analysis, current_time, dx_result)
+        if common.check_date(current_time, self.timestamp_array):
+            common.pre_conditions(self.results_publish, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
-        run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
+        run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
         if run_status is None:
-            dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            dx_result = pre_conditions(INSUFFICIENT_DATA, DX_LIST,self.analysis, current_time, dx_result)
+            _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
+            common.pre_conditions(self.results_publish, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         if run_status:
-            self.table_key = create_table_key(self.analysis, self.timestamp_array[-1])
-            avg_sat_stpt, dx_table, dx_result = setpoint_control_check(self.sat_stpt_array,
-                                                                       self.sat_array,
-                                                                       self.stpt_deviation_thr,
-                                                                       SA_TEMP_RCX,
-                                                                       self.dx_offset,
-                                                                       dx_result)
-            dx_result.insert_table_row(self.table_key, dx_table)
-            dx_result = self.low_sat(dx_result, avg_sat_stpt)
-            dx_result = self.high_sat(dx_result, avg_sat_stpt)
+            avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX, self.dx_offset)
+
+            _log.info(common.table_log_format(self.analysis, current_time, dx_string + dx_msg))
+            self.results_publish.append(common.table_publish_format(self.analysis, current_time, dx_string, dx_msg))
+            self.low_sat(avg_sat_stpt)
+            self.high_sat(avg_sat_stpt)
             self.reinitialize()
 
         self.sat_array.append(mean(sat_data))
@@ -179,13 +207,11 @@ class SupplyTempAIRCx(object):
         self.percent_rht.append(tot_rht / count_rht)
         self.percent_dmpr.append(tot_dmpr / count_damper)
         self.timestamp_array.append(current_time)
-        return dx_result
 
-    def low_sat(self, dx_result, avg_sat_stpt):
+    def low_sat(self, avg_sat_stpt):
         """
         Diagnostic to identify and correct low supply-air temperature
         (correction by modifying SAT set point).
-        :param dx_result:
         :param avg_sat_stpt:
         :return:
         """
@@ -205,16 +231,15 @@ class SupplyTempAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_sat_stpt = avg_sat_stpt + self.sat_retuning
                     if aircx_sat_stpt <= self.max_sat_stpt:
-                        dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
+                        self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too low. SAT set point increased to: {}F".format(key, sat_stpt)
                         result = 41.1
                     else:
-                        dx_result.command(self.sat_stpt_cname, self.max_sat_stpt)
+                        self.command_tuple.append([self.sat_stpt_cname, self.max_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % self.max_sat_stpt)
                         sat_stpt = str(sat_stpt)
-                        msg = "{} - SAT too low. Auto-correcting to max SAT set point {}F".format(key,
-                                                                                                  sat_stpt)
+                        msg = "{} - SAT too low. Auto-correcting to max SAT set point {}F".format(key, sat_stpt)
                         result = 42.1
                 else:
                     msg = "{} - SAT detected to be too low but auto-correction is not enabled.".format(key)
@@ -223,16 +248,16 @@ class SupplyTempAIRCx(object):
                 msg = "{} - No retuning opportunities detected for Low SAT diagnostic.".format(key)
                 result = 40.0
             diagnostic_msg.update({key: result})
-            dx_result.log(msg)
+            _log.info(msg)
 
-        dx_result.insert_table_row(self.table_key, {SA_TEMP_RCX1 + DX: diagnostic_msg})
-        return dx_result
+        _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX1 + DX + ": " + str(diagnostic_msg))))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX1 + DX + ": ", str(diagnostic_msg)))
 
-    def high_sat(self, dx_result, avg_sat_stpt):
+
+    def high_sat(self, avg_sat_stpt):
         """
         Diagnostic to identify and correct high supply-air temperature
         (correction by modifying SAT set point).
-        :param dx_result:
         :param avg_sat_stpt:
         :return:
         """
@@ -254,17 +279,16 @@ class SupplyTempAIRCx(object):
                     # Create diagnostic message for fault condition
                     # with auto-correction
                     if aircx_sat_stpt >= self.min_sat_stpt:
-                        dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
+                        #dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too high. SAT set point decreased to: {}F".format(key, sat_stpt)
                         result = 51.1
                     else:
                         # Create diagnostic message for fault condition
                         # where the maximum SAT has been reached
-                        dx_result.command(self.sat_stpt_cname, self.min_sat_stpt)
+                        #dx_result.command(self.sat_stpt_cname, self.min_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % self.min_sat_stpt)
-                        msg = "{} - SAT too high. Auto-correcting to min SAT set point {}F".format(key,
-                                                                                                     sat_stpt)
+                        msg = "{} - SAT too high. Auto-correcting to min SAT set point {}F".format(key, sat_stpt)
                         result = 52.1
                 else:
                     # Create diagnostic message for fault condition
@@ -275,7 +299,8 @@ class SupplyTempAIRCx(object):
                 msg = "{} - No problem detected for High SAT diagnostic.".format(key)
                 result = 50.0
             diagnostic_msg.update({key: result})
-            dx_result.log(msg)
+            _log.info(msg)
 
-        dx_result.insert_table_row(self.table_key, {SA_TEMP_RCX2 + DX: diagnostic_msg})
-        return dx_result
+        _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX2 + DX + ": " + str(diagnostic_msg))))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX2 + DX + ": ", str(diagnostic_msg)))
+

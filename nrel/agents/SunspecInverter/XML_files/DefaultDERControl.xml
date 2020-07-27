@@ -1,0 +1,8 @@
+<DefaultDERControl href="/sep2/A1/derp/1/dderc" xmlns="urn:ieee:std:2030.5:ns">
+    <mRID>E0000001</mRID>
+    <description>Default DERC</description>
+    <DERControlBase>
+        <opModMaxLimW>10000</opModMaxLimW>
+        <setGradW>0</setGradW>
+    </DERControlBase>
+</DefaultDERControl>

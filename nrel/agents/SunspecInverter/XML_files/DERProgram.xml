@@ -1,0 +1,9 @@
+<DERProgram href="/sep2/A1/derp/1">
+    <mRID>B01000000</mRID>
+    <description>SYS-A1</description>
+    <ActiveDERControlListLink href="/sep2/A1/derp/1/actderc" all="0"/>
+    <DefaultDERControlLink href="/sep2/A1/derp/1/dderc"/>
+    <DERControlListLink href="/sep2/A1/derp/1/derc" all="0"/>
+    <DERCurveListLink href="/sep2/A1/derp/1/dc" all="0"/>
+    <primacy>89</primacy>
+</DERProgram>

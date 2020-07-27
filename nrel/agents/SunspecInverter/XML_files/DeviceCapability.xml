@@ -1,0 +1,7 @@
+<DeviceCapability href="/sep2/dcap" xmlns="urn:ieee:std:2030.5:ns">
+    <ResponseSetListLink href="/sep2/rsps" all="0"/>
+    <UsagePointListLink href="/sep2/upt" all="0"/>
+    <TimeLink href="/sep2/tm"/>
+    <EndDeviceListLink href="/sep2/edev" all="1"/>
+    <MirrorUsagePointListLink href="/sep2/mup" all="0"/>
+</DeviceCapability>

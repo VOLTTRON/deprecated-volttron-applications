@@ -1,7 +1,6 @@
 {
     "agentid": "airside_aircx",
     "application": "airside_aircx.Application",
-
     "device": {
         "campus": "campus",
         "building": "building",
@@ -9,8 +8,10 @@
 
             "AHU3": {
                 "subdevices": [
+
                     "VAV107", "VAV104",
                     "VAV116", "VAV105"
+
                 ]
             }
         }
@@ -22,11 +23,12 @@
             "fan_status": "supplyfanstatus",
             "zone_reheat": "heatingsignal",
             "zone_damper": "damperposition",
-            "duct_stp": "ductstaticpressure",
-            "duct_stp_stpt": "ductstaticpressuresetpoint",
+            "duct_stcpr": "ductstaticpressure",
+            "duct_stcpr_stpt": "ductstaticpressuresetpoint",
             "sa_temp": "dischargeairtemperature",
             "fan_speedcmd": "supplyfanspeed",
             "sat_stpt": "dischargeairtemperaturesetpoint"
+
         }
         # Uncomment to customize thresholds
 
@@ -69,6 +71,7 @@
 
         # "sat_reset_thr": 5.0,
         # "stcpr_reset_thr": 0.25
+
     },
     "conversion_map": {
         ".*Temperature": "float",
@@ -80,6 +83,5 @@
         "Damper*.": "float",
         "Heating*.": "float",
         "DuctStatic*.": "float"
-
     }
 }

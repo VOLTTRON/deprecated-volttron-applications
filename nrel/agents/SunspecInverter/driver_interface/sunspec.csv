@@ -1,0 +1,34 @@
+Voltttron Point Name,Control Type,Units,Writable,Default Value,Notes
+setGradW,DER_Control,% WMax/sec,TRUE,None,Set controls
+opModEnergize,DER_Control,enum,TRUE,None,Values: True/False
+opModFixedPF,DER_Control,cos(),TRUE,None,Set controls
+opModMaxLimW,DER_Control,W,TRUE,None,Set controls
+opModFixedW,DER_Control,W,TRUE,None,Set controls
+statWAvail,DER_Availability,var,FALSE,None,Get Controls
+statVArAvail,DER_Availability,var,FALSE,None,Get Controls
+setMinPFUnderExcited,DER_Settings,cos(),FALSE,None,Get Controls
+setMaxW,DER_Settings,W,FALSE,None,Get Controls
+setMinPFOverExcited,DER_Settings,cos(),FALSE,None,Get Controls
+setMaxVarNeg,DER_Settings,% WMax/sec,FALSE,None,Get Controls
+setMaxVar,DER_Settings,var,FALSE,None,Get Controls
+setMaxVA,DER_Settings,VA,FALSE,None,Get Controls
+setMaxChargeRateW,DER_Settings,% WChaMax/sec,FALSE,None,Get Controls
+setMaxDischargeRateW,DER_Settings,% WChaMax/sec,FALSE,None,Get Controls
+genConnectStatus,DER_Status,N/A,FALSE,None,Get Controls
+inverterStatus,DER_Status,N/A,FALSE,None,Get Controls
+stateOfChargeStatus,DER_Status,% AhrRtg,FALSE,None,Get Controls
+readingTime,DER_Status,Secs,FALSE,None,Get Controls
+alarmStatus,DER_Status,N/A,FALSE,None,Get Controls
+modesSupported,DER_Capability,N/A,FALSE,None,Get Controls
+rtgAh,DER_Capability,AH,FALSE,None,Get Controls
+rtgA,DER_Capability,A,FALSE,None,Get Controls
+rtgMaxChargeRate,DER_Capability,W,FALSE,None,Get Controls
+rtgMaxDischargeRate,DER_Capability,W,FALSE,None,Get Controls
+rtgMinPF,DER_Capability,cos(),FALSE,None,Get Controls
+rtgMinPFNeg,DER_Capability,cos(),FALSE,None,Get Controls
+rtgVA,DER_Capability,VA,FALSE,None,Get Controls
+rtgVAr,DER_Capability,var,FALSE,None,Get Controls
+rtgVArNeg,DER_Capability,var,FALSE,None,Get Controls
+rtgW,DER_Capability,W,FALSE,None,Get Controls
+rtgWh,DER_Capability,Wh,FALSE,None,Get Controls
+type,DER_Capability,N/A,FALSE,None,Get Controls

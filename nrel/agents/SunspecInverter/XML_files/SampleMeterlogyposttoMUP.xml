@@ -1,0 +1,15 @@
+<MirrorMeterReading xmlns="urn:ieee:std:2030.5:ns">
+    <mRID>5509D69F8B3535950001000000009182</mRID>
+    <description>Real Power(W) Set</description>
+    <MirrorReadingSet>
+        <mRID>5509D69F8B3535950001100000009182</mRID>
+        <timePeriod>
+            <duration>86400</duration>
+            <start>1514880000</start>
+        </timePeriod>
+        <Reading> <value>1</value> </Reading>
+        <Reading> <value>2</value> </Reading>
+        <Reading> <value>3</value> </Reading>
+        <Reading> <value>288</value> </Reading>
+    </MirrorReadingSet>
+</MirrorMeterReading>

@@ -286,7 +286,7 @@ class EconomizerAgent(Agent):
         self.open_damper_time = td(minutes=self.read_argument("open_damper_time", 5))
         self.device_type = self.read_argument("device_type", "rtu").lower()
         self.economizer_type = self.read_argument("economizer_type", "DDB").lower()
-        self.sensitivity = self.read_argument("sensitivity", ['low', 'normal', 'high'])
+        self.sensitivity = self.read_argument("sensitivity", ["low", "normal", "high"])
         self.point_mapping = self.read_argument("point_mapping", {})
 
     def setup_default_config(self):
@@ -320,7 +320,7 @@ class EconomizerAgent(Agent):
                 "no_required_data": 15,
                 "open_damper_time": 5,
                 "econ_hl_temp": 65.0,
-                "sensitivity": ['low', 'normal', 'high'],
+                "sensitivity": ["low", "normal", "high"],
                 "constant_volume": False,
                 "low_supply_fan_threshold": 15.0,
                 "mat_low_threshold": 50.0,
@@ -423,11 +423,11 @@ class EconomizerAgent(Agent):
             self.econ_hl_temp = None
         self.temp_band = max(0.5, min(self.temp_band, 10.0))
         if self.device_type not in ("ahu", "rtu"):
-            _log.error('device_type must be specified as "AHU" or "RTU" in configuration file.')
+            _log.error("device_type must be specified as "AHU" or "RTU" in configuration file.")
             sys.exit()
 
         if self.economizer_type.lower() not in ("ddb", "hl"):
-            _log.error('economizer_type must be specified as "DDB" or "HL" in configuration file.')
+            _log.error("economizer_type must be specified as "DDB" or "HL" in configuration file.")
             sys.exit()
 
         if self.fan_sp_name is None and self.fan_status_name is None:
@@ -592,7 +592,7 @@ class EconomizerAgent(Agent):
             dx_msg[sensitivity] = message
 
         for diagnostic in constants.DX_LIST:
-            _log.info(constants.table_log_format(self.analysis_name, cur_time, (diagnostic + constants.DX + ':' + str(dx_msg))))
+            _log.info(constants.table_log_format(self.analysis_name, cur_time, (diagnostic + constants.DX + ":" + str(dx_msg))))
             self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (diagnostic + constants.DX), str(dx_msg)))
 
     def sensor_limit_check(self, current_time):

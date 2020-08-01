@@ -50,8 +50,8 @@ from .. import constants
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
-                    datefmt='%m-%d-%y %H:%M:%S')
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 class EconCorrectlyOff(object):
     """
@@ -68,7 +68,7 @@ class EconCorrectlyOff(object):
         self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
-        self.analysis_name = ''
+        self.analysis_name = ""
 
         # Initialize not_cooling and not_economizing flags
         self.economizing = None
@@ -111,9 +111,9 @@ class EconCorrectlyOff(object):
         self.no_required_data = no_required_data
         self.min_damper_sp = minimum_damper_setpoint
         self.excess_damper_threshold = {
-            'low': minimum_damper_setpoint*2.0,
-            'normal': minimum_damper_setpoint,
-            'high':  minimum_damper_setpoint*0.5
+            "low": minimum_damper_setpoint*2.0,
+            "normal": minimum_damper_setpoint,
+            "high":  minimum_damper_setpoint*0.5
         }
         self.economizing_dict = {key: 25.0 for key in self.excess_damper_threshold}
         self.inconsistent_date = {key: 23.2 for key in self.excess_damper_threshold}
@@ -151,7 +151,7 @@ class EconCorrectlyOff(object):
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(self.inconsistent_date))))
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ":" + str(self.inconsistent_date))))
                 self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX), str(self.inconsistent_date)))
                 self.clear_data()
                 return
@@ -170,7 +170,7 @@ class EconCorrectlyOff(object):
                 self.economizing = cur_time
             if cur_time - self.economizing >= self.data_window:
                 _log.info("{}: economizing - reinitialize!".format(constants.ECON3))
-                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX + ':' + str(self.economizing_dict))))
+                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX + ":" + str(self.economizing_dict))))
                 self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON3 + constants.DX), str(self.economizing_dict)))
                 self.clear_data()
             return True
@@ -200,9 +200,9 @@ class EconCorrectlyOff(object):
             _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
             energy_impact.update({sensitivity: energy})
-        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ':' + str(diagnostic_msg))))
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX + ":" + str(diagnostic_msg))))
         self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.DX), str(diagnostic_msg)))
-        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI + ':' + str(energy_impact))))
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI + ":" + str(energy_impact))))
         self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON3 + constants.EI), str(energy_impact)))
         self.clear_data()
 

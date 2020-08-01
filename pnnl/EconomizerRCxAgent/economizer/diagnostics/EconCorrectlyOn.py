@@ -50,8 +50,8 @@ from .. import constants
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
-                    datefmt='%m-%d-%y %H:%M:%S')
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 class EconCorrectlyOn(object):
     """Air-side HVAC economizer diagnostic for AHU/RTU systems.
@@ -67,7 +67,7 @@ class EconCorrectlyOn(object):
         self.fan_spd_values = []
         self.oad_values = []
         self.timestamp = []
-        self.analysis_name = ''
+        self.analysis_name = ""
 
         # Initialize not_cooling and not_economizing flags
         self.not_cooling = None
@@ -109,14 +109,14 @@ class EconCorrectlyOn(object):
         self.results_publish = results_publish
         self.open_damper_threshold = open_damper_threshold
         self.oaf_economizing_threshold = {
-            'low': open_damper_threshold - 30.0,
-            'normal': open_damper_threshold - 20.0,
-            'high': open_damper_threshold - 10.0
+            "low": open_damper_threshold - 30.0,
+            "normal": open_damper_threshold - 20.0,
+            "high": open_damper_threshold - 10.0
         }
         self.open_damper_threshold = {
-            'low': open_damper_threshold - 10.0,
-            'normal': open_damper_threshold,
-            'high': open_damper_threshold + 10.0
+            "low": open_damper_threshold - 10.0,
+            "normal": open_damper_threshold,
+            "high": open_damper_threshold + 10.0
         }
         self.minimum_damper_setpoint = minimum_damper_setpoint
         self.data_window = data_window
@@ -160,7 +160,7 @@ class EconCorrectlyOn(object):
 
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ':' + str(self.inconsistent_date))))
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ":" + str(self.inconsistent_date))))
                 self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), str(self.inconsistent_date)))
                 self.clear_data()
                 return
@@ -181,7 +181,7 @@ class EconCorrectlyOn(object):
                 self.not_cooling = cur_time
             if cur_time - self.not_cooling >= self.data_window:
                 _log.info("{}: no cooling during data set - reinitialize.".format(constants.ECON2))
-                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ':' + str(self.not_cooling_dict))))
+                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ":" + str(self.not_cooling_dict))))
                 self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX), str(self.not_cooling_dict)))
                 self.clear_data()
             return False
@@ -194,7 +194,7 @@ class EconCorrectlyOn(object):
                 self.not_economizing = cur_time
             if cur_time - self.not_economizing >= self.data_window:
                 _log.info("{}: no economizing during data set - reinitialize.".format(constants.ECON2))
-                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ':' + str(self.not_economizing_dict))))
+                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ":" + str(self.not_economizing_dict))))
                 self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, ( constants.ECON2 + constants.DX),  str(self.not_economizing_dict)))
                 self.clear_data()
             return False
@@ -229,8 +229,8 @@ class EconCorrectlyOn(object):
             _log.info(msg)
             diagnostic_msg.update({key: result})
             energy_impact.update({key: energy})
-        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ':' + str(diagnostic_msg))))
-        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI + ':' + str(energy_impact))))
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ":" + str(diagnostic_msg))))
+        _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI + ":" + str(energy_impact))))
         self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), str(diagnostic_msg)))
         self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI),  str(energy_impact)))
         self.clear_data()

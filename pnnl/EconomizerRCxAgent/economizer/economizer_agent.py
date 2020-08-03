@@ -284,7 +284,7 @@ class EconomizerAgent(Agent):
         self.data_window = td(minutes=self.read_argument("data_window", 30))
         self.no_required_data = self.read_argument("no_required_data", 15)
         self.open_damper_time = td(minutes=self.read_argument("open_damper_time", 5))
-        self.device_type = self.read_argument("device_type", "rtu").lower()
+        self.device_type = self.read_argument("device_type", "ahu").lower()
         self.economizer_type = self.read_argument("economizer_type", "DDB").lower()
         self.sensitivity = self.read_argument("sensitivity", ["low", "normal", "high"])
         self.point_mapping = self.read_argument("point_mapping", {})
@@ -423,11 +423,11 @@ class EconomizerAgent(Agent):
             self.econ_hl_temp = None
         self.temp_band = max(0.5, min(self.temp_band, 10.0))
         if self.device_type not in ("ahu", "rtu"):
-            _log.error("device_type must be specified as "AHU" or "RTU" in configuration file.")
+            _log.error("device_type must be specified as AHU or RTU in configuration file.")
             sys.exit()
 
         if self.economizer_type.lower() not in ("ddb", "hl"):
-            _log.error("economizer_type must be specified as "DDB" or "HL" in configuration file.")
+            _log.error("economizer_type must be specified as DDB or HL in configuration file.")
             sys.exit()
 
         if self.fan_sp_name is None and self.fan_status_name is None:

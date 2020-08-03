@@ -53,6 +53,7 @@ _log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
                     datefmt="%m-%d-%y %H:%M:%S")
 
+
 class EconCorrectlyOn(object):
     """Air-side HVAC economizer diagnostic for AHU/RTU systems.
     EconCorrectlyOn uses metered data from a BAS or controller to diagnose
@@ -129,7 +130,6 @@ class EconCorrectlyOn(object):
         self.not_cooling_dict = {key: 14.0 for key in self.oaf_economizing_threshold}
         self.inconsistent_date = {key: 13.2 for key in self.oaf_economizing_threshold}
 
-
     def economizer_on_algorithm(self, cooling_call, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """Perform the Econ Correctly On class algorithm
         cooling_call: int
@@ -161,11 +161,10 @@ class EconCorrectlyOn(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ":" + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), str(self.inconsistent_date)))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), self.inconsistent_date))
                 self.clear_data()
                 return
             self.not_economizing_when_needed()
-
 
     def economizer_conditions(self, cooling_call, econ_condition, cur_time):
         """Check conditions to see if should be economizing
@@ -182,7 +181,7 @@ class EconCorrectlyOn(object):
             if cur_time - self.not_cooling >= self.data_window:
                 _log.info("{}: no cooling during data set - reinitialize.".format(constants.ECON2))
                 _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ":" + str(self.not_cooling_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX), str(self.not_cooling_dict)))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX), self.not_cooling_dict))
                 self.clear_data()
             return False
         else:
@@ -195,7 +194,7 @@ class EconCorrectlyOn(object):
             if cur_time - self.not_economizing >= self.data_window:
                 _log.info("{}: no economizing during data set - reinitialize.".format(constants.ECON2))
                 _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ":" + str(self.not_economizing_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, ( constants.ECON2 + constants.DX),  str(self.not_economizing_dict)))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, ( constants.ECON2 + constants.DX),  self.not_economizing_dict))
                 self.clear_data()
             return False
         else:
@@ -231,8 +230,8 @@ class EconCorrectlyOn(object):
             energy_impact.update({key: energy})
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ":" + str(diagnostic_msg))))
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI + ":" + str(energy_impact))))
-        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), str(diagnostic_msg)))
-        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI),  str(energy_impact)))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), diagnostic_msg))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.EI),  energy_impact))
         self.clear_data()
 
     def energy_impact_calculation(self):

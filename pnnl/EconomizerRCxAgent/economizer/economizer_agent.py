@@ -52,7 +52,6 @@ from volttron.platform.messaging import (headers as headers_mod, topics)
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
-from volttron.platform.jsonapi import dumps
 
 from . import constants
 from . diagnostics.TemperatureSensor import TemperatureSensor
@@ -654,7 +653,6 @@ class EconomizerAgent(Agent):
             _log.info("finishing config update check")
             self.update_configuration()
 
-
     def new_data_message(self, peer, sender, bus, topic, headers, message):
         """
         Call back method for curtailable device data subscription.
@@ -752,8 +750,7 @@ class EconomizerAgent(Agent):
                 to_publish[analysis_topic] = result
 
             for result_topic, result in to_publish.items():
-                json_result = dumps(result)
-                self.vip.pubsub.publish("pubsub", result_topic, headers, json_result)
+                self.vip.pubsub.publish("pubsub", result_topic, headers, result)
             to_publish.clear()
         self.results_publish.clear()
 

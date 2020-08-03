@@ -54,6 +54,7 @@ import logging
 from datetime import timedelta as td
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
+from volttron.platform.jsonapi import dumps
 
 
 FAN_OFF = -99.3
@@ -175,7 +176,7 @@ def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
     dx_msg = {'low': message, 'normal': message, 'high': message}
     for diagnostic in dx_li:
         _log.info(table_log_format(analysis, cur_time, (diagnostic + DX + ':' + str(dx_msg))))
-        results_pub.append(table_publish_format(analysis, cur_time, (diagnostic + DX + ':'), str(dx_msg)))
+        results_pub.append(table_publish_format(analysis, cur_time, (diagnostic + DX + ':'), dx_msg))
 
 
 def table_log_format(name, timestamp, data):
@@ -184,6 +185,7 @@ def table_log_format(name, timestamp, data):
 
 def table_publish_format(name, timestamp, table, data):
     """ Return a dictionary for use in the results publish"""
-    table_key = str(str(name) + '&' + str(timestamp))
+    table_key = str(str(name) + "&" + str(timestamp))
+    data = dumps(data)
     return [table_key, [table, data]]
 

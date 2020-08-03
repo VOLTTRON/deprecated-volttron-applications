@@ -193,7 +193,6 @@ class SchedResetAIRCx(object):
             self.fan_status_array.append((current_time, current_fan_status))
             self.schedule_time_array.append(current_time)
 
-
     def setpoint_reset_aircx(self, current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data):
         """
         Main function for set point reset AIRCx - manages data arrays checks AIRCx run status.
@@ -204,7 +203,7 @@ class SchedResetAIRCx(object):
         :return:
         """
         stcpr_run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data,
-                                            run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
+                                                   run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
 
         if not self.timestamp_array:
             return
@@ -218,7 +217,7 @@ class SchedResetAIRCx(object):
             self.stcpr_stpt_array = []
 
         sat_run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data,
-                                          run_schedule="daily", minimum_point_array=self.sat_stpt_array)
+                                                 run_schedule="daily", minimum_point_array=self.sat_stpt_array)
 
         if sat_run_status is None:
             _log.info("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
@@ -235,7 +234,6 @@ class SchedResetAIRCx(object):
                 self.stcpr_stpt_array.append(mean(stcpr_stpt_data))
             if sat_stpt_data:
                 self.sat_stpt_array.append(mean(sat_stpt_data))
-
 
     def unocc_fan_operation(self):
         """
@@ -296,11 +294,11 @@ class SchedResetAIRCx(object):
                     if hourly_counter[_hour] > unocc_time_thr:
                         diagnostic_msg.update({key: 63.1})
                 _log.info(common.table_log_format(self.analysis, push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
-                self.results_publish.append(common.table_publish_format(self.analysis, push_time, SCHED_RCX + DX + ": ", str(diagnostic_msg)))
+                self.results_publish.append(common.table_publish_format(self.analysis, push_time, SCHED_RCX + DX + ": ", diagnostic_msg))
         else:
             push_time = self.timestamp_array[0].date()
             _log.info(common.table_log_format(self.analysis, push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
-            self.results_publish.append(common.table_publish_format(self.analysis, push_time, SCHED_RCX + DX + ": ", str(diagnostic_msg)))
+            self.results_publish.append(common.table_publish_format(self.analysis, push_time, SCHED_RCX + DX + ": ", diagnostic_msg))
 
 
     def no_static_pr_reset(self):
@@ -342,4 +340,4 @@ class SchedResetAIRCx(object):
             diagnostic_msg.update({sensitivity: result})
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[0], (SA_TEMP_RCX3 + DX + ':' + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[0], SA_TEMP_RCX3 + DX + ": ", str(diagnostic_msg)))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[0], SA_TEMP_RCX3 + DX + ": ", diagnostic_msg))

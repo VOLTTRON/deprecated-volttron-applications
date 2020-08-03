@@ -49,6 +49,7 @@ import dateutil.tz
 from datetime import timedelta as td
 from dateutil import parser
 from volttron.platform.agent import utils
+from volttron.platform.jsonapi import dumps
 from volttron.platform.messaging import (headers as headers_mod, topics)
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
@@ -59,8 +60,6 @@ from .diagnostics import common
 from .diagnostics.sat_aircx import SupplyTempAIRCx
 from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
 from .diagnostics.stcpr_aircx import DuctStaticAIRCx
-
-
 
 __version__ = "1.1.0"
 
@@ -108,7 +107,6 @@ class AirsideAgent(Agent):
         self.data_window = 0
         self.fan_speed = None
         self.interval = 0
-
 
         #float attributes
         self.stcpr_retuning = 0.0
@@ -204,7 +202,6 @@ class AirsideAgent(Agent):
         self.configuration_value_check()
         self.create_thresholds()
         self.create_diagnostics()
-
 
     def read_config(self, config_path):
         """
@@ -435,8 +432,6 @@ class AirsideAgent(Agent):
         self.sensitivity = self.read_argument("sensitivity", "default")
         self.point_mapping = self.read_argument("point_mapping", {})
 
-
-
     def read_argument(self, config_key, default_value):
         """Method that reads an argument from the config file and returns the value or returns the default value if key is not present in config file
         return mixed (string or float or int or dict)
@@ -614,7 +609,7 @@ class AirsideAgent(Agent):
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
-                                        self.sat_high_damper_thr, self.percent_damper_thr_dict,
+                                        self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
                                         self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name, self.results_publish)
 
@@ -622,6 +617,7 @@ class AirsideAgent(Agent):
         self.sched_reset_aircx.set_class_values(self.unocc_time_thr_dict, self.unocc_stp_thr_dict, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
                                                 self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
                                                 self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name, self.results_publish)
+
     def parse_data_dict(self, data):
         """Breaks down the passed VOLTTRON message
         data: dictionary
@@ -656,7 +652,6 @@ class AirsideAgent(Agent):
                 self.zn_dmpr_data = value
             elif key == self.fan_sp_name:
                 self.fan_sp_data = value
-
 
     def check_for_missing_data(self):
         """Method that checks the parsed message results for any missing data
@@ -740,7 +735,6 @@ class AirsideAgent(Agent):
         self.warm_up_flag = True
         self.unit_status = None
 
-
     @Core.receiver("onstart")
     def onstart_subscriptions(self, sender, **kwargs):
         """Method used to setup data subscription on startup of the agent"""
@@ -799,8 +793,6 @@ class AirsideAgent(Agent):
         else:
             _log.info("Still need {} before running.".format(self.needed_devices))
 
-
-
     def aggregate_subdevice(self, device_data, topic):
         """Get device data organized and remove the device from the needed list of data elements"""
         tagged_device_data = {}
@@ -826,7 +818,6 @@ class AirsideAgent(Agent):
         if not self.device_values.keys():
             return False
         return not self.needed_devices
-
 
     def run_diagnostics(self, current_time, device_data):
         """Run diagnostics on the data that is available."""
@@ -912,7 +903,8 @@ class AirsideAgent(Agent):
                 to_publish[analysis_topic] = result
 
             for result_topic, result in to_publish.items():
-                self.vip.pubsub.publish("pubsub", result_topic, headers, result)
+                json_result = dumps(result)
+                self.vip.pubsub.publish("pubsub", result_topic, headers, json_result)
             to_publish.clear()
         self.results_publish.clear()
 
@@ -936,6 +928,7 @@ class AirsideAgent(Agent):
         if self.update_config_flag:
             _log.info("finishing config update check")
             self.update_configuration()
+
 
 def main(argv=sys.argv):
     """Main method called by the app."""

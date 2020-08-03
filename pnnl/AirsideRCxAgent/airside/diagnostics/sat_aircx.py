@@ -50,6 +50,7 @@ UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
 import logging
+from collections import defaultdict
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from . import common
@@ -57,8 +58,8 @@ from . import common
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
-                    datefmt='%m-%d-%y %H:%M:%S')
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 INCONSISTENT_DATE = -89.2
@@ -90,7 +91,7 @@ class SupplyTempAIRCx(object):
         self.sat_array = []
         self.rht_array = []
         self.percent_rht = []
-        self.percent_dmpr = []
+        self.percent_dmpr = defaultdict(list)
         self.table_key = None
         self.command_tuple = {}
 
@@ -99,23 +100,22 @@ class SupplyTempAIRCx(object):
         self.sat_stpt_cname = ""
         self.no_req_data = 0
         self.auto_correct_flag = False
-        self.stpt_deviation_thr = ""
-        self.rht_on_thr = ""
-        self.percent_rht_thr = ""
-        self.data_window = ""
+        self.stpt_deviation_thr = None
+        self.rht_on_thr = None
+        self.percent_rht_thr = None
+        self.data_window = 0
         self.results_publish = []
 
         # Low SAT RCx thresholds
-        self.rht_valve_thr = ""
-        self.max_sat_stpt = ""
+        self.rht_valve_thr = None
+        self.max_sat_stpt = None
 
         # High SAT RCx thresholds
-        self.high_dmpr_thr = 0.0
-        self.percent_dmpr_thr = ""
-        self.min_sat_stpt = ""
-        self.sat_retuning = ""
+        self.high_dmpr_thr = None
+        self.percent_dmpr_thr = None
+        self.min_sat_stpt = None
+        self.sat_retuning = None
         self.dx_offset = 30.0
-
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
                          percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, results_publish):
@@ -142,7 +142,6 @@ class SupplyTempAIRCx(object):
         self.min_sat_stpt = min_sat_stpt
         self.sat_retuning = sat_retuning
 
-
     def reinitialize(self):
         """
         Reinitialize data arrays.
@@ -154,7 +153,7 @@ class SupplyTempAIRCx(object):
         self.sat_array = []
         self.rht_array = []
         self.percent_rht = []
-        self.percent_dmpr = []
+        self.percent_dmpr = defaultdict(list)
 
     def sat_aircx(self, current_time, sat_data, sat_stpt_data,
                   zone_rht_data, zone_dmpr_data):
@@ -177,7 +176,9 @@ class SupplyTempAIRCx(object):
         """
         tot_rht = sum(1 if val > self.rht_on_thr else 0 for val in zone_rht_data)
         count_rht = len(zone_rht_data)
-        tot_dmpr = sum(1 if val > self.high_dmpr_thr else 0 for val in zone_dmpr_data)
+        tot_dmpr = {}
+        for key, thr in self.high_dmpr_thr.items():
+            tot_dmpr[key] = sum(1 if val > thr else 0 for val in zone_dmpr_data)
         count_damper = len(zone_dmpr_data)
 
         if common.check_date(current_time, self.timestamp_array):
@@ -205,8 +206,9 @@ class SupplyTempAIRCx(object):
         if sat_stpt_data:
             self.sat_stpt_array.append(mean(sat_stpt_data))
         self.percent_rht.append(tot_rht / count_rht)
-        self.percent_dmpr.append(tot_dmpr / count_damper)
         self.timestamp_array.append(current_time)
+        for key in self.high_dmpr_thr:
+            self.percent_dmpr[key].append(tot_dmpr[key] / count_damper)
 
     def low_sat(self, avg_sat_stpt):
         """
@@ -251,8 +253,7 @@ class SupplyTempAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX1 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX1 + DX + ": ", str(diagnostic_msg)))
-
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX1 + DX + ": ", diagnostic_msg))
 
     def high_sat(self, avg_sat_stpt):
         """
@@ -279,7 +280,7 @@ class SupplyTempAIRCx(object):
                     # Create diagnostic message for fault condition
                     # with auto-correction
                     if aircx_sat_stpt >= self.min_sat_stpt:
-                        #dx_result.command(self.sat_stpt_cname, aircx_sat_stpt)
+                        #self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too high. SAT set point decreased to: {}F".format(key, sat_stpt)
                         result = 51.1
@@ -302,5 +303,5 @@ class SupplyTempAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX2 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX2 + DX + ": ", str(diagnostic_msg)))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX2 + DX + ": ", diagnostic_msg))
 

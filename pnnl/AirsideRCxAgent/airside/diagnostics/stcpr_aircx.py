@@ -184,7 +184,6 @@ class DuctStaticAIRCx(object):
         self.high_sf_condition.append(high_sf_cond if high_sf_cond is not None else 0)
         self.timestamp_array.append(current_time)
 
-
     def low_stcpr_aircx(self, avg_stcpr_stpt):
         """
         AIRCx to identify and correct low duct static pressure.
@@ -234,7 +233,7 @@ class DuctStaticAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX1 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX1 + DX + ": ", str(diagnostic_msg)))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX1 + DX + ": ", diagnostic_msg))
 
     def high_stcpr_aircx(self, avg_stcpr_stpt):
         """
@@ -283,4 +282,4 @@ class DuctStaticAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX2 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX2 + DX + ": ", str(diagnostic_msg)))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX2 + DX + ": ", diagnostic_msg))

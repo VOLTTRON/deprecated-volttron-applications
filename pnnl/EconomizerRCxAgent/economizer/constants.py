@@ -42,6 +42,7 @@ for the
 UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
+from volttron.platform.jsonapi import dumps
 ECON1 = "Temperature Sensor Dx"
 ECON2 = "Not Economizing When Unit Should Dx"
 ECON3 = "Economizing When Unit Should Not Dx"
@@ -64,7 +65,9 @@ def table_log_format(name, timestamp, data):
     """ Return a formatted string for use in the log"""
     return str(str(name) + "&" + str(timestamp) + "->[" + str(data) + "]")
 
+
 def table_publish_format(name, timestamp, table, data):
     """ Return a dictionary for use in the results publish"""
     table_key = str(str(name) + "&" + str(timestamp))
+    data = dumps(data)
     return [table_key, [table, data]]

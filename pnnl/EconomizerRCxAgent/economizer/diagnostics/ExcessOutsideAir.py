@@ -53,6 +53,7 @@ _log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
                     datefmt="%m-%d-%y %H:%M:%S")
 
+
 class ExcessOutsideAir(object):
     """
     Air-side HVAC ventilation diagnostic.
@@ -121,7 +122,6 @@ class ExcessOutsideAir(object):
         self.invalid_oaf_dict = {key: 31.2 for key in self.excess_damper_threshold}
         self.inconsistent_date = {key: 35.2 for key in self.excess_damper_threshold}
 
-
     def excess_ouside_air_algorithm(self, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """Perform the excess outside air class algorithm
         oat: float
@@ -151,7 +151,7 @@ class ExcessOutsideAir(object):
         if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ":" + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), str(self.inconsistent_date)))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), self.inconsistent_date))
                 self.clear_data()
                 return
             self.excess_oa()
@@ -172,10 +172,10 @@ class ExcessOutsideAir(object):
                 _log.info("{}: economizing for data set, reinitialize.".format(constants.ECON4))
                 if len(self.timestamp):
                     _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ":" + str(self.economizing_dict))))
-                    self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), str(self.economizing_dict)))
+                    self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), self.economizing_dict))
                 else:
                     _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX + ":" + str(self.economizing_dict))))
-                    self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX), str(self.economizing_dict)))
+                    self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX), self.economizing_dict))
                 self.clear_data()
             return True
         else:
@@ -198,7 +198,7 @@ class ExcessOutsideAir(object):
             msg = ("{}: Inconclusive result, unexpected OAF value: {}".format(constants.ECON4, avg_oaf))
             _log.info(msg)
             _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ":" + str(self.invalid_oaf_dict))))
-            self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX),  str(self.invalid_oaf_dict)))
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX),  self.invalid_oaf_dict))
             self.clear_data()
             return
 
@@ -233,8 +233,8 @@ class ExcessOutsideAir(object):
             diagnostic_msg.update({key: result})
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ":" + str(diagnostic_msg))))
         _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.EI + ":" + str(energy_impact))))
-        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX),  str(diagnostic_msg)))
-        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.EI), str(energy_impact)))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX),  diagnostic_msg))
+        self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.EI), energy_impact))
         self.clear_data()
 
 

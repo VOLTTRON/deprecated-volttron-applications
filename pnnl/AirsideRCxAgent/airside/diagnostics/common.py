@@ -138,29 +138,29 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
     """
     avg_set_point = None
     diagnostic_msg = {}
-    for key, threshold in setpoint_deviation_threshold.items():
+    for sensitivity, threshold in setpoint_deviation_threshold.items():
         if set_point_array:
-            avg_set_point = sum(set_point_array)/len(set_point_array)
+            avg_set_point = mean(set_point_array)
             zipper = (set_point_array, point_array)
             set_point_tracking = [abs(x - y) for x, y in zip(*zipper)]
-            set_point_tracking = mean(set_point_tracking)/avg_set_point*100.
+            set_point_error = mean(set_point_tracking)/avg_set_point*100.
 
-            if set_point_tracking > threshold:
+            if set_point_error > threshold:
                 # color_code = 'red'
-                msg = '{} - {}: point deviating significantly from set point.'.format(key, dx_name)
+                msg = '{} - {}: point deviating significantly from set point.'.format(sensitivity, dx_name)
                 result = 1.1 + dx_offset
             else:
                 # color_code = 'green'
-                msg = " {} - No problem detected for {} set".format(key, dx_name)
+                msg = " {} - No problem detected for {} set".format(sensitivity, dx_name)
                 result = 0.0 + dx_offset
         else:
             # color_code = 'grey'
-            msg = "{} - {} set point data is not available.".format(key, dx_name)
+            msg = "{} - {} set point data is not available.".format(sensitivity, dx_name)
             result = 2.2 + dx_offset
         _log.info(msg)
-        diagnostic_msg.update({key: result})
+        diagnostic_msg.update({sensitivity: result})
         dx_string = dx_name + DX + ": "
-        dx_msg = str(diagnostic_msg)
+        dx_msg = diagnostic_msg
     return avg_set_point, dx_string, dx_msg
 
 
@@ -173,7 +173,7 @@ def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
     :param cur_time:
     :return:
     """
-    dx_msg = {'low': message, 'normal': message, 'high': message}
+    dx_msg = {"low": message, "normal": message, "high": message}
     for diagnostic in dx_li:
         _log.info(table_log_format(analysis, cur_time, (diagnostic + DX + ':' + str(dx_msg))))
         results_pub.append(table_publish_format(analysis, cur_time, (diagnostic + DX + ':'), dx_msg))
@@ -182,6 +182,7 @@ def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
 def table_log_format(name, timestamp, data):
     """ Return a formatted string for use in the log"""
     return str(str(name) + '&' + str(timestamp) + '->[' + str(data) + ']')
+
 
 def table_publish_format(name, timestamp, table, data):
     """ Return a dictionary for use in the results publish"""

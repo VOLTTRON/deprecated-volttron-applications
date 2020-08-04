@@ -172,7 +172,7 @@ class AirsideAgent(Agent):
         self.unocc_time_thr_dict = {}
         self.sat_reset_threshold_dict = {}
         self.stcpr_reset_threshold_dict = {}
-        self.command_tuple = None
+        self.command_tuple = []
         self.device_topic_dict = {}
         self.conversion_map = {}
         self.map_names = {}
@@ -821,7 +821,6 @@ class AirsideAgent(Agent):
 
     def run_diagnostics(self, current_time, device_data):
         """Run diagnostics on the data that is available."""
-        self.command_tuple = {}
         _log.info("Processing Results!")
         device_dict = {}
         for key, value in device_data.items():
@@ -867,6 +866,7 @@ class AirsideAgent(Agent):
 
         self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_condition, self.high_sf_condition)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
+        return self.check_results()
 
     def find_reinitialize_time(self, current_time):
         """determine when next data scrape should be"""
@@ -910,10 +910,11 @@ class AirsideAgent(Agent):
 
     def check_result_command(self):
         """Check to see if any commands need to be ran based on diagnostic results"""
-
+        if (len(self.command_tuple)) <= 0:
+            return
         base_actuator_path = topics.RPC_DEVICE_PATH(campus=self.campus, building=self.building, unit=None, path="", point=None)
         for device in self.device_list:
-            for point, new_value in self.command_tuple.items():
+            for point, new_value in self.command_tuple:
                 point_path = base_actuator_path(unit=device, point=point)
                 try:
                     _log.info("Set point {} to {}".format(point_path, new_value))
@@ -921,6 +922,7 @@ class AirsideAgent(Agent):
                 except RemoteError as ex:
                     _log.warning("Failed to set {} to {}: {}".format(point_path, new_value, str(ex)))
                     continue
+        self.command_tuple.clear()
 
     def check_for_config_update_after_diagnostics(self):
         """Check to see if the configuration needs to be update"""

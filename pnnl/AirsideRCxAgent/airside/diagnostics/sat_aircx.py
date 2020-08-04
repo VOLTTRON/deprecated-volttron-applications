@@ -93,7 +93,7 @@ class SupplyTempAIRCx(object):
         self.percent_rht = []
         self.percent_dmpr = defaultdict(list)
         self.table_key = None
-        self.command_tuple = {}
+        self.command_tuple = []
 
         # Common RCx parameters
         self.analysis = ""
@@ -280,14 +280,14 @@ class SupplyTempAIRCx(object):
                     # Create diagnostic message for fault condition
                     # with auto-correction
                     if aircx_sat_stpt >= self.min_sat_stpt:
-                        #self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
+                        self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too high. SAT set point decreased to: {}F".format(key, sat_stpt)
                         result = 51.1
                     else:
                         # Create diagnostic message for fault condition
                         # where the maximum SAT has been reached
-                        #dx_result.command(self.sat_stpt_cname, self.min_sat_stpt)
+                        self.command_tuple.append([self.sat_stpt_cname, self.min_sat_stpt])
                         sat_stpt = "%s" % float("%.2g" % self.min_sat_stpt)
                         msg = "{} - SAT too high. Auto-correcting to min SAT set point {}F".format(key, sat_stpt)
                         result = 52.1

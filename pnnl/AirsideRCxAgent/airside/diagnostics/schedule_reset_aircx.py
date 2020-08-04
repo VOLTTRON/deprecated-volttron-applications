@@ -67,8 +67,8 @@ INSUFFICIENT_DATA = -79.2
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
-                    datefmt='%m-%d-%y %H:%M:%S')
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 class SchedResetAIRCx(object):
@@ -88,9 +88,6 @@ class SchedResetAIRCx(object):
         self.reset_table_key = None
         self.timestamp_array = []
         self.dx_table = {}
-
-        def date_parse(dates):
-            return [parse(timestamp_array).time() for timestamp_array in dates]
 
         self.analysis = ""
         self.monday_sch = []
@@ -166,7 +163,6 @@ class SchedResetAIRCx(object):
         self.sched_aircx(current_time, stcpr_data, current_fan_status)
         self.setpoint_reset_aircx(current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data)
         self.timestamp_array.append(current_time)
-
 
     def sched_aircx(self, current_time, stcpr_data, current_fan_status):
         """
@@ -300,7 +296,6 @@ class SchedResetAIRCx(object):
             _log.info(common.table_log_format(self.analysis, push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
             self.results_publish.append(common.table_publish_format(self.analysis, push_time, SCHED_RCX + DX + ": ", diagnostic_msg))
 
-
     def no_static_pr_reset(self):
         """
         AIRCx  to detect whether a static pressure set point reset is implemented.
@@ -320,7 +315,7 @@ class SchedResetAIRCx(object):
             diagnostic_msg.update({sensitivity: result})
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[0], (DUCT_STC_RCX3 + DX + ':' + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[0], DUCT_STC_RCX3 + DX + ": ", str(diagnostic_msg)))
+        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[0], DUCT_STC_RCX3 + DX + ": ", diagnostic_msg))
 
     def no_sat_stpt_reset(self):
         """

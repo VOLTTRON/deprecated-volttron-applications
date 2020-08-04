@@ -100,7 +100,7 @@ class DuctStaticAIRCx(object):
         self.hs_dmpr_high_avg = []
         self.low_sf_condition = []
         self.high_sf_condition = []
-        self.command_tuple = {}
+        self.command_tuple = []
         self.dx_offset = 0.0
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
@@ -259,14 +259,14 @@ class DuctStaticAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_stcpr_stpt = avg_stcpr_stpt - self.stcpr_retuning
                     if aircx_stcpr_stpt >= self.min_stcpr_stpt:
-                        #dx_result.command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
+                        self.command_tuple.append([self.stcpr_stpt_cname, aircx_stcpr_stpt])
                         stcpr_stpt = "%s" % float("%.2g" % aircx_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too high. Set point decreased to: {}".format(key,
                                                                                                       stcpr_stpt)
                         result = 21.1
                     else:
-                        #dx_result.command(self.stcpr_stpt_cname, self.min_stcpr_stpt)
+                        self.command_tuple.append([self.stcpr_stpt_cname, self.min_stcpr_stpt])
                         stcpr_stpt = "%s" % float("%.2g" % self.min_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too high. Set point decreased to min {}.".format(key,

@@ -82,18 +82,10 @@ class AirsideAgent(Agent):
         self.analysis_name = ""
         self.config = None
         self.sensitivity = ""
-        self.fan_status = ""
-        self.zone_reheat = ""
-        self.zone_damper = ""
-        self.duct_stp = ""
-        self.duct_stp_stpt = ""
-        self.sa_temp = ""
-        self.fan_speedcmd = ""
-        self.sat_stpt = ""
         self.fan_status_name = ""
         self.fan_sp_name = ""
-        self.duct_stp_stpt_name = ""
-        self.duct_stp_name = ""
+        self.duct_stcpr_stpt_name = ""
+        self.duct_stcpr_name = ""
         self.sa_temp_name = ""
         self.sat_stpt_name = ""
         self.zn_damper_name = ""
@@ -445,18 +437,10 @@ class AirsideAgent(Agent):
         """Method that reads the point mapping and sets the values
         no return
         """
-        self.fan_status = self.get_point_mapping_or_none("fan_status")
-        self.zone_reheat = self.get_point_mapping_or_none("zone_reheat")
-        self.zone_damper = self.get_point_mapping_or_none("zone_damper")
-        self.duct_stp = self.get_point_mapping_or_none("duct_stp")
-        self.duct_stp_stpt = self.get_point_mapping_or_none("duct_stp_stpt")
-        self.sa_temp = self.get_point_mapping_or_none("sa_temp")
-        self.fan_speedcmd = self.get_point_mapping_or_none("fan_speedcmd")
-        self.sat_stpt = self.get_point_mapping_or_none("sat_stpt")
         self.fan_status_name = self.get_point_mapping_or_none("fan_status")
         self.fan_sp_name = self.get_point_mapping_or_none("fan_speedcmd")
-        self.duct_stp_stpt_name = self.get_point_mapping_or_none("duct_stp_stpt")
-        self.duct_stp_name = self.get_point_mapping_or_none("duct_stp")
+        self.duct_stcpr_stpt_name = self.get_point_mapping_or_none("duct_stcpr_stpt")
+        self.duct_stcpr_name = self.get_point_mapping_or_none("duct_stcpr")
         self.sa_temp_name = self.get_point_mapping_or_none("sa_temp")
         self.sat_stpt_name = self.get_point_mapping_or_none("sat_stpt")
         self.zn_damper_name = self.get_point_mapping_or_none("zone_damper")
@@ -604,7 +588,7 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = DuctStaticAIRCx()
         self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                           self.stcpr_stpt_deviation_thr_dict, self.max_stcpr_stpt, self.stcpr_retuning, self.zn_high_damper_thr_dict,
-                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.analysis_name, self.duct_stp_stpt_name, self.results_publish)
+                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.analysis_name, self.duct_stcpr_stpt_name, self.results_publish)
 
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
@@ -638,9 +622,9 @@ class AirsideAgent(Agent):
                 continue
             if key == self.fan_status_name:
                 self.fan_status_data = value
-            elif key == self.duct_stp_stpt_name:
+            elif key == self.duct_stcpr_stpt_name:
                 self.stcpr_stpt_data = value
-            elif key == self.duct_stp_name:
+            elif key == self.duct_stcpr_name:
                 self.stc_pr_data = value
             elif key == self.sat_stpt_name:
                 self.sat_stpt_data = value
@@ -667,7 +651,7 @@ class AirsideAgent(Agent):
         if not self.sat_stpt_data:
             _log.info("SAT set point data is missing.")
         if not self.stc_pr_data:
-            self.missing_data.append(self.duct_stp_name)
+            self.missing_data.append(self.duct_stcpr_name)
         if not self.stcpr_stpt_data:
             _log.info("Duct static pressure set point data is missing.")
         if not self.zn_dmpr_data:

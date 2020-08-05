@@ -185,11 +185,11 @@ class AirsideAgent(Agent):
 
         # start reading all the class configs and check them
         self.read_config(config_path)
-        self.read_argument_config()
-        self.read_point_mapping()
-        self.configuration_value_check()
-        self.create_thresholds()
-        self.create_diagnostics()
+        #self.read_argument_config()
+        #self.read_point_mapping()
+        #self.configuration_value_check()
+        #self.create_thresholds()
+        #elf.create_diagnostics()
 
     def read_config(self, config_path):
         """
@@ -209,7 +209,7 @@ class AirsideAgent(Agent):
     def setup_device_list(self):
         """Setup the device subscriptions"""
         self.analysis_name = self.config.get("analysis_name", "analysis_name")
-        self.actuation_mode = self.config.get("actuation_mode", "PASSIVE")
+        self.actuation_mode = self.config.get("actuation_mode", "passive")
         self.timezone = self.config.get("local_timezone", "US/Pacific")
         self.interval = self.config.get("interval", 60)
         self.missing_data_threshold = self.config.get("missing_data_threshold", 15.0) / 100.0
@@ -292,7 +292,7 @@ class AirsideAgent(Agent):
                 }
             },
             "analysis_name": "AirsideAIRCx",
-            "mode": "PASSIVE",
+            "actuation_mode": "passive",
             "arguments": {
                 "point_mapping": {
                     "fan_status": "supplyfanstatus",
@@ -308,11 +308,11 @@ class AirsideAgent(Agent):
 
                 # "no_required_data": 10,
                 # "sensitivity": custom
-                # "autocorrect_flag": false,
-                # "stpt_deviation_thr": 10.0,
+                # "auto_correct_flag": false,
+                # "warm_up_time": 5,
 
                 # Static Pressure AIRCx Thresholds
-                # "warm_up_time": 5,
+                # "stcpr_stpt_deviation_thr": 20
                 # "duct_stcpr_retuning": 0.1,
                 # "max_duct_stcpr_stpt": 2.5,
                 # "high_sf_thr": 95.0,
@@ -333,6 +333,7 @@ class AirsideAgent(Agent):
                 # "maximum_sat_stpt": 75.0,
 
                 # Schedule/Reset AIRCx Thresholds
+                # "sat_stpt_deviation_thr": 5,
                 # "unocc_time_thr": 40.0,
                 # "unocc_stp_thr": 0.2,
                 # "monday_sch": ["5:30","18:30"],
@@ -363,7 +364,6 @@ class AirsideAgent(Agent):
         no return
         """
         self.arguments = self.config.get("arguments", {})
-
         self.no_required_data = self.read_argument("no_required_data", 10)
         self.warm_up_time = self.read_argument("warm_up_time", 15)
         self.data_window = self.read_argument("data_window", None)

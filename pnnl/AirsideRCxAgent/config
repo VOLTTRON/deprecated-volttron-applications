@@ -14,7 +14,7 @@
             }
         }
     },
-    "mode": "PASSIVE",
+    "actuation_mode": "passive",
     "arguments": {
         "point_mapping": {
             "fan_status": "supplyfanstatus",
@@ -31,10 +31,10 @@
 
         # "no_required_data": 10,
         # "sensitivity": custom
-        # "autocorrect_flag": false,
-        # "stpt_deviation_thr": 10.0,
+        # "auto_correct_flag": false,
 
         # Static Pressure AIRCx Thresholds
+        # "stcpr_stpt_deviation_thr": 20
         # "warm_up_time": 5,
         # "duct_stcpr_retuning": 0.1,
         # "max_duct_stcpr_stpt": 2.5,
@@ -46,6 +46,7 @@
         # "hdzn_damper_thr": 30.0,
 
         # SAT AIRCx Thresholds
+        # "sat_stpt_deviation_thr": 5,
         # "percent_reheat_thr": 25.0,
         # "rht_on_thr": 10.0,
         # "sat_high_damper_thr": 80.0,

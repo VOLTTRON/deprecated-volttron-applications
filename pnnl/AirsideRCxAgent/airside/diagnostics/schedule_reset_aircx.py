@@ -82,6 +82,7 @@ class SchedResetAIRCx(object):
         self.stcpr_array = []
         self.schedule_time_array = []
         self.publish_results = None
+        self.send_autocorrect_command = None
 
         self.stcpr_stpt_array = []
         self.sat_stpt_array = []
@@ -89,7 +90,6 @@ class SchedResetAIRCx(object):
         self.timestamp_array = []
         self.dx_table = {}
 
-        self.analysis = ""
         self.monday_sch = []
         self.tuesday_sch = []
         self.wednesday_sch = []
@@ -109,13 +109,12 @@ class SchedResetAIRCx(object):
         self.sat_reset_thr = {}
 
     def set_class_values(self, unocc_time_thr, unocc_stcpr_thr, monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
-                         friday_sch, saturday_sch, sunday_sch, no_req_data, stcpr_reset_thr, sat_reset_thr, analysis, publish_results):
+                         friday_sch, saturday_sch, sunday_sch, no_req_data, stcpr_reset_thr, sat_reset_thr):
         """Set the values needed for doing the diagnostics"""
 
         def date_parse(dates):
             return [parse(timestamp_array).time() for timestamp_array in dates]
 
-        self.analysis = analysis
         self.monday_sch = date_parse(monday_sch)
         self.tuesday_sch = date_parse(tuesday_sch)
         self.wednesday_sch = date_parse(wednesday_sch)
@@ -123,7 +122,6 @@ class SchedResetAIRCx(object):
         self.friday_sch = date_parse(friday_sch)
         self.saturday_sch = date_parse(saturday_sch)
         self.sunday_sch = date_parse(sunday_sch)
-        self.publish_results = publish_results
 
         self.schedule = {0: self.monday_sch, 1: self.tuesday_sch,
                          2: self.wednesday_sch, 3: self.thursday_sch,
@@ -138,6 +136,10 @@ class SchedResetAIRCx(object):
         self.unocc_stcpr_thr = unocc_stcpr_thr
         self.stcpr_reset_thr = stcpr_reset_thr
         self.sat_reset_thr = sat_reset_thr
+
+    def setup_platform_interfaces(self, publish_method, autocorrect_method):
+        self.publish_results = publish_method
+        self.send_autocorrect_command = autocorrect_method
 
     def reinitialize_sched(self):
         """
@@ -177,7 +179,7 @@ class SchedResetAIRCx(object):
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SCHED_RCX], self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SCHED_RCX], current_time)
             self.reinitialize_sched()
 
         if run_status:
@@ -206,7 +208,7 @@ class SchedResetAIRCx(object):
 
         if stcpr_run_status is None:
             _log.info("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [DUCT_STC_RCX3], self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [DUCT_STC_RCX3], current_time)
             self.stcpr_stpt_array = []
         elif stcpr_run_status:
             self.no_static_pr_reset()
@@ -217,7 +219,7 @@ class SchedResetAIRCx(object):
 
         if sat_run_status is None:
             _log.info("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SA_TEMP_RCX3], self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SA_TEMP_RCX3], current_time)
             self.sat_stpt_array = []
             self.timestamp_array = []
         elif sat_run_status:
@@ -289,11 +291,11 @@ class SchedResetAIRCx(object):
                     diagnostic_msg.update({key: 60.0})
                     if hourly_counter[_hour] > unocc_time_thr:
                         diagnostic_msg.update({key: 63.1})
-                _log.info(common.table_log_format(self.analysis, push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
+                _log.info(common.table_log_format(push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
                 self.publish_results(push_time, SCHED_RCX + DX, diagnostic_msg)
         else:
             push_time = self.timestamp_array[0].date()
-            _log.info(common.table_log_format(self.analysis, push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
+            _log.info(common.table_log_format(push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
             self.publish_results(push_time, SCHED_RCX + DX, diagnostic_msg)
 
     def no_static_pr_reset(self):
@@ -314,7 +316,7 @@ class SchedResetAIRCx(object):
             _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
 
-        _log.info(common.table_log_format(self.analysis, self.timestamp_array[0], (DUCT_STC_RCX3 + DX + ':' + str(diagnostic_msg))))
+        _log.info(common.table_log_format(self.timestamp_array[0], (DUCT_STC_RCX3 + DX + ':' + str(diagnostic_msg))))
         self.publish_results.append(self.timestamp_array[0], DUCT_STC_RCX3 + DX, diagnostic_msg)
 
     def no_sat_stpt_reset(self):
@@ -334,5 +336,5 @@ class SchedResetAIRCx(object):
             _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
 
-        _log.info(common.table_log_format(self.analysis, self.timestamp_array[0], (SA_TEMP_RCX3 + DX + ':' + str(diagnostic_msg))))
+        _log.info(common.table_log_format(self.timestamp_array[0], (SA_TEMP_RCX3 + DX + ':' + str(diagnostic_msg))))
         self.publish_results(self.timestamp_array[0], SA_TEMP_RCX3 + DX, diagnostic_msg)

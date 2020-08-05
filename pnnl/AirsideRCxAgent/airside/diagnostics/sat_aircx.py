@@ -97,7 +97,7 @@ class SupplyTempAIRCx(object):
 
         # Common RCx parameters
         self.publish_results = None
-        self.analysis = ""
+        self.send_autocorrect_command = None
         self.sat_stpt_cname = ""
         self.no_req_data = 0
         self.auto_correct_flag = False
@@ -117,10 +117,9 @@ class SupplyTempAIRCx(object):
         self.sat_retuning = None
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
-                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, publish_results):
+                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, sat_stpt_cname):
         """Set the values needed for doing the diagnostics"""
 
-        self.analysis = analysis
         self.command_tuple = command_tuple
         self.sat_stpt_cname = sat_stpt_cname
         self.no_req_data = no_req_data
@@ -129,7 +128,6 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
         self.data_window = data_window
-        self.publish_results = publish_results
         # Low SAT RCx thresholds
         self.rht_valve_thr = rht_valve_thr
         self.max_sat_stpt = max_sat_stpt
@@ -139,6 +137,10 @@ class SupplyTempAIRCx(object):
         self.percent_dmpr_thr = percent_dmpr_thr
         self.min_sat_stpt = min_sat_stpt
         self.sat_retuning = sat_retuning
+
+    def setup_platform_interfaces(self, publish_method, autocorrect_method):
+        self.publish_results = publish_method
+        self.send_autocorrect_command = autocorrect_method
 
     def reinitialize(self):
         """
@@ -180,19 +182,19 @@ class SupplyTempAIRCx(object):
         count_damper = len(zone_dmpr_data)
 
         if common.check_date(current_time, self.timestamp_array):
-            common.pre_conditions(self.publish_results, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INCONSISTENT_DATE, DX_LIST, current_time)
             self.reinitialize()
 
         run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, current_time)
             self.reinitialize()
 
         if run_status:
             avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX)
-            _log.info(common.table_log_format(self.analysis, current_time, dx_string + str(dx_msg)))
+            _log.info(common.table_log_format(current_time, dx_string + str(dx_msg)))
             self.publish_results(current_time, dx_string, dx_msg)
             self.low_sat(avg_sat_stpt)
             self.high_sat(avg_sat_stpt)
@@ -230,12 +232,12 @@ class SupplyTempAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_sat_stpt = avg_sat_stpt + self.sat_retuning
                     if aircx_sat_stpt <= self.max_sat_stpt:
-                        self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
+                        self.send_autocorrect_command(self.sat_stpt_cname, aircx_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too low. SAT set point increased to: {}F".format(key, sat_stpt)
                         result = 41.1
                     else:
-                        self.command_tuple.append([self.sat_stpt_cname, self.max_sat_stpt])
+                        self.send_autocorrect_command(self.sat_stpt_cname, self.max_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % self.max_sat_stpt)
                         sat_stpt = str(sat_stpt)
                         msg = "{} - SAT too low. Auto-correcting to max SAT set point {}F".format(key, sat_stpt)
@@ -249,7 +251,7 @@ class SupplyTempAIRCx(object):
             diagnostic_msg.update({key: result})
             _log.info(msg)
 
-        _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX1 + DX + ": " + str(diagnostic_msg))))
+        _log.info(common.table_log_format(self.timestamp_array[-1], (SA_TEMP_RCX1 + DX + ": " + str(diagnostic_msg))))
         self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX1 + DX, diagnostic_msg)
 
     def high_sat(self, avg_sat_stpt):
@@ -277,14 +279,14 @@ class SupplyTempAIRCx(object):
                     # Create diagnostic message for fault condition
                     # with auto-correction
                     if aircx_sat_stpt >= self.min_sat_stpt:
-                        self.command_tuple.append([self.sat_stpt_cname, aircx_sat_stpt])
+                        self.send_autocorrect_command(self.sat_stpt_cname, aircx_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % aircx_sat_stpt)
                         msg = "{} - SAT too high. SAT set point decreased to: {}F".format(key, sat_stpt)
                         result = 51.1
                     else:
                         # Create diagnostic message for fault condition
                         # where the maximum SAT has been reached
-                        self.command_tuple.append([self.sat_stpt_cname, self.min_sat_stpt])
+                        self.send_autocorrect_command(self.sat_stpt_cname, self.min_sat_stpt)
                         sat_stpt = "%s" % float("%.2g" % self.min_sat_stpt)
                         msg = "{} - SAT too high. Auto-correcting to min SAT set point {}F".format(key, sat_stpt)
                         result = 52.1
@@ -299,6 +301,6 @@ class SupplyTempAIRCx(object):
             diagnostic_msg.update({key: result})
             _log.info(msg)
 
-        _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX2 + DX + ": " + str(diagnostic_msg))))
+        _log.info(common.table_log_format(self.timestamp_array[-1], (SA_TEMP_RCX2 + DX + ": " + str(diagnostic_msg))))
         self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX2 + DX, diagnostic_msg)
 

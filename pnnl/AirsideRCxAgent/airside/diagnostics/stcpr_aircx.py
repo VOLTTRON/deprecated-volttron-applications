@@ -80,9 +80,9 @@ class DuctStaticAIRCx(object):
         self.stcpr_array = []
         self.timestamp_array = []
         self.publish_results = None
+        self.send_autocorrect_command = None
 
         # Initialize configurable thresholds
-        self.analysis = ""
         self.stcpr_stpt_cname = ""
         self.no_req_data = 0
         self.stpt_deviation_thr = {}
@@ -102,12 +102,14 @@ class DuctStaticAIRCx(object):
         self.high_sf_condition = []
         self.command_tuple = []
 
-    def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
-                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname, publish_results):
+    def set_class_values(self, command_tuple, no_req_data,
+                         data_window, auto_correct_flag, stpt_deviation_thr,
+                         max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
+                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt,
+                         stcpr_stpt_cname):
         """Set the values needed for doing the diagnostic"""
 
         # Initialize configurable thresholds
-        self.analysis = analysis
         self.command_tuple = command_tuple
         self.stcpr_stpt_cname = stcpr_stpt_cname
         self.no_req_data = no_req_data
@@ -117,11 +119,14 @@ class DuctStaticAIRCx(object):
         self.zn_high_dmpr_thr = zn_high_dmpr_thr
         self.zn_low_dmpr_thr = zn_low_dmpr_thr
         self.data_window = data_window
-        self.publish_results = publish_results
 
         self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)
         self.hdzn_dmpr_thr = hdzn_dmpr_thr
+
+    def setup_platform_interfaces(self, publish_method, autocorrect_method):
+        self.publish_results = publish_method
+        self.send_autocorrect_command = autocorrect_method
 
     def reinitialize(self):
         """
@@ -151,14 +156,14 @@ class DuctStaticAIRCx(object):
         :return:
         """
         if common.check_date(current_time, self.timestamp_array):
-            common.pre_conditions(self.publish_results, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INCONSISTENT_DATE, DX_LIST, current_time)
             self.reinitialize()
 
         run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, current_time)
             self.reinitialize()
 
         if run_status:
@@ -209,14 +214,14 @@ class DuctStaticAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_stcpr_stpt = avg_stcpr_stpt + self.stcpr_retuning
                     if aircx_stcpr_stpt <= self.max_stcpr_stpt:
-                        self.command_tuple.append([self.stcpr_stpt_cname, aircx_stcpr_stpt])
+                        self.send_autocorrect_command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
                         stcpr_stpt = "%s" % float("%.2g" % aircx_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too low. Set point increased to: {}".format(key,
                                                                                                      stcpr_stpt)
                         result = 11.1
                     else:
-                        self.command_tuple.append([self.stcpr_stpt_cname, self.max_stcpr_stpt])
+                        self.send_autocorrect_command(self.stcpr_stpt_cname, self.max_stcpr_stpt)
                         stcpr_stpt = "%s" % float("%.2g" % self.max_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too low. Set point increased to max {}.".format(key,
@@ -231,7 +236,7 @@ class DuctStaticAIRCx(object):
             diagnostic_msg.update({key: result})
             _log.info(msg)
 
-        _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX1 + DX + ": " + str(diagnostic_msg))))
+        _log.info(common.table_log_format(self.timestamp_array[-1], (DUCT_STC_RCX1 + DX + ": " + str(diagnostic_msg))))
         self.publish_results(self.timestamp_array[-1], DUCT_STC_RCX1 + DX, diagnostic_msg)
 
     def high_stcpr_aircx(self, avg_stcpr_stpt):
@@ -258,14 +263,14 @@ class DuctStaticAIRCx(object):
                 elif self.auto_correct_flag and self.auto_correct_flag == key:
                     aircx_stcpr_stpt = avg_stcpr_stpt - self.stcpr_retuning
                     if aircx_stcpr_stpt >= self.min_stcpr_stpt:
-                        self.command_tuple.append([self.stcpr_stpt_cname, aircx_stcpr_stpt])
+                        self.send_autocorrect_command(self.stcpr_stpt_cname, aircx_stcpr_stpt)
                         stcpr_stpt = "%s" % float("%.2g" % aircx_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too high. Set point decreased to: {}".format(key,
                                                                                                       stcpr_stpt)
                         result = 21.1
                     else:
-                        self.command_tuple.append([self.stcpr_stpt_cname, self.min_stcpr_stpt])
+                        self.send_autocorrect_command(self.stcpr_stpt_cname, self.min_stcpr_stpt)
                         stcpr_stpt = "%s" % float("%.2g" % self.min_stcpr_stpt)
                         stcpr_stpt = stcpr_stpt + " in. w.g."
                         msg = "{} - duct static pressure too high. Set point decreased to min {}.".format(key,
@@ -280,5 +285,5 @@ class DuctStaticAIRCx(object):
             diagnostic_msg.update({key: result})
             _log.info(msg)
 
-        _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX2 + DX + ": " + str(diagnostic_msg))))
+        _log.info(common.table_log_format(self.timestamp_array[-1], (DUCT_STC_RCX2 + DX + ": " + str(diagnostic_msg))))
         self.publish_results(self.timestamp_array[-1], DUCT_STC_RCX2 + DX, diagnostic_msg)

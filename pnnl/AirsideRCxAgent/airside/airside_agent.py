@@ -48,6 +48,7 @@ import logging
 import dateutil.tz
 from datetime import timedelta as td
 from dateutil import parser
+import gevent
 from volttron.platform.agent import utils
 from volttron.platform.jsonapi import dumps
 from volttron.platform.messaging import (headers as headers_mod, topics)
@@ -175,7 +176,6 @@ class AirsideAgent(Agent):
         self.low_sf_condition = None
         self.high_sf_condition = None
         self.actuation_mode = None
-        self.update_config_flag = None
         self.diagnostic_done_flag = True
 
         #diagnostics
@@ -255,11 +255,10 @@ class AirsideAgent(Agent):
         _log.info("Update %s for %s", config_name, self.core.identity)
         self.config.update(contents)
         if action == "NEW" or "UPDATE":
-            self.update_config_flag = True
-            if self.diagnostic_done_flag:
-                self.update_configuration()
-            elif self.diagnostic_done_flag == False:
+            while not self.diagnostic_done_flag:
+                gevent.sleep(0.25)
                 _log.info("Waiting for Diagnostics to finish before updating configuration!")
+            self.update_configuration()
 
     def update_configuration(self):
         """Update configurations for agent"""
@@ -274,7 +273,6 @@ class AirsideAgent(Agent):
         self.configuration_value_check()
         self.create_thresholds()
         self.create_diagnostics()
-        self.update_config_flag = False
         self.onstart_subscriptions(None)
 
     def setup_default_config(self):
@@ -482,8 +480,9 @@ class AirsideAgent(Agent):
         self.low_sf_thr = float(self.low_sf_thr)
         self.high_sf_thr = float(self.high_sf_thr)
         self.warm_up_time = td(minutes=self.warm_up_time)
+        self.initialize_time = None
 
-        if self.actuation_mode == "ACTIVE":
+        if self.actuation_mode.lower() == "active":
             self.actuation_mode = True
         else:
             self.actuation_mode = False
@@ -567,19 +566,22 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = DuctStaticAIRCx()
         self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                           self.stcpr_stpt_deviation_thr_dict, self.max_stcpr_stpt, self.stcpr_retuning, self.zn_high_damper_thr_dict,
-                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.analysis_name, self.duct_stcpr_stpt_name, self.publish_results)
+                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.duct_stcpr_stpt_name, self.publish_results)
+        self.stcpr_aircx.setup_platform_interfaces(self.publish_results, self.send_autocorrect_command)
 
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
                                         self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
-                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name, self.publish_results)
+                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.sat_stpt_name)
+        self.sat_aircx.setup_platform_interfaces(self.publish_results, self.send_autocorrect_command)
 
         self.sched_reset_aircx = SchedResetAIRCx()
         self.sched_reset_aircx.set_class_values(self.unocc_time_thr_dict, self.unocc_stp_thr_dict, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
                                                 self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
-                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name, self.publish_results)
+                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict)
+        self.sched_reset_aircx.setup_platform_interfaces(self.publish_results, self.send_autocorrect_command)
 
     def parse_data_dict(self, data):
         """Breaks down the passed VOLTTRON message
@@ -681,11 +683,11 @@ class AirsideAgent(Agent):
             elapsed_time = td(minutes=0)
         if self.data_window is not None:
             if elapsed_time >= self.data_window:
-                common.pre_conditions(self.publish_results, message, common.dx_list, self.analysis_name, current_time)
+                common.pre_conditions(self.publish_results, message, common.dx_list, current_time)
                 self.clear_all()
         elif condition is not None and condition.hour != current_time.hour:
             message_time = condition.replace(minute=0)
-            common.pre_conditions(self.publish_results, message, common.dx_list, self.analysis_name, message_time)
+            common.pre_conditions(self.publish_results, message, common.dx_list, message_time)
             self.clear_all()
 
     def clear_all(self):
@@ -785,6 +787,7 @@ class AirsideAgent(Agent):
     def run_diagnostics(self, current_time, device_data):
         """Run diagnostics on the data that is available."""
         _log.info("Processing Results!")
+        self.diagnostic_done_flag = False
         device_dict = {}
         for key, value in device_data.items():
             point_device = [_name for _name in key.split("&")]
@@ -796,7 +799,7 @@ class AirsideAgent(Agent):
         missing_data = self.check_for_missing_data()
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
-            return self.check_results()
+            return self.run_diagnostics_done()
 
         current_fan_status = self.check_fan_status(current_time)
         self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data,
@@ -805,7 +808,7 @@ class AirsideAgent(Agent):
         if not current_fan_status:
             _log.info("Supply fan is off: {}".format(current_time))
             self.warm_up_flag = True
-            return self.check_results()
+            return self.run_diagnostics_done()
         _log.info("Supply fan is on: {}".format(current_time))
 
         if self.fan_speed is not None and self.fan_speed > self.high_sf_thr:
@@ -821,15 +824,15 @@ class AirsideAgent(Agent):
         if self.warm_up_flag:
             self.warm_up_flag = False
             self.warm_up_start = current_time
-            return self.check_results()
+            return self.run_diagnostics_done()
 
         if self.warm_up_start is not None and (current_time - self.warm_up_start) < self.warm_up_time:
             _log.info("Unit is in warm-up. Data will not be analyzed.")
-            return self.check_results()
+            return self.run_diagnostics_done()
 
         self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_condition, self.high_sf_condition)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
-        return self.check_results()
+        return self.run_diagnostics_done()
 
     def find_reinitialize_time(self, current_time):
         """determine when next data scrape should be"""
@@ -842,42 +845,33 @@ class AirsideAgent(Agent):
         _log.debug("Start of next scrape interval: {}".format(midnight + from_midnight))
         return midnight + from_midnight
 
-    def check_results(self):
+    def run_diagnostics_done(self):
         """Check the results of the diagnostics for publishing, commands, and loading new config"""
-        self.check_result_command()
-        self.check_for_config_update_after_diagnostics()
+        self.diagnostic_done_flag = True
 
     def publish_results(self, timestamp, diagnostic_topic, diagnostic_result):
         """Publish the diagnostic results"""
-        headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: format_timestamp(timestamp), }
+        headers = {
+            headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON,
+            headers_mod.DATE: format_timestamp(timestamp)
+        }
         for device in self.publish_list:
             publish_topic = "/".join([self.analysis_name, device, diagnostic_topic])
             analysis_topic = topics.RECORD(subtopic=publish_topic)
             json_result = dumps(diagnostic_result)
             self.vip.pubsub.publish("pubsub", analysis_topic, headers, json_result)
 
-    def check_result_command(self):
-        """Check to see if any commands need to be ran based on diagnostic results"""
-        if (len(self.command_tuple)) <= 0:
-            return
+    def send_autocorrect_command(self, point, value):
+        """Send autocorrect command to the AHU/RTU to improve operational efficiency"""
         base_actuator_path = topics.RPC_DEVICE_PATH(campus=self.campus, building=self.building, unit=None, path="", point=None)
-        for device in self.device_list:
-            for point, new_value in self.command_tuple:
-                point_path = base_actuator_path(unit=device, point=point)
-                try:
-                    _log.info("Set point {} to {}".format(point_path, new_value))
-                    self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path, new_value).get(timeout=15)
-                except RemoteError as ex:
-                    _log.warning("Failed to set {} to {}: {}".format(point_path, new_value, str(ex)))
-                    continue
-        self.command_tuple.clear()
-
-    def check_for_config_update_after_diagnostics(self):
-        """Check to see if the configuration needs to be update"""
-        self.diagnostic_done_flag = True
-        if self.update_config_flag:
-            _log.info("finishing config update check")
-            self.update_configuration()
+        for device in self.publish_list:
+            point_path = base_actuator_path(unit=device, point=point)
+            try:
+                _log.info("Set point {} to {}".format(point_path, value))
+                self.actuation_vip.call("platform.actuator", "set_point", "rcx", point_path, value).get(timeout=15)
+            except RemoteError as ex:
+                _log.warning("Failed to set {} to {}: {}".format(point_path, value, str(ex)))
+                continue
 
 
 def main(argv=sys.argv):

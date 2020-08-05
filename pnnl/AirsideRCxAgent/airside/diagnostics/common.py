@@ -54,8 +54,6 @@ import logging
 from datetime import timedelta as td
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
-from volttron.platform.jsonapi import dumps
-
 
 FAN_OFF = -99.3
 DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
@@ -70,8 +68,8 @@ dx_offsets = {SA_TEMP_RCX: 30.0, DUCT_STC_RCX: 0.0}
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
-                    datefmt='%m-%d-%y %H:%M:%S')
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 def check_date(current_time, timestamp_array):
@@ -160,9 +158,8 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
             result = 2.2 + dx_offsets[dx_name]
         _log.info(msg)
         diagnostic_msg.update({sensitivity: result})
-        dx_string = dx_name + DX
-        dx_msg = diagnostic_msg
-    return avg_set_point, dx_string, dx_msg
+        diganostic_string = dx_name + DX
+    return avg_set_point, diganostic_string, diagnostic_msg
 
 
 def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
@@ -176,18 +173,12 @@ def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
     """
     dx_msg = {"low": message, "normal": message, "high": message}
     for diagnostic in dx_li:
-        _log.info(table_log_format(analysis, cur_time, (diagnostic + DX + ':' + str(dx_msg))))
+        _log.info(table_log_format(cur_time, (diagnostic + DX + ':' + str(dx_msg))))
         results_pub(cur_time, (diagnostic + DX), dx_msg)
 
 
-def table_log_format(name, timestamp, data):
+def table_log_format(timestamp, data):
     """ Return a formatted string for use in the log"""
-    return str(str(name) + '&' + str(timestamp) + '->[' + str(data) + ']')
+    return str(timestamp) + '->[' + str(data) + ']'
 
-
-def table_publish_format(name, timestamp, table, data):
-    """ Return a dictionary for use in the results publish"""
-    table_key = str(str(name) + "&" + str(timestamp))
-    data = dumps(data)
-    return [table_key, [table, data]]
 

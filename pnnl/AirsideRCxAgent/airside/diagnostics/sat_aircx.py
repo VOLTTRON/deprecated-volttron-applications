@@ -261,11 +261,11 @@ class SupplyTempAIRCx(object):
         :return:
         """
         avg_zones_rht = mean(self.percent_rht)*100.0
-        avg_zone_dmpr_data = mean(self.percent_dmpr) * 100.0
         thresholds = zip(self.percent_dmpr_thr.items(), self.percent_rht_thr.items())
         diagnostic_msg = {}
 
         for (key, percent_dmpr_thr), (key2, percent_rht_thr) in thresholds:
+            avg_zone_dmpr_data = mean(self.percent_dmpr[key]) * 100.0
             if avg_zone_dmpr_data > percent_dmpr_thr and avg_zones_rht < percent_rht_thr:
                 if avg_sat_stpt is None:
                     # Create diagnostic message for fault

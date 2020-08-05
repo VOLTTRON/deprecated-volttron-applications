@@ -566,7 +566,7 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = DuctStaticAIRCx()
         self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                           self.stcpr_stpt_deviation_thr_dict, self.max_stcpr_stpt, self.stcpr_retuning, self.zn_high_damper_thr_dict,
-                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.duct_stcpr_stpt_name, self.publish_results)
+                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.duct_stcpr_stpt_name)
         self.stcpr_aircx.setup_platform_interfaces(self.publish_results, self.send_autocorrect_command)
 
         self.sat_aircx = SupplyTempAIRCx()
@@ -864,6 +864,9 @@ class AirsideAgent(Agent):
     def send_autocorrect_command(self, point, value):
         """Send autocorrect command to the AHU/RTU to improve operational efficiency"""
         base_actuator_path = topics.RPC_DEVICE_PATH(campus=self.campus, building=self.building, unit=None, path="", point=None)
+        if not self.actuation_mode:
+            _log.debug("Actuation disabled:  autocorrect point: {} -- value: {}".format(point, value))
+            return
         for device in self.publish_list:
             point_path = base_actuator_path(unit=device, point=point)
             try:

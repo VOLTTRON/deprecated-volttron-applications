@@ -242,7 +242,6 @@ class AirsideAgent(Agent):
                     sd_string = u + "/" + sd
                     self.master_devices.append(sd_string)
                     self.device_topic_dict.update({subdevice_topic: sd_string})
-                    self.publish_list.append("/".join([self.campus, self.building, u, sd]))
         self.initialize_devices()
 
     def configure_main(self, config_name, action, contents):

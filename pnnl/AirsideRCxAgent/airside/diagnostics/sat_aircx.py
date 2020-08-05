@@ -117,7 +117,7 @@ class SupplyTempAIRCx(object):
         self.sat_retuning = None
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
-                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, parent):
+                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, publish_results):
         """Set the values needed for doing the diagnostics"""
 
         self.analysis = analysis
@@ -129,7 +129,7 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
         self.data_window = data_window
-        self.publish_results = parent.publish_results
+        self.publish_results = publish_results
         # Low SAT RCx thresholds
         self.rht_valve_thr = rht_valve_thr
         self.max_sat_stpt = max_sat_stpt

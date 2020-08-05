@@ -103,7 +103,7 @@ class DuctStaticAIRCx(object):
         self.command_tuple = []
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
-                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname, publish_results):
+                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname, parent):
         """Set the values needed for doing the diagnostic"""
 
         # Initialize configurable thresholds
@@ -117,7 +117,7 @@ class DuctStaticAIRCx(object):
         self.zn_high_dmpr_thr = zn_high_dmpr_thr
         self.zn_low_dmpr_thr = zn_low_dmpr_thr
         self.data_window = data_window
-        self.publish_results = publish_results
+        self.publish_results = parent.publish_results
 
         self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)

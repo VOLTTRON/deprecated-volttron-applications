@@ -109,7 +109,7 @@ class SchedResetAIRCx(object):
         self.sat_reset_thr = {}
 
     def set_class_values(self, unocc_time_thr, unocc_stcpr_thr, monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
-                         friday_sch, saturday_sch, sunday_sch, no_req_data, stcpr_reset_thr, sat_reset_thr, analysis, publish_results):
+                         friday_sch, saturday_sch, sunday_sch, no_req_data, stcpr_reset_thr, sat_reset_thr, analysis, parent):
         """Set the values needed for doing the diagnostics"""
 
         def date_parse(dates):
@@ -123,7 +123,7 @@ class SchedResetAIRCx(object):
         self.friday_sch = date_parse(friday_sch)
         self.saturday_sch = date_parse(saturday_sch)
         self.sunday_sch = date_parse(sunday_sch)
-        self.publish_results = publish_results
+        self.publish_results = parent.publish_results
 
         self.schedule = {0: self.monday_sch, 1: self.tuesday_sch,
                          2: self.wednesday_sch, 3: self.thursday_sch,

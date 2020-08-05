@@ -166,7 +166,6 @@ class AirsideAgent(Agent):
         self.device_topic_dict = {}
         self.conversion_map = {}
         self.map_names = {}
-        self.results_publish = []
 
         #bool attributes
         self.auto_correct_flag = None
@@ -569,19 +568,19 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = DuctStaticAIRCx()
         self.stcpr_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                           self.stcpr_stpt_deviation_thr_dict, self.max_stcpr_stpt, self.stcpr_retuning, self.zn_high_damper_thr_dict,
-                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.analysis_name, self.duct_stcpr_stpt_name, self.results_publish)
+                                          self.zn_low_damper_thr_dict, self.hdzn_damper_thr_dict, self.min_stcpr_stpt, self.analysis_name, self.duct_stcpr_stpt_name, self.publish_results)
 
         self.sat_aircx = SupplyTempAIRCx()
         self.sat_aircx.set_class_values(self.command_tuple, self.no_required_data, self.data_window, self.auto_correct_flag,
                                         self.sat_stpt_deviation_thr_dict, self.rht_on_thr,
                                         self.sat_high_damper_thr_dict, self.percent_damper_thr_dict,
                                         self.percent_reheat_thr_dict, self.min_sat_stpt, self.sat_retuning,
-                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name, self.results_publish)
+                                        self.reheat_valve_thr_dict, self.max_sat_stpt, self.analysis_name, self.sat_stpt_name, self.publish_results)
 
         self.sched_reset_aircx = SchedResetAIRCx()
         self.sched_reset_aircx.set_class_values(self.unocc_time_thr_dict, self.unocc_stp_thr_dict, self.monday_sch, self.tuesday_sch, self.wednesday_sch,
                                                 self.thursday_sch, self.friday_sch, self.saturday_sch, self.sunday_sch, self.no_required_data,
-                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name, self.results_publish)
+                                                self.stcpr_reset_threshold_dict, self.sat_reset_threshold_dict, self.analysis_name, self.publish_results)
 
     def parse_data_dict(self, data):
         """Breaks down the passed VOLTTRON message
@@ -683,11 +682,11 @@ class AirsideAgent(Agent):
             elapsed_time = td(minutes=0)
         if self.data_window is not None:
             if elapsed_time >= self.data_window:
-                common.pre_conditions(self.results_publish, message, common.dx_list, self.analysis_name, current_time)
+                common.pre_conditions(self.publish_results, message, common.dx_list, self.analysis_name, current_time)
                 self.clear_all()
         elif condition is not None and condition.hour != current_time.hour:
             message_time = condition.replace(minute=0)
-            common.pre_conditions(self.results_publish, message, common.dx_list, self.analysis_name, message_time)
+            common.pre_conditions(self.publish_results, message, common.dx_list, self.analysis_name, message_time)
             self.clear_all()
 
     def clear_all(self):
@@ -846,32 +845,17 @@ class AirsideAgent(Agent):
 
     def check_results(self):
         """Check the results of the diagnostics for publishing, commands, and loading new config"""
-        self.publish_analysis_results()
         self.check_result_command()
         self.check_for_config_update_after_diagnostics()
 
-    def publish_analysis_results(self):
+    def publish_results(self, timestamp, diagnostic_topic, diagnostic_result):
         """Publish the diagnostic results"""
-        if (len(self.results_publish)) <= 0:
-            return
-        publish_base = "/".join([self.analysis_name])
-        for app, analysis_table in self.results_publish:
-            to_publish = {}
-            name_timestamp = app.split("&")
-            timestamp = name_timestamp[1]
-            point = analysis_table[0]
-            result = analysis_table[1]
-            headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
-            for device in self.publish_list:
-                publish_topic = "/".join([publish_base, device, point])
-                analysis_topic = topics.RECORD(subtopic=publish_topic)
-                to_publish[analysis_topic] = result
-
-            for result_topic, result in to_publish.items():
-                json_result = dumps(result)
-                self.vip.pubsub.publish("pubsub", result_topic, headers, json_result)
-            to_publish.clear()
-        self.results_publish.clear()
+        headers = {headers_mod.CONTENT_TYPE: headers_mod.CONTENT_TYPE.JSON, headers_mod.DATE: timestamp, }
+        for device in self.publish_list:
+            publish_topic = "/".join([self.analysis_name, device, diagnostic_topic])
+            analysis_topic = topics.RECORD(subtopic=publish_topic)
+            json_result = dumps(diagnostic_result)
+            self.vip.pubsub.publish("pubsub", json_result, headers, json_result)
 
     def check_result_command(self):
         """Check to see if any commands need to be ran based on diagnostic results"""

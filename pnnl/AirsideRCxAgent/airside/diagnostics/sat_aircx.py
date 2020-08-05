@@ -96,6 +96,7 @@ class SupplyTempAIRCx(object):
         self.command_tuple = []
 
         # Common RCx parameters
+        self.publish_results = None
         self.analysis = ""
         self.sat_stpt_cname = ""
         self.no_req_data = 0
@@ -104,7 +105,6 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = None
         self.percent_rht_thr = None
         self.data_window = 0
-        self.results_publish = []
 
         # Low SAT RCx thresholds
         self.rht_valve_thr = None
@@ -115,10 +115,9 @@ class SupplyTempAIRCx(object):
         self.percent_dmpr_thr = None
         self.min_sat_stpt = None
         self.sat_retuning = None
-        self.dx_offset = 30.0
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, rht_on_thr, high_dmpr_thr,
-                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, results_publish):
+                         percent_dmpr_thr, percent_rht_thr, min_sat_stpt, sat_retuning, rht_valve_thr, max_sat_stpt, analysis, sat_stpt_cname, publish_results):
         """Set the values needed for doing the diagnostics"""
 
         self.analysis = analysis
@@ -130,7 +129,7 @@ class SupplyTempAIRCx(object):
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr
         self.data_window = data_window
-        self.results_publish = results_publish
+        self.publish_results = publish_results
 
         # Low SAT RCx thresholds
         self.rht_valve_thr = rht_valve_thr
@@ -182,21 +181,20 @@ class SupplyTempAIRCx(object):
         count_damper = len(zone_dmpr_data)
 
         if common.check_date(current_time, self.timestamp_array):
-            common.pre_conditions(self.results_publish, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.results_publish, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         if run_status:
-            avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX, self.dx_offset)
-
+            avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX)
             _log.info(common.table_log_format(self.analysis, current_time, dx_string + str(dx_msg)))
-            self.results_publish.append(common.table_publish_format(self.analysis, current_time, dx_string, dx_msg))
+            self.publish_results(current_time, dx_string, dx_msg)
             self.low_sat(avg_sat_stpt)
             self.high_sat(avg_sat_stpt)
             self.reinitialize()
@@ -253,7 +251,7 @@ class SupplyTempAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX1 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX1 + DX + ": ", diagnostic_msg))
+        self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX1 + DX, diagnostic_msg)
 
     def high_sat(self, avg_sat_stpt):
         """
@@ -303,5 +301,5 @@ class SupplyTempAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (SA_TEMP_RCX2 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], SA_TEMP_RCX2 + DX + ": ", diagnostic_msg))
+        self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX2 + DX, diagnostic_msg)
 

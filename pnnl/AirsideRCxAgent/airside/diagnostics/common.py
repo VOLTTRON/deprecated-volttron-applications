@@ -66,6 +66,7 @@ SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
 SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
 SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
 dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
+dx_offsets = {SA_TEMP_RCX: 30.0, DUCT_STC_RCX: 0.0}
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -125,7 +126,7 @@ def check_run_status(timestamp_array, current_time, no_required_data, minimum_di
     return False
 
 
-def setpoint_control_check(set_point_array, point_array, setpoint_deviation_threshold, dx_name, dx_offset):
+def setpoint_control_check(set_point_array, point_array, setpoint_deviation_threshold, dx_name):
     """
     Verify that point if tracking with set point - identify potential control or sensor problems.
     :param set_point_array:
@@ -148,18 +149,18 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
             if set_point_error > threshold:
                 # color_code = 'red'
                 msg = '{} - {}: point deviating significantly from set point.'.format(sensitivity, dx_name)
-                result = 1.1 + dx_offset
+                result = 1.1 + dx_offsets[dx_name]
             else:
                 # color_code = 'green'
                 msg = " {} - No problem detected for {} set".format(sensitivity, dx_name)
-                result = 0.0 + dx_offset
+                result = 0.0 + dx_offsets[dx_name]
         else:
             # color_code = 'grey'
             msg = "{} - {} set point data is not available.".format(sensitivity, dx_name)
-            result = 2.2 + dx_offset
+            result = 2.2 + dx_offsets[dx_name]
         _log.info(msg)
         diagnostic_msg.update({sensitivity: result})
-        dx_string = dx_name + DX + ": "
+        dx_string = dx_name + DX
         dx_msg = diagnostic_msg
     return avg_set_point, dx_string, dx_msg
 
@@ -176,7 +177,7 @@ def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
     dx_msg = {"low": message, "normal": message, "high": message}
     for diagnostic in dx_li:
         _log.info(table_log_format(analysis, cur_time, (diagnostic + DX + ':' + str(dx_msg))))
-        results_pub.append(table_publish_format(analysis, cur_time, (diagnostic + DX + ':'), dx_msg))
+        results_pub(cur_time, (diagnostic + DX), dx_msg)
 
 
 def table_log_format(name, timestamp, data):

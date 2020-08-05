@@ -79,7 +79,7 @@ class DuctStaticAIRCx(object):
         self.stcpr_stpt_array = []
         self.stcpr_array = []
         self.timestamp_array = []
-        self.results_publish = []
+        self.publish_results = None
 
         # Initialize configurable thresholds
         self.analysis = ""
@@ -101,10 +101,9 @@ class DuctStaticAIRCx(object):
         self.low_sf_condition = []
         self.high_sf_condition = []
         self.command_tuple = []
-        self.dx_offset = 0.0
 
     def set_class_values(self, command_tuple, no_req_data, data_window, auto_correct_flag, stpt_deviation_thr, max_stcpr_stpt, stcpr_retuning, zn_high_dmpr_thr,
-                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname, results_publish):
+                         zn_low_dmpr_thr, hdzn_dmpr_thr, min_stcpr_stpt, analysis, stcpr_stpt_cname, publish_results):
         """Set the values needed for doing the diagnostic"""
 
         # Initialize configurable thresholds
@@ -118,7 +117,7 @@ class DuctStaticAIRCx(object):
         self.zn_high_dmpr_thr = zn_high_dmpr_thr
         self.zn_low_dmpr_thr = zn_low_dmpr_thr
         self.data_window = data_window
-        self.results_publish = results_publish
+        self.publish_results = publish_results
 
         self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)
@@ -152,19 +151,19 @@ class DuctStaticAIRCx(object):
         :return:
         """
         if common.check_date(current_time, self.timestamp_array):
-            common.pre_conditions(self.results_publish, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INCONSISTENT_DATE, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, self.data_window)
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.results_publish, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, self.analysis, current_time)
             self.reinitialize()
 
         if run_status:
-            avg_stcpr_stpt = common.setpoint_control_check(self.stcpr_stpt_array, self.stcpr_array, self.stpt_deviation_thr, DUCT_STC_RCX, self.dx_offset)
-
+            avg_stcpr_stpt, dx_string, dx_msg = common.setpoint_control_check(self.stcpr_stpt_array, self.stcpr_array, self.stpt_deviation_thr, DUCT_STC_RCX)
+            self.publish_results(current_time, dx_string, dx_msg)
             self.low_stcpr_aircx(avg_stcpr_stpt)
             self.high_stcpr_aircx(avg_stcpr_stpt)
             self.reinitialize()
@@ -233,7 +232,7 @@ class DuctStaticAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX1 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX1 + DX + ": ", diagnostic_msg))
+        self.publish_results(self.timestamp_array[-1], DUCT_STC_RCX1 + DX, diagnostic_msg)
 
     def high_stcpr_aircx(self, avg_stcpr_stpt):
         """
@@ -282,4 +281,4 @@ class DuctStaticAIRCx(object):
             _log.info(msg)
 
         _log.info(common.table_log_format(self.analysis, self.timestamp_array[-1], (DUCT_STC_RCX2 + DX + ": " + str(diagnostic_msg))))
-        self.results_publish.append(common.table_publish_format(self.analysis, self.timestamp_array[-1], DUCT_STC_RCX2 + DX + ": ", diagnostic_msg))
+        self.publish_results(self.timestamp_array[-1], DUCT_STC_RCX2 + DX, diagnostic_msg)

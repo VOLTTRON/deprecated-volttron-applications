@@ -1,6 +1,4 @@
-{
-    "agentid": "airside_aircx",
-    "application": "airside_aircx.Application",
+{   "analysis_name": "AirsideAIRCx",
     "device": {
         "campus": "campus",
         "building": "building",
@@ -16,7 +14,6 @@
             }
         }
     },
-    "analysis_name": "AirsideAIRCx",
     "mode": "PASSIVE",
     "arguments": {
         "point_mapping": {
@@ -72,16 +69,5 @@
         # "sat_reset_thr": 5.0,
         # "stcpr_reset_thr": 0.25
 
-    },
-    "conversion_map": {
-        ".*Temperature": "float",
-        ".*SetPoint": "float",
-        "OutdoorDamperSignal": "float",
-        ".*Status": "int",
-        "CoolingCall": "float",
-        ".*Speed": "float",
-        "Damper*.": "float",
-        "Heating*.": "float",
-        "DuctStatic*.": "float"
     }
 }

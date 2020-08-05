@@ -195,7 +195,7 @@ class SupplyTempAIRCx(object):
         if run_status:
             avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX, self.dx_offset)
 
-            _log.info(common.table_log_format(self.analysis, current_time, dx_string + dx_msg))
+            _log.info(common.table_log_format(self.analysis, current_time, dx_string + str(dx_msg)))
             self.results_publish.append(common.table_publish_format(self.analysis, current_time, dx_string, dx_msg))
             self.low_sat(avg_sat_stpt)
             self.high_sat(avg_sat_stpt)

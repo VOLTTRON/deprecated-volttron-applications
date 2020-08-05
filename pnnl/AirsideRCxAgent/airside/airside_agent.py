@@ -54,7 +54,6 @@ from volttron.platform.messaging import (headers as headers_mod, topics)
 from volttron.platform.agent.math_utils import mean
 from volttron.platform.agent.utils import setup_logging
 from volttron.platform.vip.agent import Agent, Core
-from volttron.platform.agent.driven import ConversionMapper
 from volttron.platform.jsonrpc import RemoteError
 from .diagnostics import common
 from .diagnostics.sat_aircx import SupplyTempAIRCx
@@ -123,7 +122,6 @@ class AirsideAgent(Agent):
         self.sat_reset_thr = 0.0
         self.unocc_time_thr = 0.0
         self.unocc_stp_thr = 0.0
-        self.device_lock_duration = 0.0
         self.missing_data_threshold = 0.0
 
         #list attributes
@@ -185,7 +183,6 @@ class AirsideAgent(Agent):
         self.stcpr_aircx = None
         self.sat_aircx = None
         self.sched_reset_aircx = None
-        self.converter = ConversionMapper()
 
         # start reading all the class configs and check them
         self.read_config(config_path)
@@ -214,7 +211,6 @@ class AirsideAgent(Agent):
         """Setup the device subscriptions"""
         self.analysis_name = self.config.get("analysis_name", "analysis_name")
         self.actuation_mode = self.config.get("actuation_mode", "PASSIVE")
-        self.device_lock_duration = self.config.get("device_lock_duration", 10.0)
         self.timezone = self.config.get("local_timezone", "US/Pacific")
         self.interval = self.config.get("interval", 60)
         self.missing_data_threshold = self.config.get("missing_data_threshold", 15.0) / 100.0
@@ -286,9 +282,6 @@ class AirsideAgent(Agent):
     def setup_default_config(self):
         """Setup a default configuration object"""
         default_config = {
-            "agentid": "airside_aircx",
-            "application": "airside_aircx.Application",
-
             "device": {
                 "campus": "campus",
                 "building": "building",
@@ -356,18 +349,6 @@ class AirsideAgent(Agent):
 
                 # "sat_reset_thr": 5.0,
                 # "stcpr_reset_thr": 0.25
-            },
-            "conversion_map": {
-                ".*Temperature": "float",
-                ".*SetPoint": "float",
-                "OutdoorDamperSignal": "float",
-                ".*Status": "int",
-                "CoolingCall": "float",
-                ".*Speed": "float",
-                "Damper*.": "float",
-                "Heating*.": "float",
-                "DuctStatic*.": "float"
-
             }
         }
         return default_config
@@ -390,7 +371,7 @@ class AirsideAgent(Agent):
         self.no_required_data = self.read_argument("no_required_data", 10)
         self.warm_up_time = self.read_argument("warm_up_time", 15)
         self.data_window = self.read_argument("data_window", None)
-        self.stcpr_retuning = self.read_argument("stcpr_retuning", 0.15)
+        self.stcpr_retuning = self.read_argument("stcpr_retuning", 0.1)
         self.min_stcpr_stpt = self.read_argument("min_stcpr_stpt", 0.5)
         self.max_stcpr_stpt= self.read_argument("max_stcpr_stpt", 2.5)
         self.sat_retuning = self.read_argument("sat_retuning", 1.0)

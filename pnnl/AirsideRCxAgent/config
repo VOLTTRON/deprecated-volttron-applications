@@ -1,4 +1,5 @@
-{   "analysis_name": "AirsideAIRCx",
+{
+    "analysis_name": "AirsideAIRCx",
     "device": {
         "campus": "campus",
         "building": "building",

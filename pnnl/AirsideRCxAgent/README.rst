@@ -78,9 +78,7 @@ by this agent. A sample configuration is included with the agent
 .. code-block:: python
 
     {
-        "agentid": "airside_aircx",
-        "application": "airside_aircx.Application",
-
+        "analysis_name": "AirsideAIRCx",
         "device": {
             "campus": "campus",
             "building": "building",
@@ -88,33 +86,41 @@ by this agent. A sample configuration is included with the agent
 
                 "AHU3": {
                     "subdevices": [
+
                         "VAV107", "VAV104",
                         "VAV116", "VAV105"
+
                     ]
                 }
             }
         },
-        "analysis_name": "AirsideAIRCx",
-        "mode": "PASSIVE",
+        "actuation_mode": "passive",
         "arguments": {
             "point_mapping": {
                 "fan_status": "supplyfanstatus",
                 "zone_reheat": "heatingsignal",
                 "zone_damper": "damperposition",
-                "duct_stp": "ductstaticpressure",
-                "duct_stp_stpt": "ductstaticpressuresetpoint",
+                "duct_stcpr": "ductstaticpressure",
+                "duct_stcpr_stpt": "ductstaticpressuresetpoint",
                 "sa_temp": "dischargeairtemperature",
                 "fan_speedcmd": "supplyfanspeed",
                 "sat_stpt": "dischargeairtemperaturesetpoint"
+
             }
-            # Uncomment to customize thresholds
+            #### Uncomment to customize thresholds (thresholds have single #)
 
             # "no_required_data": 10,
             # "sensitivity": custom
-            # "autocorrect_flag": false,
-            # "stpt_deviation_thr": 10.0,
 
-            # Static Pressure AIRCx Thresholds
+            ### auto_correct_flag can be set to false, "low", "normal", or "high" ###
+            # "auto_correct_flag": false,
+            # "warm_up_time": 5,
+
+            ### data_window - time duration for data collection prior to analysis_name
+            ### if data_window is ommitted from configuration defaults to run on the hour.
+
+            ### Static Pressure AIRCx Thresholds ###
+            # "stcpr_stpt_deviation_thr": 20
             # "warm_up_time": 5,
             # "duct_stcpr_retuning": 0.1,
             # "max_duct_stcpr_stpt": 2.5,
@@ -125,19 +131,20 @@ by this agent. A sample configuration is included with the agent
             # "min_duct_stcpr_stpt": 0.5,
             # "hdzn_damper_thr": 30.0,
 
-            # SAT AIRCx Thresholds
+            ### SAT AIRCx Thresholds ###
+            # "sat_stpt_deviation_thr": 5,
             # "percent_reheat_thr": 25.0,
             # "rht_on_thr": 10.0,
             # "sat_high_damper_thr": 80.0,
             # "percent_damper_thr": 60.0,
-            # "minimum_sat_stpt": 50.0,
+            # "min_sat_stpt": 50.0,
             # "sat_retuning": 1.0,
             # "reheat_valve_thr": 50.0,
-            # "maximum_sat_stpt": 75.0,
+            # "max_sat_stpt": 75.0,
 
-            # Schedule/Reset AIRCx Thresholds
+            #### Schedule/Reset AIRCx Thresholds ###
             # "unocc_time_thr": 40.0,
-            # "unocc_stp_thr": 0.2,
+            # "unocc_stcpr_thr": 0.2,
             # "monday_sch": ["5:30","18:30"],
             # "tuesday_sch": ["5:30","18:30"],
             # "wednesday_sch": ["5:30","18:30"],
@@ -148,17 +155,7 @@ by this agent. A sample configuration is included with the agent
 
             # "sat_reset_thr": 5.0,
             # "stcpr_reset_thr": 0.25
-        },
-        "conversion_map": {
-            ".*Temperature": "float",
-            ".*SetPoint": "float",
-            "OutdoorDamperSignal": "float",
-            ".*Status": "int",
-            "CoolingCall": "float",
-            ".*Speed": "float",
-            "Damper*.": "float",
-            "Heating*.": "float",
-            "DuctStatic*.": "float"
+
 
         }
     }

@@ -66,7 +66,7 @@ __version__ = "1.1.0"
 setup_logging()
 _log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
-                    datefmt="%m-%d-%y %H:%M:%S)
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 class AirsideAgent(Agent):

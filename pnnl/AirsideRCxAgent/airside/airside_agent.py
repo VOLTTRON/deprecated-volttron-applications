@@ -65,8 +65,8 @@ __version__ = "1.1.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
-                    datefmt='%m-%d-%y %H:%M:%S')
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S)
 
 
 class AirsideAgent(Agent):
@@ -93,14 +93,14 @@ class AirsideAgent(Agent):
         self.initialize_time = None
         self.timezone = ""
 
-        #int attributes
+        # int attributes
         self.no_required_data = 0
         self.warm_up_time = 0
         self.data_window = 0
         self.fan_speed = None
         self.interval = 0
 
-        #float attributes
+        # float attributes
         self.stcpr_retuning = 0.0
         self.min_stcpr_stpt = 0.0
         self.max_stcpr_stpt = 0.0
@@ -125,7 +125,7 @@ class AirsideAgent(Agent):
         self.unocc_stp_thr = 0.0
         self.missing_data_threshold = 0.0
 
-        #list attributes
+        # list attributes
         self.device_list = []
         self.publish_list = []
         self.master_devices = []
@@ -168,7 +168,7 @@ class AirsideAgent(Agent):
         self.conversion_map = {}
         self.map_names = {}
 
-        #bool attributes
+        # bool attributes
         self.auto_correct_flag = None
         self.warm_up_start = None
         self.warm_up_flag = True
@@ -178,18 +178,13 @@ class AirsideAgent(Agent):
         self.actuation_mode = None
         self.diagnostic_done_flag = True
 
-        #diagnostics
+        # diagnostics
         self.stcpr_aircx = None
         self.sat_aircx = None
         self.sched_reset_aircx = None
 
-        # start reading all the class configs and check them
+        # read configuration file
         self.read_config(config_path)
-        #self.read_argument_config()
-        #self.read_point_mapping()
-        #self.configuration_value_check()
-        #self.create_thresholds()
-        #elf.create_diagnostics()
 
     def read_config(self, config_path):
         """
@@ -304,15 +299,21 @@ class AirsideAgent(Agent):
                     "fan_speedcmd": "supplyfanspeed",
                     "sat_stpt": "dischargeairtemperaturesetpoint"
                 }
-                # Uncomment to customize thresholds
+                #### Uncomment to customize thresholds (thresholds have single #)
 
                 # "no_required_data": 10,
                 # "sensitivity": custom
+
+                ### auto_correct_flag can be set to false, "low", "normal", or "high" ###
                 # "auto_correct_flag": false,
                 # "warm_up_time": 5,
 
-                # Static Pressure AIRCx Thresholds
+                ### data_window - time duration for data collection prior to analysis_name
+                ### if data_window is ommitted from configuration defaults to run on the hour.
+
+                ### Static Pressure AIRCx Thresholds ###
                 # "stcpr_stpt_deviation_thr": 20
+                # "warm_up_time": 5,
                 # "duct_stcpr_retuning": 0.1,
                 # "max_duct_stcpr_stpt": 2.5,
                 # "high_sf_thr": 95.0,
@@ -322,20 +323,20 @@ class AirsideAgent(Agent):
                 # "min_duct_stcpr_stpt": 0.5,
                 # "hdzn_damper_thr": 30.0,
 
-                # SAT AIRCx Thresholds
+                ### SAT AIRCx Thresholds ###
+                # "sat_stpt_deviation_thr": 5,
                 # "percent_reheat_thr": 25.0,
                 # "rht_on_thr": 10.0,
                 # "sat_high_damper_thr": 80.0,
                 # "percent_damper_thr": 60.0,
-                # "minimum_sat_stpt": 50.0,
+                # "min_sat_stpt": 50.0,
                 # "sat_retuning": 1.0,
                 # "reheat_valve_thr": 50.0,
-                # "maximum_sat_stpt": 75.0,
+                # "max_sat_stpt": 75.0,
 
-                # Schedule/Reset AIRCx Thresholds
-                # "sat_stpt_deviation_thr": 5,
+                #### Schedule/Reset AIRCx Thresholds ###
                 # "unocc_time_thr": 40.0,
-                # "unocc_stp_thr": 0.2,
+                # "unocc_stcpr_thr": 0.2,
                 # "monday_sch": ["5:30","18:30"],
                 # "tuesday_sch": ["5:30","18:30"],
                 # "wednesday_sch": ["5:30","18:30"],
@@ -367,9 +368,9 @@ class AirsideAgent(Agent):
         self.no_required_data = self.read_argument("no_required_data", 10)
         self.warm_up_time = self.read_argument("warm_up_time", 15)
         self.data_window = self.read_argument("data_window", None)
-        self.stcpr_retuning = self.read_argument("stcpr_retuning", 0.1)
-        self.min_stcpr_stpt = self.read_argument("min_stcpr_stpt", 0.5)
-        self.max_stcpr_stpt= self.read_argument("max_stcpr_stpt", 2.5)
+        self.stcpr_retuning = self.read_argument("duct_stcpr_retuning", 0.1)
+        self.min_stcpr_stpt = self.read_argument("min_duct_stcpr_stpt", 0.5)
+        self.max_stcpr_stpt= self.read_argument("max_duct_stcpr_stpt", 2.5)
         self.sat_retuning = self.read_argument("sat_retuning", 1.0)
         self.min_sat_stpt = self.read_argument("min_sat_stpt", 50.0)
         self.max_sat_stpt = self.read_argument("max_sat_stpt", 70.0)
@@ -389,7 +390,7 @@ class AirsideAgent(Agent):
         self.reheat_valve_thr = self.read_argument("reheat_valve_thr", 50.0)
         self.sat_reset_thr = self.read_argument("sat_reset_thr", 2.0)
         self.unocc_time_thr = self.read_argument("unocc_time_thr", 40.0)
-        self.unocc_stp_thr = self.read_argument("unocc_stp_thr", 0.2)
+        self.unocc_stp_thr = self.read_argument("unocc_stcpr_thr", 0.2)
         self.monday_sch = self.read_argument("monday_sch", ["5:30", "18:30"])
         self.tuesday_sch = self.read_argument("tuesday_sch", ["5:30", "18:30"])
         self.wednesday_sch = self.read_argument("wednesday_sch", ["5:30", "18:30"])
@@ -397,7 +398,7 @@ class AirsideAgent(Agent):
         self.friday_sch = self.read_argument("friday_sch", ["5:30", "18:30"])
         self.saturday_sch = self.read_argument("saturday_sch", ["0:00", "0:00"])
         self.sunday_sch = self.read_argument("saturday_sch", ["0:00", "0:00"])
-        self.analysis_name = self.read_argument("analysis_name", "")
+        self.analysis_name = self.read_argument("analysis_name", "AirsideAIRCx")
         self.sensitivity = self.read_argument("sensitivity", "default")
         self.point_mapping = self.read_argument("point_mapping", {})
 

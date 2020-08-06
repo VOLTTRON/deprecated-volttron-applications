@@ -123,7 +123,9 @@ class SupplyTempAIRCx(object):
         self.command_tuple = command_tuple
         self.sat_stpt_cname = sat_stpt_cname
         self.no_req_data = no_req_data
-        self.auto_correct_flag = bool(auto_correct_flag)
+        self.auto_correct_flag = False
+        if isinstance(auto_correct_flag, str) and auto_correct_flag in ["low", "normal", "high"]:
+            self.auto_correct_flag = auto_correct_flag
         self.stpt_deviation_thr = stpt_deviation_thr
         self.rht_on_thr = rht_on_thr
         self.percent_rht_thr = percent_rht_thr

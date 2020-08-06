@@ -92,7 +92,7 @@ class DuctStaticAIRCx(object):
         self.zn_low_dmpr_thr = {}
         self.data_window = 0
 
-        self.auto_correct_flag = 0
+        self.auto_correct_flag = False
         self.min_stcpr_stpt = 0
         self.hdzn_dmpr_thr = {}
         self.ls_dmpr_low_avg = []
@@ -120,7 +120,9 @@ class DuctStaticAIRCx(object):
         self.zn_low_dmpr_thr = zn_low_dmpr_thr
         self.data_window = data_window
 
-        self.auto_correct_flag = auto_correct_flag
+        self.auto_correct_flag = False
+        if isinstance(auto_correct_flag, str) and auto_correct_flag in ["low", "normal", "high"]:
+            self.auto_correct_flag = auto_correct_flag
         self.min_stcpr_stpt = float(min_stcpr_stpt)
         self.hdzn_dmpr_thr = hdzn_dmpr_thr
 

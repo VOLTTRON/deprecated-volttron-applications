@@ -222,7 +222,7 @@ class AirsideAgent(Agent):
             self.core.stop()
 
         self.campus = self.device.get("campus", "")
-        self.building = self.device("building", "")
+        self.building = self.device.get("building", "")
         self.units = self.device.get("unit", {})
         if not self.units:
             _log.warning("device unit parameters are not present in configuration file for {}".format(self.core.identity))

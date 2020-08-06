@@ -147,7 +147,7 @@ class AirsideAgent(Agent):
         self.sunday_sch = []
         self.fan_status_data = []
         self.stcpr_stpt_data = []
-        self.stc_pr_data = []
+        self.stcpr_data = []
         self.sat_stpt_data = []
         self.sat_data = []
         self.zn_rht_data = []
@@ -169,8 +169,6 @@ class AirsideAgent(Agent):
         self.stcpr_reset_threshold_dict = {}
         self.command_tuple = []
         self.device_topic_dict = {}
-        self.conversion_map = {}
-        self.map_names = {}
 
         # bool attributes
         self.auto_correct_flag = None
@@ -207,14 +205,11 @@ class AirsideAgent(Agent):
 
     def setup_device_list(self):
         """Setup the device subscriptions"""
-        self.analysis_name = self.config.get("analysis_name", "analysis_name")
+        self.analysis_name = self.config.get("analysis_name", "AirsideAIRCx")
         self.actuation_mode = self.config.get("actuation_mode", "passive")
         self.timezone = self.config.get("local_timezone", "US/Pacific")
         self.interval = self.config.get("interval", 60)
         self.missing_data_threshold = self.config.get("missing_data_threshold", 15.0) / 100.0
-        self.conversion_map = self.config.get("conversion_map", {})
-        for key, value in self.conversion_map.items():
-            self.map_names[key] = value
 
         self.device = self.config.get("device", {})
         if not self.device:
@@ -240,14 +235,14 @@ class AirsideAgent(Agent):
             if "subdevices" in self.units[u]:
                 for sd in self.units[u]["subdevices"]:
                     has_zone_information = True
-                    subdevice_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd,
-                                                           point="all")
+                    subdevice_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building,
+                                                           unit=u, path=sd, point="all")
                     self.device_list.append(subdevice_topic)
                     sd_string = u + "/" + sd
                     self.master_devices.append(sd_string)
                     self.device_topic_dict.update({subdevice_topic: sd_string})
         if not has_zone_information:
-            _log.warning("subdevice (VAV zone information is missing from device unit configuration for {}".format(self.core.identity))
+            _log.warning("subdevice (VAV zone information) is missing from device unit configuration for {}".format(self.core.identity))
             self.core.stop()
         self.initialize_devices()
 
@@ -502,7 +497,8 @@ class AirsideAgent(Agent):
 
         if self.fan_sp_name is None and self.fan_status_name is None:
             _log.error("SupplyFanStatus or SupplyFanSpeed are required to verify AHU status.")
-            sys.exit()
+            _log.error("Exiting diagnostic, check configuration point mapping!")
+            self.core.stop()
 
     def create_thresholds(self):
         """Create all the threshold dictionaries needed"""
@@ -604,7 +600,7 @@ class AirsideAgent(Agent):
         # reset the data arrays on new message
         self.fan_status_data = []
         self.stcpr_stpt_data = []
-        self.stc_pr_data = []
+        self.stcpr_data = []
         self.sat_stpt_data = []
         self.sat_data = []
         self.zn_rht_data = []
@@ -619,7 +615,7 @@ class AirsideAgent(Agent):
             elif key == self.duct_stcpr_stpt_name:
                 self.stcpr_stpt_data = value
             elif key == self.duct_stcpr_name:
-                self.stc_pr_data = value
+                self.stcpr_data = value
             elif key == self.sat_stpt_name:
                 self.sat_stpt_data = value
             elif key == self.sa_temp_name:
@@ -644,7 +640,7 @@ class AirsideAgent(Agent):
             self.missing_data.append(self.zn_reheat_name)
         if not self.sat_stpt_data:
             _log.info("SAT set point data is missing.")
-        if not self.stc_pr_data:
+        if not self.stcpr_data:
             self.missing_data.append(self.duct_stcpr_name)
         if not self.stcpr_stpt_data:
             _log.info("Duct static pressure set point data is missing.")
@@ -815,7 +811,7 @@ class AirsideAgent(Agent):
             return self.run_diagnostics_done()
 
         current_fan_status = self.check_fan_status(current_time)
-        self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stc_pr_data, self.stcpr_stpt_data,
+        self.sched_reset_aircx.schedule_reset_aircx(current_time, self.stcpr_data, self.stcpr_stpt_data,
                                                     self.sat_stpt_data, current_fan_status)
         self.check_elapsed_time(current_time)
         if not current_fan_status:
@@ -837,13 +833,12 @@ class AirsideAgent(Agent):
         if self.warm_up_flag:
             self.warm_up_flag = False
             self.warm_up_start = current_time
-            return self.run_diagnostics_done()
 
         if self.warm_up_start is not None and (current_time - self.warm_up_start) < self.warm_up_time:
             _log.info("Unit is in warm-up. Data will not be analyzed.")
             return self.run_diagnostics_done()
 
-        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stc_pr_data, self.zn_dmpr_data, self.low_sf_condition, self.high_sf_condition)
+        self.stcpr_aircx.stcpr_aircx(current_time, self.stcpr_stpt_data, self.stcpr_data, self.zn_dmpr_data, self.low_sf_condition, self.high_sf_condition)
         self.sat_aircx.sat_aircx(current_time, self.sat_data, self.sat_stpt_data, self.zn_rht_data, self.zn_dmpr_data)
         return self.run_diagnostics_done()
 

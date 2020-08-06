@@ -108,9 +108,10 @@ def check_run_status(timestamp_array, current_time, no_required_data, minimum_di
         return True
 
     if minimum_diagnostic_time is not None and timestamp_array:
-        sampling_interval = td(minutes=
-            round(((timestamp_array[-1] - timestamp_array[0]) / len(timestamp_array)).total_seconds() / 60))
+        sampling_interval = round(((timestamp_array[-1] - timestamp_array[0]) / len(timestamp_array)).total_seconds() / 60)
+        sampling_interval = td(minutes=max(sampling_interval, 1))
         required_time = (timestamp_array[-1] - timestamp_array[0]) + sampling_interval
+
         if required_time >= minimum_diagnostic_time:
             return minimum_data()
         return False

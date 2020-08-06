@@ -317,7 +317,7 @@ class SchedResetAIRCx(object):
             diagnostic_msg.update({sensitivity: result})
 
         _log.info(common.table_log_format(self.timestamp_array[0], (DUCT_STC_RCX3 + DX + ':' + str(diagnostic_msg))))
-        self.publish_results.append(self.timestamp_array[0], DUCT_STC_RCX3 + DX, diagnostic_msg)
+        self.publish_results(self.timestamp_array[0], DUCT_STC_RCX3 + DX, diagnostic_msg)
 
     def no_sat_stpt_reset(self):
         """

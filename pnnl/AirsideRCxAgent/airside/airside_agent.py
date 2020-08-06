@@ -81,6 +81,10 @@ class AirsideAgent(Agent):
         # string attributes
         self.analysis_name = ""
         self.config = None
+        self.device = {}
+        self.campus = ""
+        self.building = ""
+        self.units = {}
         self.sensitivity = ""
         self.fan_status_name = ""
         self.fan_sp_name = ""
@@ -213,13 +217,17 @@ class AirsideAgent(Agent):
             self.map_names[key] = value
 
         self.device = self.config.get("device", {})
-        if "campus" in self.device:
-            self.campus = self.device["campus"]
-        if "building" in self.device:
-            self.building = self.device["building"]
-        if "unit" in self.device:
-            # units will be a dictionary with subdevices
-            self.units = self.device["unit"]
+        if not self.device:
+            _log.warning("device parameters are not present in configuration file for {}".format(self.core.identity))
+            self.core.stop()
+
+        self.campus = self.device.get("campus", "")
+        self.building = self.device("building", "")
+        self.units = self.device.get("unit", {})
+        if not self.units:
+            _log.warning("device unit parameters are not present in configuration file for {}".format(self.core.identity))
+            self.core.stop()
+        has_zone_information = False
         for u in self.units:
             # building the connection string for each unit
             device_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="",
@@ -231,12 +239,16 @@ class AirsideAgent(Agent):
             # loop over subdevices and add them
             if "subdevices" in self.units[u]:
                 for sd in self.units[u]["subdevices"]:
+                    has_zone_information = True
                     subdevice_topic = topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd,
                                                            point="all")
                     self.device_list.append(subdevice_topic)
                     sd_string = u + "/" + sd
                     self.master_devices.append(sd_string)
                     self.device_topic_dict.update({subdevice_topic: sd_string})
+        if not has_zone_information:
+            _log.warning("subdevice (VAV zone information is missing from device unit configuration for {}".format(self.core.identity))
+            self.core.stop()
         self.initialize_devices()
 
     def configure_main(self, config_name, action, contents):

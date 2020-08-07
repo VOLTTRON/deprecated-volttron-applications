@@ -1,5 +1,5 @@
 """
-Copyright (c) 2016, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,10 +50,12 @@ operated by BATTELLE for the UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
 import datetime
+import logging
 from datetime import datetime
 from dateutil.parser import parse
-from .common import create_table_key, pre_conditions, check_run_status
 from volttron.platform.agent.math_utils import mean
+from volttron.platform.agent.utils import setup_logging
+from . import common
 
 DUCT_STC_RCX3 = "No Static Pressure Reset Dx"
 SA_TEMP_RCX3 = "No Supply-air Temperature Reset Dx"
@@ -63,21 +65,24 @@ DX = "/diagnostic message"
 INCONSISTENT_DATE = -89.2
 INSUFFICIENT_DATA = -79.2
 
+setup_logging()
+_log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
+
 
 class SchedResetAIRCx(object):
     """
     Operational schedule, supply-air temperature set point reset, and duct static pressure reset
     AIRCx for AHUs or RTUs.
     """
-    def __init__(self, unocc_time_thr, unocc_stcpr_thr,
-                 monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
-                 friday_sch, saturday_sch, sunday_sch,
-                 no_req_data, stcpr_reset_thr, sat_reset_thr,
-                 analysis):
+    def __init__(self):
         self.fan_status_array = []
         self.schedule = {}
         self.stcpr_array = []
         self.schedule_time_array = []
+        self.publish_results = None
+        self.send_autocorrect_command = None
 
         self.stcpr_stpt_array = []
         self.sat_stpt_array = []
@@ -85,10 +90,31 @@ class SchedResetAIRCx(object):
         self.timestamp_array = []
         self.dx_table = {}
 
+        self.monday_sch = []
+        self.tuesday_sch = []
+        self.wednesday_sch = []
+        self.thursday_sch = []
+        self.friday_sch = []
+        self.saturday_sch = []
+        self.sunday_sch = []
+
+        self.schedule = {}
+        self.pre_msg = ""
+
+        # Application thresholds (Configurable)
+        self.no_req_data = 0
+        self.unocc_time_thr = {}
+        self.unocc_stcpr_thr = {}
+        self.stcpr_reset_thr = {}
+        self.sat_reset_thr = {}
+
+    def set_class_values(self, unocc_time_thr, unocc_stcpr_thr, monday_sch, tuesday_sch, wednesday_sch, thursday_sch,
+                         friday_sch, saturday_sch, sunday_sch, no_req_data, stcpr_reset_thr, sat_reset_thr):
+        """Set the values needed for doing the diagnostics"""
+
         def date_parse(dates):
             return [parse(timestamp_array).time() for timestamp_array in dates]
 
-        self.analysis = analysis
         self.monday_sch = date_parse(monday_sch)
         self.tuesday_sch = date_parse(tuesday_sch)
         self.wednesday_sch = date_parse(wednesday_sch)
@@ -111,6 +137,10 @@ class SchedResetAIRCx(object):
         self.stcpr_reset_thr = stcpr_reset_thr
         self.sat_reset_thr = sat_reset_thr
 
+    def setup_platform_interfaces(self, publish_method, autocorrect_method):
+        self.publish_results = publish_method
+        self.send_autocorrect_command = autocorrect_method
+
     def reinitialize_sched(self):
         """
         Reinitialize schedule data arrays
@@ -121,7 +151,7 @@ class SchedResetAIRCx(object):
         self.schedule_time_array = []
 
     def schedule_reset_aircx(self, current_time, stcpr_data, stcpr_stpt_data,
-                             sat_stpt_data, current_fan_status, dx_result):
+                             sat_stpt_data, current_fan_status):
         """
         Calls Schedule AIRCx and Set Point Reset AIRCx.
         :param current_time:
@@ -132,76 +162,68 @@ class SchedResetAIRCx(object):
         :param dx_result:
         :return:
         """
-        dx_result = self.sched_aircx(current_time, stcpr_data, current_fan_status, dx_result)
-        dx_result = self.setpoint_reset_aircx(current_time, current_fan_status,
-                                              stcpr_stpt_data, sat_stpt_data, dx_result)
+        self.sched_aircx(current_time, stcpr_data, current_fan_status)
+        self.setpoint_reset_aircx(current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data)
         self.timestamp_array.append(current_time)
-        return dx_result
 
-    def sched_aircx(self, current_time, stcpr_data, current_fan_status, dx_result):
+    def sched_aircx(self, current_time, stcpr_data, current_fan_status):
         """
         Main function for operation schedule AIRCx - manages data arrays checks AIRCx run status.
         :param current_time:
         :param stcpr_data:
         :param current_fan_status:
-        :param dx_result:
         :return:
         """
         schedule = self.schedule[current_time.weekday()]
-        run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data, run_schedule="daily")
+        run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data, run_schedule="daily")
 
         if run_status is None:
-            schedule_name = create_table_key(self.analysis, self.timestamp_array[0])
-            dx_result.log("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            dx_result = pre_conditions(INSUFFICIENT_DATA, [SCHED_RCX], schedule_name, current_time, dx_result)
+            _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SCHED_RCX], current_time)
             self.reinitialize_sched()
 
         if run_status:
-            dx_result = self.unocc_fan_operation(dx_result)
+            self.unocc_fan_operation()
             self.reinitialize_sched()
 
         if current_time.time() < schedule[0] or current_time.time() > schedule[1]:
             self.stcpr_array.extend(stcpr_data)
             self.fan_status_array.append((current_time, current_fan_status))
             self.schedule_time_array.append(current_time)
-        return dx_result
 
-
-    def setpoint_reset_aircx(self, current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data, dx_result):
+    def setpoint_reset_aircx(self, current_time, current_fan_status, stcpr_stpt_data, sat_stpt_data):
         """
         Main function for set point reset AIRCx - manages data arrays checks AIRCx run status.
         :param current_time:
         :param current_fan_status:
         :param stcpr_stpt_data:
         :param sat_stpt_data:
-        :param dx_result:
         :return:
         """
-        stcpr_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
-                                            run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
+        stcpr_run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data,
+                                                   run_schedule="daily", minimum_point_array=self.stcpr_stpt_array)
 
         if not self.timestamp_array:
-            return dx_result
+            return
 
-        self.reset_table_key = reset_name = create_table_key(self.analysis, self.timestamp_array[0])
         if stcpr_run_status is None:
-            dx_result.log("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
-            dx_result = pre_conditions(INSUFFICIENT_DATA, [DUCT_STC_RCX3], reset_name, current_time, dx_result)
+            _log.info("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [DUCT_STC_RCX3], current_time)
             self.stcpr_stpt_array = []
         elif stcpr_run_status:
-            dx_result = self.no_static_pr_reset(dx_result)
+            self.no_static_pr_reset()
             self.stcpr_stpt_array = []
 
-        sat_run_status = check_run_status(self.timestamp_array, current_time, self.no_req_data,
-                                          run_schedule="daily", minimum_point_array=self.sat_stpt_array)
+        sat_run_status = common.check_run_status(self.timestamp_array, current_time, self.no_req_data,
+                                                 run_schedule="daily", minimum_point_array=self.sat_stpt_array)
 
         if sat_run_status is None:
-            dx_result.log("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
-            dx_result = pre_conditions(INSUFFICIENT_DATA, [SA_TEMP_RCX3], reset_name, current_time, dx_result)
+            _log.info("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SA_TEMP_RCX3], current_time)
             self.sat_stpt_array = []
             self.timestamp_array = []
         elif sat_run_status:
-            dx_result = self.no_sat_stpt_reset(dx_result)
+            self.no_sat_stpt_reset()
             self.sat_stpt_array = []
             self.timestamp_array = []
 
@@ -211,12 +233,9 @@ class SchedResetAIRCx(object):
             if sat_stpt_data:
                 self.sat_stpt_array.append(mean(sat_stpt_data))
 
-        return dx_result
-
-    def unocc_fan_operation(self, dx_result):
+    def unocc_fan_operation(self):
         """
         AIRCx to determine if AHU is operating excessively in unoccupied mode.
-        :param dx_result:
         :return:
         """
         avg_duct_stcpr = 0
@@ -255,10 +274,10 @@ class SchedResetAIRCx(object):
                                "pressure sensor.".format(key))
                         result = 64.2
                 diagnostic_msg.update({key: result})
-                dx_result.log(msg)
+                _log.info(msg)
         else:
             msg = "ALL - No problems detected for schedule diagnostic."
-            dx_result.log(msg)
+            _log.info(msg)
             diagnostic_msg = {"low": 60.0, "normal": 60.0, "high": 60.0}
 
         if 64.2 not in diagnostic_msg.values():
@@ -272,20 +291,16 @@ class SchedResetAIRCx(object):
                     diagnostic_msg.update({key: 60.0})
                     if hourly_counter[_hour] > unocc_time_thr:
                         diagnostic_msg.update({key: 63.1})
-                dx_table = {SCHED_RCX + DX:  diagnostic_msg}
-                table_key = create_table_key(self.analysis, push_time) + utc_offset
-                dx_result.insert_table_row(table_key, dx_table)
+                _log.info(common.table_log_format(push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
+                self.publish_results(push_time, SCHED_RCX + DX, diagnostic_msg)
         else:
             push_time = self.timestamp_array[0].date()
-            table_key = create_table_key(self.analysis, push_time)
-            dx_result.insert_table_row(table_key, {SCHED_RCX + DX:  diagnostic_msg})
+            _log.info(common.table_log_format(push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
+            self.publish_results(push_time, SCHED_RCX + DX, diagnostic_msg)
 
-        return dx_result
-
-    def no_static_pr_reset(self, dx_result):
+    def no_static_pr_reset(self):
         """
         AIRCx  to detect whether a static pressure set point reset is implemented.
-        :param dx_result:
         :return:
         """
         diagnostic_msg = {}
@@ -298,16 +313,15 @@ class SchedResetAIRCx(object):
                 msg = ("{} - No problems detected for duct static pressure set point "
                        "reset diagnostic.".format(sensitivity))
                 result = 70.0
-            dx_result.log(msg)
+            _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
 
-        dx_result.insert_table_row(self.reset_table_key, {DUCT_STC_RCX3 + DX:  diagnostic_msg})
-        return dx_result
+        _log.info(common.table_log_format(self.timestamp_array[0], (DUCT_STC_RCX3 + DX + ':' + str(diagnostic_msg))))
+        self.publish_results(self.timestamp_array[0], DUCT_STC_RCX3 + DX, diagnostic_msg)
 
-    def no_sat_stpt_reset(self, dx_result):
+    def no_sat_stpt_reset(self):
         """
         AIRCx to detect whether a supply-air temperature set point reset is implemented.
-        :param dx_result:
         :return:
         """
         diagnostic_msg = {}
@@ -319,8 +333,8 @@ class SchedResetAIRCx(object):
             else:
                 msg = "{} - No problems detected for SAT set point reset diagnostic.".format(sensitivity)
                 result = 80.0
-            dx_result.log(msg)
+            _log.info(msg)
             diagnostic_msg.update({sensitivity: result})
 
-        dx_result.insert_table_row(self.reset_table_key, {SA_TEMP_RCX3 + DX:  diagnostic_msg})
-        return dx_result
+        _log.info(common.table_log_format(self.timestamp_array[0], (SA_TEMP_RCX3 + DX + ':' + str(diagnostic_msg))))
+        self.publish_results(self.timestamp_array[0], SA_TEMP_RCX3 + DX, diagnostic_msg)

@@ -1,5 +1,5 @@
 """
-Copyright (c) 2017, Battelle Memorial Institute
+Copyright (c) 2020, Battelle Memorial Institute
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,14 +49,27 @@ for the
 UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 """
+
+import logging
 from datetime import timedelta as td
 from volttron.platform.agent.math_utils import mean
-DX = '/diagnostic message'
-"""Common functions used across multiple algorithms."""
+from volttron.platform.agent.utils import setup_logging
 
+FAN_OFF = -99.3
+DUCT_STC_RCX = "Duct Static Pressure Set Point Control Loop Dx"
+DUCT_STC_RCX1 = "Low Duct Static Pressure Dx"
+DUCT_STC_RCX2 = "High Duct Static Pressure Dx"
+DX = "/diagnostic message"
+SA_TEMP_RCX = "Supply-air Temperature Set Point Control Loop Dx"
+SA_TEMP_RCX1 = "Low Supply-air Temperature Dx"
+SA_TEMP_RCX2 = "High Supply-air Temperature Dx"
+dx_list = [DUCT_STC_RCX, DUCT_STC_RCX1, DUCT_STC_RCX2, SA_TEMP_RCX, SA_TEMP_RCX1, SA_TEMP_RCX2]
+dx_offsets = {SA_TEMP_RCX: 30.0, DUCT_STC_RCX: 0.0}
 
-def create_table_key(table_name, timestamp):
-    return "&".join([table_name, timestamp.isoformat()])
+setup_logging()
+_log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.debug, format="%(asctime)s   %(levelname)-8s %(message)s",
+                    datefmt="%m-%d-%y %H:%M:%S")
 
 
 def check_date(current_time, timestamp_array):
@@ -95,9 +108,10 @@ def check_run_status(timestamp_array, current_time, no_required_data, minimum_di
         return True
 
     if minimum_diagnostic_time is not None and timestamp_array:
-        sampling_interval = td(minutes=
-            round(((timestamp_array[-1] - timestamp_array[0]) / len(timestamp_array)).total_seconds() / 60))
+        sampling_interval = round(((timestamp_array[-1] - timestamp_array[0]) / len(timestamp_array)).total_seconds() / 60)
+        sampling_interval = td(minutes=max(sampling_interval, 1))
         required_time = (timestamp_array[-1] - timestamp_array[0]) + sampling_interval
+
         if required_time >= minimum_diagnostic_time:
             return minimum_data()
         return False
@@ -111,7 +125,7 @@ def check_run_status(timestamp_array, current_time, no_required_data, minimum_di
     return False
 
 
-def setpoint_control_check(set_point_array, point_array, setpoint_deviation_threshold, dx_name, dx_offset, dx_result):
+def setpoint_control_check(set_point_array, point_array, setpoint_deviation_threshold, dx_name):
     """
     Verify that point if tracking with set point - identify potential control or sensor problems.
     :param set_point_array:
@@ -124,45 +138,48 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
     """
     avg_set_point = None
     diagnostic_msg = {}
-    for key, threshold in setpoint_deviation_threshold.items():
+    for sensitivity, threshold in setpoint_deviation_threshold.items():
         if set_point_array:
-            avg_set_point = sum(set_point_array)/len(set_point_array)
+            avg_set_point = mean(set_point_array)
             zipper = (set_point_array, point_array)
             set_point_tracking = [abs(x - y) for x, y in zip(*zipper)]
-            set_point_tracking = mean(set_point_tracking)/avg_set_point*100.
+            set_point_error = mean(set_point_tracking)/avg_set_point*100.
 
-            if set_point_tracking > threshold:
+            if set_point_error > threshold:
                 # color_code = 'red'
-                msg = '{} - {}: point deviating significantly from set point.'.format(key, dx_name)
-                result = 1.1 + dx_offset
+                msg = '{} - {}: point deviating significantly from set point.'.format(sensitivity, dx_name)
+                result = 1.1 + dx_offsets[dx_name]
             else:
                 # color_code = 'green'
-                msg = " {} - No problem detected for {} set".format(key, dx_name)
-                result = 0.0 + dx_offset
+                msg = " {} - No problem detected for {} set".format(sensitivity, dx_name)
+                result = 0.0 + dx_offsets[dx_name]
         else:
             # color_code = 'grey'
-            msg = "{} - {} set point data is not available.".format(key, dx_name)
-            result = 2.2 + dx_offset
-        dx_result.log(msg)
-        diagnostic_msg.update({key: result})
-        dx_table = {dx_name + DX: diagnostic_msg}
+            msg = "{} - {} set point data is not available.".format(sensitivity, dx_name)
+            result = 2.2 + dx_offsets[dx_name]
+        _log.info(msg)
+        diagnostic_msg.update({sensitivity: result})
+        diganostic_string = dx_name + DX
+    return avg_set_point, diganostic_string, diagnostic_msg
 
-    return avg_set_point, dx_table, dx_result
 
-
-def pre_conditions(message, dx_list, analysis, cur_time, dx_result):
+def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
     """
     Check for persistence of failure to meet pre-conditions for diagnostics.
     :param message:
     :param dx_list:
     :param analysis:
     :param cur_time:
-    :param dx_result:
     :return:
     """
-    dx_msg = {'low': message, 'normal': message, 'high': message}
-    for diagnostic in dx_list:
-        dx_table = {diagnostic + DX: dx_msg}
-        table_key = create_table_key(analysis, cur_time)
-        dx_result.insert_table_row(table_key, dx_table)
-    return dx_result
+    dx_msg = {"low": message, "normal": message, "high": message}
+    for diagnostic in dx_li:
+        _log.info(table_log_format(cur_time, (diagnostic + DX + ':' + str(dx_msg))))
+        results_pub(cur_time, (diagnostic + DX), dx_msg)
+
+
+def table_log_format(timestamp, data):
+    """ Return a formatted string for use in the log"""
+    return str(timestamp) + '->[' + str(data) + ']'
+
+

@@ -60,7 +60,7 @@ from . diagnostics.EconCorrectlyOff import EconCorrectlyOff
 from . diagnostics.ExcessOutsideAir import ExcessOutsideAir
 from . diagnostics.InsufficientOutsideAir import InsufficientOutsideAir
 
-__version__ = "1.2.0"
+__version__ = "2.0.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)

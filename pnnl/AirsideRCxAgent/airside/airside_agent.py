@@ -61,7 +61,7 @@ from .diagnostics.sat_aircx import SupplyTempAIRCx
 from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
 from .diagnostics.stcpr_aircx import DuctStaticAIRCx
 
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)

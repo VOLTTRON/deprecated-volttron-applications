@@ -61,7 +61,7 @@ from .diagnostics.sat_aircx import SupplyTempAIRCx
 from .diagnostics.schedule_reset_aircx import SchedResetAIRCx
 from .diagnostics.stcpr_aircx import DuctStaticAIRCx
 
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 
 setup_logging()
 _log = logging.getLogger(__name__)
@@ -563,9 +563,9 @@ class AirsideAgent(Agent):
             "high": self.sat_reset_thr + 1.0
         }
         self.stcpr_reset_threshold_dict = {
-            "low": self.stcpr_reset_thr * 1.5,
+            "low": self.stcpr_reset_thr * 0.5,
             "normal": self.stcpr_reset_thr,
-            "high": self.stcpr_reset_thr * 0.5
+            "high": self.stcpr_reset_thr * 1.5
         }
 
     def create_diagnostics(self):

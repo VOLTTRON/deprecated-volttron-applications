@@ -198,15 +198,20 @@ class SupplyTempAIRCx(object):
             avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX)
             _log.info(common.table_log_format(current_time, dx_string + str(dx_msg)))
             self.publish_results(current_time, dx_string, dx_msg)
-            self.low_sat(avg_sat_stpt)
+            if self.percent_rht and self.rht_array:
+                self.low_sat(avg_sat_stpt)
+            else:
+                diagnostic_msg = {"low": 89.2, "normal": 89.2, "high": 89.2}
+                self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX1 + DX, diagnostic_msg)
             self.high_sat(avg_sat_stpt)
             self.reinitialize()
 
         self.sat_array.append(mean(sat_data))
-        self.rht_array.append(mean(zone_rht_data))
         if sat_stpt_data:
             self.sat_stpt_array.append(mean(sat_stpt_data))
-        self.percent_rht.append(tot_rht / count_rht)
+        if zone_rht_data and count_rht > 0:
+            self.percent_rht.append(tot_rht / count_rht)
+            self.rht_array.append(mean(zone_rht_data))
         self.timestamp_array.append(current_time)
         for key in self.high_dmpr_thr:
             self.percent_dmpr[key].append(tot_dmpr[key] / count_damper)

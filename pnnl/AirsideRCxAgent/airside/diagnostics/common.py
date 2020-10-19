@@ -163,7 +163,7 @@ def setpoint_control_check(set_point_array, point_array, setpoint_deviation_thre
     return avg_set_point, diganostic_string, diagnostic_msg
 
 
-def pre_conditions(results_pub, message, dx_li, analysis, cur_time):
+def pre_conditions(results_pub, message, dx_li, cur_time):
     """
     Check for persistence of failure to meet pre-conditions for diagnostics.
     :param message:

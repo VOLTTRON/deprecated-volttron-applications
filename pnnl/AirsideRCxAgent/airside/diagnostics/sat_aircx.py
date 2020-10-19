@@ -200,10 +200,11 @@ class SupplyTempAIRCx(object):
             self.publish_results(current_time, dx_string, dx_msg)
             if self.percent_rht and self.rht_array:
                 self.low_sat(avg_sat_stpt)
+                self.high_sat(avg_sat_stpt)
             else:
                 diagnostic_msg = {"low": 89.2, "normal": 89.2, "high": 89.2}
                 self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX1 + DX, diagnostic_msg)
-            self.high_sat(avg_sat_stpt)
+                self.publish_results(self.timestamp_array[-1], SA_TEMP_RCX2 + DX, diagnostic_msg)
             self.reinitialize()
 
         self.sat_array.append(mean(sat_data))

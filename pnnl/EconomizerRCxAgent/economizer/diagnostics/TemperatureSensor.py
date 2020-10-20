@@ -79,6 +79,7 @@ class TemperatureSensor(object):
         self.no_required_data = None
         self.temp_diff_thr = None
         self.inconsistent_date = None
+        self.insufficient_data = None
         self.sensor_damper_dx = DamperSensorInconsistency()
 
     def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, temp_diff_thr, open_damper_time, temp_damper_threshold):
@@ -108,8 +109,29 @@ class TemperatureSensor(object):
             "high": max(1.0, temp_diff_thr - 2.0)
         }
         self.inconsistent_date = {key: 3.2 for key in self.temp_diff_thr}
+        self.insufficient_data = {key: 2.2 for key in self.temp_diff_thr}
         self.sensor_damper_dx.set_class_values(analysis_name, results_publish, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold)
 
+    def run_diagnostic(self, current_time):
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        _log.info("Elapsed time: {} -- required time: {}".format(elapsed_time, self.data_window))
+        result = self.sensor_damper_dx.run_diagnostic()
+
+        if len(self.timestamp) >= self.no_required_data and not result:
+            if elapsed_time > self.max_dx_time:
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (
+                            constants.ECON1 + constants.DX + ":" + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1],
+                                                                           (constants.ECON1 + constants.DX),
+                                                                           self.inconsistent_date))
+                self.clear_data()
+                return
+            self.temperature_sensor_dx()
+        else:
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, current_time,
+                                                                       (constants.ECON1 + constants.DX),
+                                                                       self.insufficient_data))
+            self.clear_data()
 
     def temperature_algorithm(self, oat, rat, mat, oad, cur_time):
         """Perform the temperature sensor class algorithm
@@ -125,24 +147,12 @@ class TemperatureSensor(object):
         self.mat_values.append(mat)
         self.rat_values.append(rat)
         self.timestamp.append(cur_time)
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
-
-        _log.info("Elapsed time: {} -- required time: {}".format(elapsed_time, self.data_window))
-
-        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            if elapsed_time > self.max_dx_time:
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ":" + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX), self.inconsistent_date))
-                self.clear_data()
-            else:
-                self.temperature_sensor_dx()
-                return self.temp_sensor_problem
 
         if self.temp_sensor_problem:
             return self.temp_sensor_problem
         else:
             self.sensor_damper_dx.damper_algorithm(oat, mat, oad, cur_time)
-        return self.temp_sensor_problem
+            return self.temp_sensor_problem
 
     def temperature_sensor_dx(self):
         """Temperature sensor diagnostic.
@@ -243,6 +253,35 @@ class DamperSensorInconsistency(object):
         self.oat_mat_check = oat_mat_check
         self.analysis_name = analysis_name
 
+    def run_diagnostic(self):
+        msg = ""
+        if len(self.oat_values) > self.no_required_data:
+            mat_oat_diff_list = [abs(x - y) for x, y in zip(self.oat_values, self.mat_values)]
+            open_damper_check = mean(mat_oat_diff_list)
+            diagnostic_msg = {}
+            for sensitivity, threshold in self.oat_mat_check.items():
+                if open_damper_check > threshold:
+                    msg = "{} - {}: OAT and MAT are inconsistent when OAD is near 100%".format(constants.ECON1,
+                                                                                               str(sensitivity))
+                    result = 0.1
+                else:
+                    msg = "{} - {}: OAT and MAT are consistent when OAD is near 100%".format(constants.ECON1,
+                                                                                             str(sensitivity))
+                    result = 0.0
+                diagnostic_msg.update({sensitivity: result})
+
+            _log.info(msg)
+            _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1],
+                                                 (constants.ECON1 + constants.DX + ":" + str(diagnostic_msg))))
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1],
+                                                                       (constants.ECON1 + constants.DX),
+                                                                       diagnostic_msg))
+            self.clear_data()
+            return True
+        else:
+            self.clear_data()
+            return False
+
     def damper_algorithm(self, oat, mat, oad, cur_time):
         """Perform the damper class algorithm
         oat: float
@@ -252,7 +291,6 @@ class DamperSensorInconsistency(object):
 
         No return
         """
-        msg = ""
         if oad > self.oad_temperature_threshold:
             if self.steady_state is None:
                 self.steady_state = cur_time
@@ -262,28 +300,6 @@ class DamperSensorInconsistency(object):
                 self.timestamp.append(cur_time)
         else:
             self.steady_state = None
-
-        elapsed_time = self.timestamp[-1] - self.timestamp[0] if self.timestamp else td(minutes=0)
-
-        if elapsed_time >= self.data_window:
-            if len(self.oat_values) > self.no_required_data:
-                mat_oat_diff_list = [abs(x - y) for x, y in zip(self.oat_values, self.mat_values)]
-                open_damper_check = mean(mat_oat_diff_list)
-                diagnostic_msg = {}
-                for sensitivity, threshold in self.oat_mat_check.items():
-                    if open_damper_check > threshold:
-                        msg = "{} - {}: OAT and MAT are inconsistent when OAD is near 100%".format(constants.ECON1, str(sensitivity))
-                        result = 0.1
-                    else:
-                        msg = "{} - {}: OAT and MAT are consistent when OAD is near 100%".format(constants.ECON1, str(sensitivity))
-                        result = 0.0
-                    diagnostic_msg.update({sensitivity: result})
-
-                _log.info(msg)
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX + ":" + str(diagnostic_msg))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON1 + constants.DX), diagnostic_msg))
-
-            self.clear_data()
 
     def clear_data(self):
         """

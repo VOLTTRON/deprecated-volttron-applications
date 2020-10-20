@@ -86,6 +86,7 @@ class ExcessOutsideAir(object):
         self.economizing_dict = None
         self.invalid_oaf_dict = None
         self.inconsistent_date = None
+        self.nsufficient_data = None
 
     def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, min_damper_sp, desired_oaf, cfm, eer):
         """Set the values needed for doing the diagnostics
@@ -120,7 +121,28 @@ class ExcessOutsideAir(object):
         }
         self.economizing_dict = {key: 36.0 for key in self.excess_damper_threshold}
         self.invalid_oaf_dict = {key: 31.2 for key in self.excess_damper_threshold}
+        self.insufficient_data = {key: 32.2 for key in self.excess_damper_threshold}
         self.inconsistent_date = {key: 35.2 for key in self.excess_damper_threshold}
+
+    def run_diagnostic(self, current_time):
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        if self.economizer_conditions(current_time):
+            return
+        if len(self.timestamp) >= self.no_required_data:
+            if elapsed_time > self.max_dx_time:
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (
+                          constants.ECON3 + constants.DX + ":" + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1],
+                                                                           (constants.ECON4 + constants.DX),
+                                                                           self.inconsistent_date))
+                self.clear_data()
+                return
+            self.excess_oa()
+        else:
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, current_time,
+                                                                       (constants.ECON4 + constants.DX),
+                                                                       self.insufficient_data))
+            self.clear_data()
 
     def excess_ouside_air_algorithm(self, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """Perform the excess outside air class algorithm
@@ -134,7 +156,7 @@ class ExcessOutsideAir(object):
 
         No return
         """
-        economizing = self.economizer_conditions(econ_condition, cur_time)
+        economizing = self.economizing_check(econ_condition, cur_time)
         if economizing:
             return
 
@@ -146,40 +168,30 @@ class ExcessOutsideAir(object):
 
         fan_sp = fan_sp / 100.0 if fan_sp is not None else 1.0
         self.fan_spd_values.append(fan_sp)
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
-        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            if elapsed_time > self.max_dx_time:
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ":" + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), self.inconsistent_date))
-                self.clear_data()
-                return
-            self.excess_oa()
+    def economizer_conditions(self, current_time):
+        if len(self.economizing) >= len(self.economizing) * 0.5:
+            _log.info(constants.table_log_format(self.analysis_name, current_time,
+                                                 (constants.ECON4 + constants.DX + ":" + str(self.economizing_dict))))
+            self.results_publish.append(
+                constants.table_publish_format(self.analysis_name,
+                                               current_time,
+                                               (constants.ECON4 + constants.DX),
+                                               self.economizing_dict))
+            self.clear_data()
+            return True
+        return False
 
-
-    def economizer_conditions(self, econ_condition, cur_time):
-        """Check conditions to see if should be economizing
+    def economizing_check(self, econ_condition, cur_time):
+        """ Check conditions to see if should be economizing
         econ_conditions: float
         cur_time: datetime time delta
-
         returns boolean
         """
         if econ_condition:
-            _log.info("{}: economizing at {} .".format(constants.ECON4, cur_time))
-            if self.economizing is None:
-                self.economizing = cur_time
-            if cur_time - self.economizing >= self.data_window:
-                _log.info("{}: economizing for data set, reinitialize.".format(constants.ECON4))
-                if len(self.timestamp):
-                    _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX + ":" + str(self.economizing_dict))))
-                    self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.DX), self.economizing_dict))
-                else:
-                    _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX + ":" + str(self.economizing_dict))))
-                    self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON4 + constants.DX), self.economizing_dict))
-                self.clear_data()
+            _log.info("{}: economizing, for data {} --{}.".format(constants.ECON3, econ_condition, cur_time))
+            self.economizing.append(cur_time)
             return True
-        else:
-            self.economizing = None
         return False
 
     def excess_oa(self):
@@ -237,7 +249,6 @@ class ExcessOutsideAir(object):
         self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON4 + constants.EI), energy_impact))
         self.clear_data()
 
-
     def energy_impact_calculation(self, desired_oaf):
         """ Calculate the impact the temperature values have
         desired_oaf: float
@@ -269,4 +280,4 @@ class ExcessOutsideAir(object):
         self.mat_values = []
         self.fan_spd_values = []
         self.timestamp = []
-        self.economizing = None
+        self.economizing = []

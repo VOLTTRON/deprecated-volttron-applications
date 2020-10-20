@@ -67,6 +67,7 @@ _log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.debug, format='%(asctime)s   %(levelname)-8s %(message)s',
                     datefmt='%m-%d-%y %H:%M:%S')
 
+
 class EconomizerAgent(Agent):
     """
      Agent that starts all of the economizer diagnostics
@@ -93,6 +94,7 @@ class EconomizerAgent(Agent):
         self.cool_call_name = ""
         self.timezone = ""
         self.publish_base = ""
+        self.sensor_limit_msg = ""
 
         #list attributes
         self.device_list = []
@@ -109,12 +111,14 @@ class EconomizerAgent(Agent):
         self.fan_status_data = []
         self.missing_data = []
         self.results_publish = []
+        self.timestamp_array = []
 
         #int attributes
         self.data_window = 0
         self.no_required_data = 0
         self.open_damper_time = 0
         self.fan_speed = 0
+        self.run_interval = 0
 
         #bool attributes
         self.constant_volume = False
@@ -151,28 +155,27 @@ class EconomizerAgent(Agent):
         self.oad = 0.0
 
         # Precondition flags
-        self.oaf_condition = None
-        self.unit_status = None
-        self.sensor_limit = None
+        self.oaf_condition = []
+        self.unit_status = []
+        self.sensor_limit = []
         self.temp_sensor_problem = None
         self.update_config_flag = None
         self.diagnostic_done_flag = True
 
-        #diagnostics
+        # diagnostics
         self.temp_sensor = None
         self.econ_correctly_on = None
         self.econ_correctly_off = None
         self.excess_outside_air = None
         self.insufficient_outside_air = None
 
-        #start reading all the class configs and check them
+        # start reading all the class configs and check them
         self.read_config(config_path)
         self.setup_device_list()
         self.read_argument_config()
         self.read_point_mapping()
         self.configuration_value_check()
         self.create_diagnostics()
-
 
     def read_config(self, config_path):
         """
@@ -191,7 +194,7 @@ class EconomizerAgent(Agent):
 
     def setup_device_list(self):
         """Setup the device subscriptions"""
-        #get device, then the units underneath that
+        # get device, then the units underneath that
 
         self.analysis_name = self.config.get("analysis_name", "analysis_name")
         self.timezone = self.config.get("local_timezone", "US/Pacific")
@@ -205,15 +208,14 @@ class EconomizerAgent(Agent):
             #units will be a dictionary with subdevices
             self.units = self.device["unit"]
         for u in self.units:
-            #building the connection string for each unit
+            # building the connection string for each unit
             self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path="", point="all"))
             self.publish_list.append("/".join([self.campus, self.building, u]))
-            #loop over subdevices and add them
+            # loop over subdevices and add them
             if "subdevices" in self.units[u]:
                 for sd in self.units[u]["subdevices"]:
                     self.device_list.append(topics.DEVICES_VALUE(campus=self.campus, building=self.building, unit=u, path=sd, point="all"))
                     self.publish_list.append("/".join([self.campus, self.building, u, sd]))
-
 
     def configure_main(self, config_name, action, contents):
         """This triggers configuration via the VOLTTRON configuration store.
@@ -232,7 +234,6 @@ class EconomizerAgent(Agent):
             elif self.diagnostic_done_flag == False:
                 _log.info("Waiting for Diagnostics to finish before updating configuration!")
 
-
     def update_configuration(self):
         """Update configurations for agent"""
         self.device_unsubscribe()
@@ -245,7 +246,6 @@ class EconomizerAgent(Agent):
         self.create_diagnostics()
         self.update_config_flag = False
         self.onstart_subscriptions(None)
-
 
     def read_argument_config(self):
         """read all the config arguments section
@@ -280,6 +280,7 @@ class EconomizerAgent(Agent):
         self.rated_cfm = self.read_argument("rated_cfm", 6000.0)
         self.eer = self.read_argument("eer", 10.0)
         self.temp_deadband = self.read_argument("temp_band", 1.0)
+        self.run_interval = self.read_argument("data_window", 30)
         self.data_window = td(minutes=self.read_argument("data_window", 30))
         self.no_required_data = self.read_argument("no_required_data", 15)
         self.open_damper_time = td(minutes=self.read_argument("open_damper_time", 5))
@@ -343,7 +344,6 @@ class EconomizerAgent(Agent):
                 "desired_oaf": 10.0,
                 "rated_cfm": 6000.0,
                 "eer": 10.0,
-                "economizer_type": "DDB",
                 "temp_band": 1.0
             },
             "conversion_map": {
@@ -383,6 +383,8 @@ class EconomizerAgent(Agent):
         return mixed (string or float or int or dic
         """
         value = self.point_mapping.get(name, None)
+        if value is not None and isinstance(value, str):
+            value = [value]
         return value
 
     def configuration_value_check(self):
@@ -415,7 +417,7 @@ class EconomizerAgent(Agent):
             self.open_damper_threshold = 80.0
             self.minimum_damper_setpoint = 20.0
             self.desired_oaf = 10.0
-
+        self.sensitivity = ["low", "normal", "high"]
         if self.economizer_type == "hl":
             self.econ_hl_temp = max(50.0, min(self.econ_hl_temp, 75.0))
         else:
@@ -454,7 +456,7 @@ class EconomizerAgent(Agent):
         no return
         """
         data_message = message[0]
-        #reset the data arrays on new message
+        # reset the data arrays on new message
         self.fan_status_data = []
         self.damper_data = []
         self.oat_data = []
@@ -468,21 +470,20 @@ class EconomizerAgent(Agent):
             value = data_message[key]
             if value is None:
                 continue
-            if key == self.fan_status_name:
+            if key in self.fan_status_name:
                 self.fan_status_data.append(value)
-            elif key == self.oad_sig_name:
+            elif key in self.oad_sig_name:
                 self.damper_data.append(value)
-            elif key == self.oat_name:
+            elif key in self.oat_name:
                 self.oat_data.append(value)
-            elif key == self.mat_name:
+            elif key in self.mat_name:
                 self.mat_data.append(value)
-            elif key == self.rat_name:
+            elif key in self.rat_name:
                 self.rat_data.append(value)
-            elif key == self.cool_call_name:
+            elif key in self.cool_call_name:
                 self.cooling_data.append(value)
-            elif key == self.fan_sp_name:
+            elif key in self.fan_sp_name:
                 self.fan_sp_data.append(value)
-
 
     def check_for_missing_data(self):
         """Method that checks the parsed message results for any missing data
@@ -527,10 +528,7 @@ class EconomizerAgent(Agent):
                 supply_fan_status = 0
 
         if not supply_fan_status:
-            if self.unit_status is None:
-                self.unit_status = current_time
-        else:
-            self.unit_status = None
+            self.unit_status.append(current_time)
         return supply_fan_status
 
     def check_temperature_condition(self, current_time):
@@ -540,10 +538,7 @@ class EconomizerAgent(Agent):
         no return
         """
         if abs(self.oat - self.rat) < self.oaf_temperature_threshold:
-            if self.oaf_condition is None:
-                self.oaf_condition = current_time
-        else:
-            self.oaf_condition = None
+            self.oaf_condition.append(current_time)
 
     def check_elapsed_time(self, current_time, condition, message):
         """Check on time since last message to see if it is in data window
@@ -551,13 +546,17 @@ class EconomizerAgent(Agent):
         condition: datetime time delta
         message: string
         """
-        if condition is not None:
-            elapsed_time = current_time - condition
+        if condition:
+            elapsed_time = current_time - condition[-1]
         else:
             elapsed_time = td(minutes=0)
-        if elapsed_time >= self.data_window:
+        if ((current_time.minute % self.run_interval and len(condition) > self.no_required_data)
+                or elapsed_time > self.data_window):
             self.pre_conditions(message, current_time)
+            self.publish_analysis_results()
             self.clear_all()
+            return True
+        return False
 
     def clear_all(self):
         """Reinitialize all data arrays for diagnostics.
@@ -565,9 +564,11 @@ class EconomizerAgent(Agent):
         """
         self.clear_diagnostics()
         self.temp_sensor_problem = None
-        self.unit_status = None
-        self.oaf_condition = None
-        self.sensor_limit = None
+        self.unit_status = []
+        self.oaf_condition = []
+        self.sensor_limit = []
+        self.sensor_limit_msg = ""
+        self.timestamp_array = []
 
     def clear_diagnostics(self):
         """Clear the diagnositcs
@@ -600,20 +601,18 @@ class EconomizerAgent(Agent):
 
         return bool
         """
-        sensor_limit = (False, None)
         if self.oat < self.oat_low_threshold or self.oat > self.oat_high_threshold:
-            sensor_limit = (True, constants.OAT_LIMIT)
+            self.sensor_limit.append(current_time)
+            self.sensor_limit_msg = constants.OAT_LIMIT
+            _log.info("OAT sensor is outside of bounds: {}".format(current_time))
         elif self.mat < self.mat_low_threshold or self.mat > self.mat_high_threshold:
-            sensor_limit = (True, constants.MAT_LIMIT)
+            self.sensor_limit.append(current_time)
+            self.sensor_limit_msg = constants.MAT_LIMIT
+            _log.info("MAT sensor is outside of bounds: {}".format(current_time))
         elif self.rat < self.rat_low_threshold or self.rat > self.rat_high_threshold:
-            sensor_limit = (True, constants.RAT_LIMIT)
-
-        if sensor_limit[0]:
-            if self.sensor_limit is None:
-                self.sensor_limit = current_time
-        else:
-            self.sensor_limit = None
-        return sensor_limit
+            self.sensor_limit.append(current_time)
+            self.sensor_limit_msg = constants.RAT_LIMIT
+            _log.info("RAT sensor is outside of bounds: {}".format(current_time))
 
     def determine_cooling_condition(self):
         """Determine if the unit is in a cooling mode and if conditions are favorable for economizing.
@@ -634,7 +633,6 @@ class EconomizerAgent(Agent):
             econ_condition = (self.econ_hl_temp - self.oat) > self.temp_band
 
         return econ_condition, cool_call
-
 
     @Core.receiver("onstart")
     def onstart_subscriptions(self, sender, **kwargs):
@@ -672,17 +670,17 @@ class EconomizerAgent(Agent):
         _log.info("Processing Results!")
         self.parse_data_message(message)
         missing_data = self.check_for_missing_data()
-        #want to do no further parsing if data is missing
+        # want to do no further parsing if data is missing
         if missing_data:
             _log.info("Missing data from publish: {}".format(self.missing_data))
             self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
 
-        #check on fan status and speed
+        # check on fan status and speed
         fan_status = self.check_fan_status(current_time)
-        self.check_elapsed_time(current_time, self.unit_status, constants.FAN_OFF)
-        if not fan_status:
+        precondition_failed = self.check_elapsed_time(current_time, self.unit_status, constants.FAN_OFF)
+        if not fan_status or precondition_failed:
             _log.info("Supply fan is off: {}".format(current_time))
             self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
@@ -698,26 +696,24 @@ class EconomizerAgent(Agent):
         self.mat = mean(self.mat_data)
         self.oad = mean(self.damper_data)
 
-        #check on temperature condition
+        # check on temperature condition
         self.check_temperature_condition(current_time)
-        self.check_elapsed_time(current_time, self.oaf_condition, constants.OAF)
-
-        if self.oaf_condition:
-            _log.info("OAT and RAT readings are too close.")
+        precondition_failed = self.check_elapsed_time(current_time, self.oaf_condition, constants.OAF)
+        if current_time in self.oaf_condition or precondition_failed:
+            _log.info("OAT and RAT readings are too close : {}".format(current_time))
             self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
 
-        limit_condition = self.sensor_limit_check(current_time)
-        self.check_elapsed_time(current_time, self.sensor_limit, limit_condition[1])
-        #check to see if there was a temperature sensor out of bounds
-        if limit_condition[0]:
-            _log.info("Temperature sensor is outside of bounds: {} -- {}".format(limit_condition, self.sensor_limit))
+        self.sensor_limit_check(current_time)
+        precondition_failed = self.check_elapsed_time(current_time, self.sensor_limit, self.sensor_limit_msg)
+        # check to see if there was a temperature sensor out of bounds
+        if current_time in self.sensor_limit or precondition_failed:
             self.publish_analysis_results()
             self.check_for_config_update_after_diagnostics()
             return
-
-        self.temp_sensor_problem = self.temp_sensor.temperature_algorithm(self.oat, self.rat, self.mat, self.oad, current_time)
+        self.timestamp_array.append(current_time)
+        self.temp_sensor.temperature_algorithm(self.oat, self.rat, self.mat, self.oad, current_time)
         econ_condition, cool_call = self.determine_cooling_condition()
         _log.debug("Cool call: {} - Economizer status: {}".format(cool_call, econ_condition))
 
@@ -725,10 +721,23 @@ class EconomizerAgent(Agent):
             self.econ_correctly_on.economizer_on_algorithm(cool_call, self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_speed)
             self.econ_correctly_off.economizer_off_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_speed)
             self.excess_outside_air.excess_ouside_air_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_speed)
-            self.insufficient_outside_air.insufficient_outside_air_algorithm(self.oat, self.rat, self.mat, current_time)
-        elif self.temp_sensor_problem:
-            self.pre_conditions(constants.TEMP_SENSOR, current_time)
-            self.clear_diagnostics()
+            self.insufficient_outside_air.insufficient_outside_air_algorithm(self.oat, self.rat, self.mat, current_time)lsktatus
+
+        if self.timestamp_array:
+            elapsed_time = self.timestamp_array[-1] - self.timestamp_array[0]
+        else:
+            elapsed_time = td(minutes=0)
+        if current_time.minute % self.run_interval or elapsed_time > self.data_window:
+            self.temp_sensor.run_diagnostic(current_time)
+            if not self.temp_sensor_problem:
+                self.econ_correctly_on.run_diagnostic(current_time)
+                self.econ_correctly_off.run_diagnostic(current_time)
+                self.excess_outside_air.run_diagnostic()
+                self.insufficient_outside_air.run_diagnostic()
+            elif self.temp_sensor_problem:
+                self.pre_conditions(constants.TEMP_SENSOR, current_time)
+                self.clear_diagnostics()
+
         self.publish_analysis_results()
         self.check_for_config_update_after_diagnostics()
 

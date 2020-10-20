@@ -78,6 +78,7 @@ class InsufficientOutsideAir(object):
         self.desired_oaf = None
         self.invalid_oaf_dict = None
         self.inconsistent_date = None
+        self.insufficient_data = None
 
     def set_class_values(self, analysis_name, results_publish, data_window, no_required_data, desired_oaf):
         """Set the values needed for doing the diagnostics
@@ -103,6 +104,26 @@ class InsufficientOutsideAir(object):
         self.desired_oaf = desired_oaf
         self.invalid_oaf_dict = {key: 41.2 for key in self.ventilation_oaf_threshold}
         self.inconsistent_date = {key: 44.2 for key in self.ventilation_oaf_threshold}
+        self.insufficient_data = {key: 42.2 for key in self.ventilation_oaf_threshold}
+
+    def run_diagnostic(self, current_time):
+        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+
+        if len(self.timestamp) >= self.no_required_data:
+            if elapsed_time > self.max_dx_time:
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (
+                            constants.ECON5 + constants.DX + ":" + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1],
+                                                                           (constants.ECON5 + constants.DX),
+                                                                           self.inconsistent_date))
+                self.clear_data()
+                return
+            self.insufficient_oa()
+        else:
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, current_time,
+                                                                       (constants.ECON5 + constants.DX),
+                                                                       self.insufficient_data))
+            self.clear_data()
 
     def insufficient_outside_air_algorithm(self, oatemp, ratemp, matemp, cur_time):
         """Perform the insufficient outside air class algorithm
@@ -117,16 +138,6 @@ class InsufficientOutsideAir(object):
         self.rat_values.append(ratemp)
         self.mat_values.append(matemp)
         self.timestamp.append(cur_time)
-
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
-
-        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            if elapsed_time > self.max_dx_time:
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX + ":" + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON5 + constants.DX), self.inconsistent_date))
-                self.clear_data()
-                return
-            self.insufficient_oa()
 
     def insufficient_oa(self):
         """If the detected problems(s) are consistent then generate a fault message(s).

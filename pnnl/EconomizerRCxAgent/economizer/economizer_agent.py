@@ -721,7 +721,7 @@ class EconomizerAgent(Agent):
             self.econ_correctly_on.economizer_on_algorithm(cool_call, self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_speed)
             self.econ_correctly_off.economizer_off_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_speed)
             self.excess_outside_air.excess_ouside_air_algorithm(self.oat, self.rat, self.mat, self.oad, econ_condition, current_time, self.fan_speed)
-            self.insufficient_outside_air.insufficient_outside_air_algorithm(self.oat, self.rat, self.mat, current_time)lsktatus
+            self.insufficient_outside_air.insufficient_outside_air_algorithm(self.oat, self.rat, self.mat, current_time)
 
         if self.timestamp_array:
             elapsed_time = self.timestamp_array[-1] - self.timestamp_array[0]

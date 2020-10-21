@@ -727,7 +727,7 @@ class EconomizerAgent(Agent):
             elapsed_time = self.timestamp_array[-1] - self.timestamp_array[0]
         else:
             elapsed_time = td(minutes=0)
-        if current_time.minute % self.run_interval or elapsed_time > self.data_window:
+        if not current_time.minute % self.run_interval or elapsed_time > self.data_window:
             self.temp_sensor.run_diagnostic(current_time)
             if self.temp_sensor_problem is not None and not self.temp_sensor_problem:
                 self.econ_correctly_on.run_diagnostic(current_time)

@@ -121,6 +121,7 @@ class TemperatureSensor(object):
         result = self.sensor_damper_dx.run_diagnostic()
 
         if len(self.timestamp) >= self.no_required_data and not result:
+            _log.debug("Temperature Run -- no data: {} -- damper: {}".format(len(self.timestamp), result))
             if elapsed_time > self.max_dx_time:
                 _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (
                             constants.ECON1 + constants.DX + ":" + str(self.inconsistent_date))))
@@ -130,10 +131,13 @@ class TemperatureSensor(object):
                 self.clear_data()
                 return
             self.temperature_sensor_dx()
-        else:
+        elif len(self.timestamp) < self.no_required_data:
             self.results_publish.append(constants.table_publish_format(self.analysis_name, current_time,
                                                                        (constants.ECON1 + constants.DX),
                                                                        self.insufficient_data))
+            self.clear_data()
+        else:
+            _log.debug("Temperature sensor else!")
             self.clear_data()
 
     def temperature_algorithm(self, oat, rat, mat, oad, cur_time):

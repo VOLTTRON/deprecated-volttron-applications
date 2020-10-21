@@ -133,7 +133,10 @@ class EconCorrectlyOn(object):
         self.inconsistent_date = {key: 13.2 for key in self.oaf_economizing_threshold}
 
     def run_diagnostic(self, current_time):
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        if self.timestamp:
+            elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        else:
+            elapsed_time = td(minutes=0)
         if self.economizer_conditions(current_time):
             return
         if len(self.timestamp) >= self.no_required_data:

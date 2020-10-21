@@ -113,7 +113,10 @@ class TemperatureSensor(object):
         self.sensor_damper_dx.set_class_values(analysis_name, results_publish, data_window, no_required_data, open_damper_time, oat_mat_check, temp_damper_threshold)
 
     def run_diagnostic(self, current_time):
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        if self.timestamp:
+            elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        else:
+            elapsed_time = td(minutes=0)
         _log.info("Elapsed time: {} -- required time: {}".format(elapsed_time, self.data_window))
         result = self.sensor_damper_dx.run_diagnostic()
 

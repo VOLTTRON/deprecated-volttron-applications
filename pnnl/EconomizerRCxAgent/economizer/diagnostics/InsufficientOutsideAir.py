@@ -107,7 +107,10 @@ class InsufficientOutsideAir(object):
         self.insufficient_data = {key: 42.2 for key in self.ventilation_oaf_threshold}
 
     def run_diagnostic(self, current_time):
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        if self.timestamp:
+            elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        else:
+            elapsed_time = td(minutes=0)
 
         if len(self.timestamp) >= self.no_required_data:
             if elapsed_time > self.max_dx_time:

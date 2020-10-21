@@ -729,7 +729,7 @@ class EconomizerAgent(Agent):
             elapsed_time = td(minutes=0)
         if current_time.minute % self.run_interval or elapsed_time > self.data_window:
             self.temp_sensor.run_diagnostic(current_time)
-            if not self.temp_sensor_problem:
+            if self.temp_sensor_problem is not None and not self.temp_sensor_problem:
                 self.econ_correctly_on.run_diagnostic(current_time)
                 self.econ_correctly_off.run_diagnostic(current_time)
                 self.excess_outside_air.run_diagnostic()

@@ -713,7 +713,7 @@ class EconomizerAgent(Agent):
             self.check_for_config_update_after_diagnostics()
             return
         self.timestamp_array.append(current_time)
-        self.temp_sensor.temperature_algorithm(self.oat, self.rat, self.mat, self.oad, current_time)
+        self.temp_sensor_problem = self.temp_sensor.temperature_algorithm(self.oat, self.rat, self.mat, self.oad, current_time)
         econ_condition, cool_call = self.determine_cooling_condition()
         _log.debug("Cool call: {} - Economizer status: {}".format(cool_call, econ_condition))
 

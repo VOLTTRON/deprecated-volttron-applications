@@ -72,7 +72,7 @@ class EconCorrectlyOff(object):
         self.analysis_name = ""
 
         # Initialize not_cooling and not_economizing flags
-        self.economizing = None
+        self.economizing = []
 
         self.max_dx_time = None
         self.data_window = None

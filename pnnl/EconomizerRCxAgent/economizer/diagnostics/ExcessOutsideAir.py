@@ -69,7 +69,7 @@ class ExcessOutsideAir(object):
         self.oad_values = []
         self.timestamp = []
         self.fan_spd_values = []
-        self.economizing = None
+        self.economizing = []
         self.analysis_name = ""
         self.results_publish = None
 

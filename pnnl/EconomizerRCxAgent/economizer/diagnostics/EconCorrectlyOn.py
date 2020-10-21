@@ -71,8 +71,8 @@ class EconCorrectlyOn(object):
         self.analysis_name = ""
 
         # Initialize not_cooling and not_economizing flags
-        self.not_cooling = None
-        self.not_economizing = None
+        self.not_cooling = []
+        self.not_economizing = []
 
         self.open_damper_threshold = None
         self.oaf_economizing_threshold = None

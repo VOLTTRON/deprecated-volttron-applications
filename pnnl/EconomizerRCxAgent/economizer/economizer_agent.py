@@ -733,8 +733,8 @@ class EconomizerAgent(Agent):
             if self.temp_sensor_problem is not None and not self.temp_sensor_problem:
                 self.econ_correctly_on.run_diagnostic(current_time)
                 self.econ_correctly_off.run_diagnostic(current_time)
-                self.excess_outside_air.run_diagnostic()
-                self.insufficient_outside_air.run_diagnostic()
+                self.excess_outside_air.run_diagnostic(current_time)
+                self.insufficient_outside_air.run_diagnostic(current_time)
             elif self.temp_sensor_problem:
                 self.pre_conditions(constants.TEMP_SENSOR, current_time)
                 self.clear_diagnostics()

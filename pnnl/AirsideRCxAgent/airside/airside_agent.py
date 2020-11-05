@@ -455,7 +455,7 @@ class AirsideAgent(Agent):
             self.percent_reheat_thr = max(10.0, min(self.percent_reheat_thr, 40.0))
             self.percent_damper_thr = max(45.0, min(self.percent_damper_thr, 75.0))
             self.reheat_valve_thr = max(25.0, min(self.reheat_valve_thr, 75.0))
-            self.sat_reset_thr = max(1.0, min(self.reheat_valve_thr, 5.0))
+            self.sat_reset_thr = max(1.0, min(self.sat_reset_thr, 5.0))
 
             self.unocc_time_thr = max(20.0, min(self.unocc_time_thr, 60.0))
             self.unocc_stp_thr = max(0.125, min(self.unocc_stp_thr, 0.3))
@@ -637,7 +637,7 @@ class AirsideAgent(Agent):
         if not self.sat_data:
             self.missing_data.append(self.sa_temp_name)
         if not self.zn_rht_data:
-            self.missing_data.append(self.zn_reheat_name)
+            _log.info("Zone reheat data is missing.")
         if not self.sat_stpt_data:
             _log.info("SAT set point data is missing.")
         if not self.stcpr_data:

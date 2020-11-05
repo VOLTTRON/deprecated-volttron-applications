@@ -71,8 +71,8 @@ class EconCorrectlyOn(object):
         self.analysis_name = ""
 
         # Initialize not_cooling and not_economizing flags
-        self.not_cooling = None
-        self.not_economizing = None
+        self.not_cooling = []
+        self.not_economizing = []
 
         self.open_damper_threshold = None
         self.oaf_economizing_threshold = None
@@ -87,6 +87,7 @@ class EconCorrectlyOn(object):
         self.not_economizing_dict = None
         self.not_cooling_dict = None
         self.inconsistent_date = None
+        self.insufficient_data = None
 
         # Application result messages
         self.alg_result_messages = [
@@ -128,7 +129,31 @@ class EconCorrectlyOn(object):
         self.max_dx_time = td(minutes=60) if td(minutes=60) > data_window else data_window * 3 / 2
         self.not_economizing_dict = {key: 15.0 for key in self.oaf_economizing_threshold}
         self.not_cooling_dict = {key: 14.0 for key in self.oaf_economizing_threshold}
+        self.insufficient_data = {key: 13.2 for key in self.oaf_economizing_threshold}
         self.inconsistent_date = {key: 13.2 for key in self.oaf_economizing_threshold}
+
+    def run_diagnostic(self, current_time):
+        if self.timestamp:
+            elapsed_time = self.timestamp[-1] - self.timestamp[0]
+        else:
+            elapsed_time = td(minutes=0)
+        if self.economizer_conditions(current_time):
+            return
+        if len(self.timestamp) >= self.no_required_data:
+            if elapsed_time > self.max_dx_time:
+                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (
+                          constants.ECON3 + constants.DX + ":" + str(self.inconsistent_date))))
+                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1],
+                                                                           (constants.ECON2 + constants.DX),
+                                                                           self.inconsistent_date))
+                self.clear_data()
+                return
+            self.not_economizing_when_needed()
+        else:
+            self.results_publish.append(constants.table_publish_format(self.analysis_name, current_time,
+                                                                       (constants.ECON2 + constants.DX),
+                                                                       self.insufficient_data))
+            self.clear_data()
 
     def economizer_on_algorithm(self, cooling_call, oat, rat, mat, oad, econ_condition, cur_time, fan_sp):
         """Perform the Econ Correctly On class algorithm
@@ -144,7 +169,7 @@ class EconCorrectlyOn(object):
         No return
         """
 
-        economizing = self.economizer_conditions(cooling_call, econ_condition, cur_time)
+        economizing = self.economizing_check(cooling_call, econ_condition, cur_time)
         if not economizing:
             return
 
@@ -156,17 +181,8 @@ class EconCorrectlyOn(object):
 
         fan_sp = fan_sp / 100.0 if fan_sp is not None else 1.0
         self.fan_spd_values.append(fan_sp)
-        elapsed_time = self.timestamp[-1] - self.timestamp[0]
 
-        if elapsed_time >= self.data_window and len(self.timestamp) >= self.no_required_data:
-            if elapsed_time > self.max_dx_time:
-                _log.info(constants.table_log_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX + ":" + str(self.inconsistent_date))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, self.timestamp[-1], (constants.ECON2 + constants.DX), self.inconsistent_date))
-                self.clear_data()
-                return
-            self.not_economizing_when_needed()
-
-    def economizer_conditions(self, cooling_call, econ_condition, cur_time):
+    def economizing_check(self, cooling_call, econ_condition, cur_time):
         """Check conditions to see if should be economizing
         cooling_call: int
         econ_conditions: float
@@ -176,30 +192,38 @@ class EconCorrectlyOn(object):
         """
         if not cooling_call:
             _log.info("{}: not cooling at {}".format(constants.ECON2, cur_time))
-            if self.not_cooling is None:
-                self.not_cooling = cur_time
-            if cur_time - self.not_cooling >= self.data_window:
-                _log.info("{}: no cooling during data set - reinitialize.".format(constants.ECON2))
-                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ":" + str(self.not_cooling_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX), self.not_cooling_dict))
-                self.clear_data()
+            self.not_cooling.append(cur_time)
             return False
-        else:
-            self.not_cooling = None
 
         if not econ_condition:
             _log.info("{}: not economizing at {}.".format(constants.ECON2, cur_time))
-            if self.not_economizing is None:
-                self.not_economizing = cur_time
-            if cur_time - self.not_economizing >= self.data_window:
-                _log.info("{}: no economizing during data set - reinitialize.".format(constants.ECON2))
-                _log.info(constants.table_log_format(self.analysis_name, cur_time, (constants.ECON2 + constants.DX + ":" + str(self.not_economizing_dict))))
-                self.results_publish.append(constants.table_publish_format(self.analysis_name, cur_time, ( constants.ECON2 + constants.DX),  self.not_economizing_dict))
-                self.clear_data()
+            self.not_economizing.append(cur_time)
             return False
-        else:
-            self.not_economizing = None
+
         return True
+
+    def economizer_conditions(self, current_time):
+        if len(self.not_cooling) >= len(self.not_cooling)*0.5:
+            _log.info(constants.table_log_format(self.analysis_name, current_time,
+                                                 (constants.ECON2 + constants.DX + ":" + str(self.not_cooling_dict))))
+            self.results_publish.append(
+                constants.table_publish_format(self.analysis_name,
+                                               current_time,
+                                               (constants.ECON2 + constants.DX),
+                                               self.not_cooling_dict))
+            self.clear_data()
+            return True
+        if len(self.not_cooling) >= len(self.not_cooling)*0.5:
+            _log.info(constants.table_log_format(self.analysis_name, current_time,
+                                                 (constants.ECON2 + constants.DX + ":" + str(self.not_cooling_dict))))
+            self.results_publish.append(
+                constants.table_publish_format(self.analysis_name,
+                                               current_time,
+                                               (constants.ECON2 + constants.DX),
+                                               self.not_cooling_dict))
+            self.clear_data()
+            return True
+        return False
 
     def not_economizing_when_needed(self):
         """If the detected problems(s) are consistent then generate a fault message(s).
@@ -262,6 +286,6 @@ class EconCorrectlyOn(object):
         self.mat_values = []
         self.fan_spd_values = []
         self.timestamp = []
-        self.not_economizing = None
-        self.not_cooling = None
+        self.not_economizing = []
+        self.not_cooling = []
 

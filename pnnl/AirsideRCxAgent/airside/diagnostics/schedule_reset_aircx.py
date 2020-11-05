@@ -279,8 +279,10 @@ class SchedResetAIRCx(object):
             msg = "ALL - No problems detected for schedule diagnostic."
             _log.info(msg)
             diagnostic_msg = {"low": 60.0, "normal": 60.0, "high": 60.0}
-
-        if 64.2 not in diagnostic_msg.values():
+        # Error code 64.2 indicates a high static pressure reading when the unit
+        # status shows the supply fan is off.  Will not produce hourly result for this
+        # case.
+        if 64.2 not in list(diagnostic_msg.values()):
             for _hour in range(24):
                 diagnostic_msg = {}
                 utc_offset = self.timestamp_array[0].isoformat()[-6:]
@@ -294,7 +296,7 @@ class SchedResetAIRCx(object):
                 _log.info(common.table_log_format(push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
                 self.publish_results(push_time, SCHED_RCX + DX, diagnostic_msg)
         else:
-            push_time = self.timestamp_array[0].date()
+            push_time = self.timestamp_array[0]
             _log.info(common.table_log_format(push_time, (SCHED_RCX + DX + ':' + str(diagnostic_msg))))
             self.publish_results(push_time, SCHED_RCX + DX, diagnostic_msg)
 

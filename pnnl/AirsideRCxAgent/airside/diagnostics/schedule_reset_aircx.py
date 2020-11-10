@@ -179,7 +179,11 @@ class SchedResetAIRCx(object):
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SCHED_RCX], current_time)
+            if self.timestamp_array:
+                report_time = self.timestamp_array[-1]
+            else:
+                report_time = current_time
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SCHED_RCX], report_time)
             self.reinitialize_sched()
 
         if run_status:
@@ -208,7 +212,7 @@ class SchedResetAIRCx(object):
 
         if stcpr_run_status is None:
             _log.info("{} - Insufficient data to produce - {}".format(current_time, DUCT_STC_RCX3))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [DUCT_STC_RCX3], current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [DUCT_STC_RCX3], self.timestamp_array[-1])
             self.stcpr_stpt_array = []
         elif stcpr_run_status:
             self.no_static_pr_reset()
@@ -219,7 +223,7 @@ class SchedResetAIRCx(object):
 
         if sat_run_status is None:
             _log.info("{} - Insufficient data to produce - {}".format(current_time, SA_TEMP_RCX3))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SA_TEMP_RCX3], current_time)
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, [SA_TEMP_RCX3], self.timestamp_array[-1])
             self.sat_stpt_array = []
             self.timestamp_array = []
         elif sat_run_status:

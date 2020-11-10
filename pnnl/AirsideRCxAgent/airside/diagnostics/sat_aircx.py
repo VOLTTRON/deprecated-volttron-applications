@@ -191,12 +191,16 @@ class SupplyTempAIRCx(object):
 
         if run_status is None:
             _log.info("{} - Insufficient data to produce a valid diagnostic result.".format(current_time))
-            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, current_time)
+            if self.timestamp_array:
+                report_time = self.timestamp_array[-1]
+            else:
+                report_time = current_time
+            common.pre_conditions(self.publish_results, INSUFFICIENT_DATA, DX_LIST, report_time)
             self.reinitialize()
 
         if run_status:
             avg_sat_stpt, dx_string, dx_msg = common.setpoint_control_check(self.sat_stpt_array, self.sat_array, self.stpt_deviation_thr, SA_TEMP_RCX)
-            _log.info(common.table_log_format(current_time, dx_string + str(dx_msg)))
+            _log.info(common.table_log_format(self.timestamp_array[-1], dx_string + str(dx_msg)))
             self.publish_results(current_time, dx_string, dx_msg)
             if self.percent_rht and self.rht_array:
                 self.low_sat(avg_sat_stpt)

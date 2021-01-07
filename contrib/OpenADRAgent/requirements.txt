@@ -3,4 +3,4 @@
 requests==2.20.0
 pytz==2013b
 simplejson==3.3.0
-lxml==3.2.3
+lxml==4.6.2

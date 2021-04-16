@@ -29,7 +29,7 @@ django-datatable==0.3.1
 django-datatables-view==1.14.0
 django-datetime-widget==0.9.3
 django-datetimepicker==3.14
-django-debug-toolbar==1.8
+django-debug-toolbar==1.11.1
 django-filter==1.0.4
 django-flat-responsive==2.0
 django-flat-theme==1.1.4

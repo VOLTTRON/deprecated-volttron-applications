@@ -5,7 +5,7 @@ behave==1.2.5
 behave-django==0.5.0
 billiard==3.5.0.3
 bootstrap-admin==0.3.7.1
-celery==4.1.0
+celery==5.2.2
 certifi==2017.7.27.1
 cffi==1.11.2
 click==6.7
